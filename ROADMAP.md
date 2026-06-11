@@ -32,6 +32,8 @@ Last updated: 2026-06-11
 - Added schema migration metadata and an idempotent migration runner.
 - Added portable search service with ranking, snippets, matched tags, and tests as the adapter target for future SQLite FTS search.
 - Added review inbox generation for untagged memories, tag suggestions, and date suggestions that need user confirmation.
+- Added app-lock provider contract with disabled/no-op implementation for future PIN/biometric lock.
+- Added optional sync provider contract with disabled/no-op implementation and conflict shape.
 
 ## Milestone Status
 
@@ -46,8 +48,8 @@ Last updated: 2026-06-11
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
 | 8. Timeline and Memory Visualization | Not started | Needs timeline v2, tag browser, graph, clusters, and life chapters. |
 | 9. Import, Export, and Data Portability | Partial | JSON/Markdown export providers, JSON/Markdown import preview providers, duplicate detection, and archive merge behavior exist. Needs file save/import UX, SQLite export, backup, and richer conflict resolution. |
-| 10. Privacy, Security, and Trust | Partial | Local processing disclosure, deleted-memory controls, and archive audit counts exist. Needs app lock, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
-| 11. Optional Cloud and Sync Layer | Not started | Deferred by design. |
+| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, and app-lock contract exist. Needs native PIN/biometric provider, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
+| 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, and conflict shape exist. Cloud/sync providers remain deferred and opt-in. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data generation exists. Needs fast capture, prompts, resurfacing, and editing polish. |
 
 ## Original Product Plan
