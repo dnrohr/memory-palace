@@ -32,6 +32,9 @@ import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../s
 import { rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
+import { buildTagClusters } from "../../../src/visualization/clusters";
+import { buildTagGraphData } from "../../../src/visualization/graph";
+import { buildLifeChapterCandidates } from "../../../src/visualization/lifeChapters";
 import {
   createMemory,
   deleteLifeContext,
@@ -55,6 +58,7 @@ import { combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } fr
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
+type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
@@ -246,6 +250,7 @@ export default function App() {
 
         {mode === "timeline" ? (
           <TimelineView
+            archive={archive}
             memories={memories}
             onSelect={(id) => {
               setSelectedId(id);
@@ -627,16 +632,35 @@ function ReviewInboxView(props: {
   );
 }
 
-function TimelineView(props: { memories: Memory[]; onSelect: (id: string) => void }) {
+function TimelineView(props: { archive: MemoryArchive; memories: Memory[]; onSelect: (id: string) => void }) {
+  const [tab, setTab] = useState<ExploreTab>("timeline");
   const buckets = buildTimelineBuckets(props.memories);
+  const graph = buildTagGraphData(props.archive);
+  const clusters = buildTagClusters(props.archive);
+  const chapters = buildLifeChapterCandidates(props.archive);
+  const memoriesById = new Map(props.archive.memories.map((memory) => [memory.id, memory]));
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      {buckets.length === 0 ? (
+      <View style={styles.segmentRow}>
+        {(["timeline", "graph", "clusters", "chapters"] as ExploreTab[]).map((nextTab) => (
+          <Pressable
+            key={nextTab}
+            onPress={() => setTab(nextTab)}
+            style={[styles.segment, tab === nextTab ? styles.segmentActive : null]}
+          >
+            <Text style={[styles.segmentText, tab === nextTab ? styles.segmentTextActive : null]}>{nextTab}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {tab === "timeline" && buckets.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No timeline entries</Text>
         </View>
-      ) : (
+      ) : null}
+
+      {tab === "timeline" ? (
         buckets.map((bucket) => (
           <View key={bucket.key} style={styles.timelineBucket}>
             <Text style={styles.timelineYear}>{bucket.label}</Text>
@@ -663,7 +687,74 @@ function TimelineView(props: { memories: Memory[]; onSelect: (id: string) => voi
             ))}
           </View>
         ))
-      )}
+      ) : null}
+
+      {tab === "graph" ? (
+        <View style={styles.filterPanel}>
+          <Text style={styles.panelTitle}>Tag graph</Text>
+          <Text style={styles.metadata}>
+            {graph.nodes.length} nodes · {graph.edges.length} links
+          </Text>
+          {graph.nodes.slice(0, 20).map((node) => (
+            <View key={node.id} style={styles.graphRow}>
+              <Text style={styles.memoryTitle}>{node.label}</Text>
+              <Text style={styles.timelineBadge}>{node.kind}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {tab === "clusters" ? (
+        clusters.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No clusters yet</Text>
+          </View>
+        ) : (
+          clusters.map((cluster) => (
+            <View key={cluster.id} style={styles.filterPanel}>
+              <Text style={styles.panelTitle}>{cluster.label}</Text>
+              <Text style={styles.metadata}>
+                {cluster.memoryIds.length} memories · {cluster.basis.replace("_", " ")}
+              </Text>
+              {cluster.memoryIds.map((memoryId) => {
+                const memory = memoriesById.get(memoryId);
+                if (!memory) return null;
+                return (
+                  <Pressable key={memoryId} style={styles.relatedItem} onPress={() => props.onSelect(memoryId)}>
+                    <Text style={styles.memoryTitle}>{memory.title}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))
+        )
+      ) : null}
+
+      {tab === "chapters" ? (
+        chapters.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No chapter candidates yet</Text>
+          </View>
+        ) : (
+          chapters.map((chapter) => (
+            <View key={chapter.id} style={styles.filterPanel}>
+              <Text style={styles.panelTitle}>{chapter.name}</Text>
+              <Text style={styles.metadata}>
+                {chapter.memoryIds.length} memories · {chapter.basis.replace("_", " ")}
+              </Text>
+              {chapter.memoryIds.slice(0, 5).map((memoryId) => {
+                const memory = memoriesById.get(memoryId);
+                if (!memory) return null;
+                return (
+                  <Pressable key={memoryId} style={styles.relatedItem} onPress={() => props.onSelect(memoryId)}>
+                    <Text style={styles.memoryTitle}>{memory.title}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))
+        )
+      ) : null}
     </ScrollView>
   );
 }
@@ -1443,6 +1534,15 @@ const styles = StyleSheet.create({
     borderTopColor: "#e4e0d5",
     paddingTop: 10,
     gap: 6
+  },
+  graphRow: {
+    borderTopWidth: 1,
+    borderTopColor: "#e4e0d5",
+    paddingTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
   },
   filterPanel: {
     borderWidth: 1,

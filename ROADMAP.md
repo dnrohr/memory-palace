@@ -54,6 +54,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added timeline entry metadata and UI cues for confirmed, inferred, range, and unknown memory dates.
 - Added Expo document/file portability support for JSON/Markdown export sharing and JSON/Markdown import preview/apply from picked files.
 - Added a data audit report and Settings controls for local processing modes, embedding counts/bytes, generated processing logs, and retained audio reference cleanup.
+- Added Explore tabs for timeline, tag graph summaries, shared-tag clusters, and editable life chapter candidates.
 
 ## Milestone Status
 
@@ -66,7 +67,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine. | Local model adapter, schema validation, prompt/version metadata, UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers, semantic search UI. | Production local embedding model, background indexing queue, explicit regeneration controls. |
-| 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph data, shared-tag clusters, editable life chapter candidates, related memories. | Graph UI, cluster/chapter editing UI, richer timeline filtering. |
+| 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, related memories. | Cluster/chapter rename/merge/reject actions, richer timeline filtering. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract. | Native PIN/biometric provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
@@ -115,6 +116,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
 2. Add FTS-backed search adapter while keeping the portable ranked search fallback.
 3. Add background queue controls and explicit regeneration for stale embeddings.
-4. Add graph, cluster, and chapter editing views.
+4. Add cluster/chapter rename, merge, split, and reject actions.
 5. Add SQLite export and richer import conflict resolution.
 6. Add native PIN/biometric lock and encryption options.
