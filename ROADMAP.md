@@ -41,6 +41,7 @@ Last updated: 2026-06-11
 - Added tag type editing and tag merge operations with link deduplication.
 - Added app UI and archive operations for managing life-context people, pets, places, and life periods.
 - Added review accept/reject operations and app actions for confirming tag/date suggestions or rejecting tag suggestions.
+- Added portable import workflow for provider detection, import preview, merge preview, and applying imports.
 
 ## Milestone Status
 
@@ -54,7 +55,7 @@ Last updated: 2026-06-11
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, tag graph data, shared-tag cluster data, and editable life chapter candidates exist. Needs timeline v2 UI, graph UI, and cluster/chapter editing UI. |
-| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import preview providers, duplicate detection, and archive merge behavior exist. Needs file save/import UX, SQLite export, and richer conflict resolution. |
+| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, import workflow preview/apply, duplicate detection, and archive merge behavior exist. Needs platform file save/import UI, SQLite export, and richer conflict resolution. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, and app-lock contract exist. Needs native PIN/biometric provider, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, and conflict shape exist. Cloud/sync providers remain deferred and opt-in. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI and gentle resurfacing prompts exist. Needs fast capture, prompt UI, and editing polish. |
