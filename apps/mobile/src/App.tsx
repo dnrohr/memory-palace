@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Download, Edit3, List, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Download, Edit3, List, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion } from "../../../src/core/types";
+import type { AppLockSettings } from "../../../src/security/appLock";
 import {
   buildTimelineBuckets,
   deleteTag,
@@ -55,13 +56,21 @@ import {
   type AudioCaptureSession
 } from "./audioCapture";
 import { combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
+import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
 type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 
 export default function App() {
+  const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
+  const [appLockSettings, setAppLockSettings] = useState<AppLockSettings>({
+    mode: "disabled",
+    autoLockTimeoutMs: 0,
+    hidePreviewsInSwitcher: false
+  });
+  const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [query, setQuery] = useState("");
@@ -80,6 +89,16 @@ export default function App() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    void appLockProvider.getSettings().then(async (settings) => {
+      setAppLockSettings(settings);
+      if (settings.mode !== "disabled") {
+        await appLockProvider.lock();
+        setIsAppLocked(await appLockProvider.isLocked());
+      }
+    });
+  }, [appLockProvider]);
 
   const keywordMemories = useMemo(() => {
     if (!archive) return [];
@@ -131,12 +150,32 @@ export default function App() {
     await saveArchive(indexedArchive);
   }
 
+  async function saveAppLockSettings(settings: AppLockSettings) {
+    await appLockProvider.saveSettings(settings);
+    setAppLockSettings(settings);
+    setIsAppLocked(await appLockProvider.isLocked());
+  }
+
   if (!archive) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loading}>
           <Text style={styles.loadingText}>Loading archive</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isAppLocked) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <UnlockView
+          onUnlock={async () => {
+            const unlocked = await appLockProvider.unlock();
+            setIsAppLocked(await appLockProvider.isLocked());
+            return unlocked;
+          }}
+        />
       </SafeAreaView>
     );
   }
@@ -293,9 +332,28 @@ export default function App() {
         {mode === "settings" ? (
           <Settings
             archive={archive}
+            appLockSettings={appLockSettings}
             onImport={async (preview) => persist(applyArchiveImport(archive, preview))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
+            onEnableBiometricLock={async () =>
+              saveAppLockSettings({
+                mode: "biometric",
+                autoLockTimeoutMs: 60_000,
+                hidePreviewsInSwitcher: true
+              })
+            }
+            onDisableAppLock={async () =>
+              saveAppLockSettings({
+                mode: "disabled",
+                autoLockTimeoutMs: 0,
+                hidePreviewsInSwitcher: false
+              })
+            }
+            onLockNow={async () => {
+              await appLockProvider.lock();
+              setIsAppLocked(await appLockProvider.isLocked());
+            }}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -332,6 +390,25 @@ function Header(props: {
         <IconButton label="Tags" active={props.mode === "tags"} onPress={props.onTags} icon={<Tags size={20} />} />
         <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
+    </View>
+  );
+}
+
+function UnlockView(props: { onUnlock: () => Promise<boolean> }) {
+  const [error, setError] = useState<string | undefined>();
+
+  async function unlock() {
+    setError(undefined);
+    const unlocked = await props.onUnlock();
+    if (!unlocked) setError("Unlock was not completed.");
+  }
+
+  return (
+    <View style={styles.lockScreen}>
+      <Lock size={32} color="#374236" />
+      <Text style={styles.detailTitle}>Memory Palace is locked</Text>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <PrimaryButton label="Unlock" onPress={unlock} icon={<Lock size={18} />} />
     </View>
   );
 }
@@ -1149,9 +1226,13 @@ function MemoryDetail(props: {
 
 function Settings(props: {
   archive: MemoryArchive;
+  appLockSettings: AppLockSettings;
   onImport: (preview: ArchiveImportWorkflowPreview) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
+  onEnableBiometricLock: () => Promise<void>;
+  onDisableAppLock: () => Promise<void>;
+  onLockNow: () => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
@@ -1211,6 +1292,23 @@ function Settings(props: {
         <View style={styles.actionRow}>
           <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
+        </View>
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>App lock</Text>
+        <Text style={styles.metadata}>Mode: {props.appLockSettings.mode}</Text>
+        <Text style={styles.metadata}>
+          Hide previews in switcher: {props.appLockSettings.hidePreviewsInSwitcher ? "yes" : "no"}
+        </Text>
+        <View style={styles.actionRow}>
+          {props.appLockSettings.mode === "disabled" ? (
+            <PrimaryButton label="Enable biometric" onPress={props.onEnableBiometricLock} icon={<Lock size={18} />} />
+          ) : (
+            <>
+              <SecondaryButton label="Lock now" onPress={props.onLockNow} icon={<Lock size={18} />} />
+              <SecondaryButton label="Disable lock" onPress={props.onDisableAppLock} icon={<X size={18} />} />
+            </>
+          )}
         </View>
       </View>
       <View style={styles.actionRow}>
@@ -1387,6 +1485,13 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#41463f",
     fontSize: 16
+  },
+  lockScreen: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 14
   },
   header: {
     minHeight: 76,

@@ -55,6 +55,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added Expo document/file portability support for JSON/Markdown export sharing and JSON/Markdown import preview/apply from picked files.
 - Added a data audit report and Settings controls for local processing modes, embedding counts/bytes, generated processing logs, and retained audio reference cleanup.
 - Added Explore tabs for timeline, tag graph summaries, shared-tag clusters, and editable life chapter candidates.
+- Added an Expo biometric app-lock provider plus Settings controls to enable biometric lock, disable lock, lock now, and unlock the app.
 
 ## Milestone Status
 
@@ -69,7 +70,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers, semantic search UI. | Production local embedding model, background indexing queue, explicit regeneration controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, related memories. | Cluster/chapter rename/merge/reject actions, richer timeline filtering. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |
-| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract. | Native PIN/biometric provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
+| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI. | Secure PIN provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompts, related-memory prompts. | Fast capture mode, prompt UI, memory split/merge/addendum/correction flows, editing polish. |
 
@@ -118,4 +119,4 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 3. Add background queue controls and explicit regeneration for stale embeddings.
 4. Add cluster/chapter rename, merge, split, and reject actions.
 5. Add SQLite export and richer import conflict resolution.
-6. Add native PIN/biometric lock and encryption options.
+6. Add secure PIN lock and encryption options.
