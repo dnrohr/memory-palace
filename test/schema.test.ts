@@ -8,6 +8,7 @@ describe("schema", () => {
 
   it("includes the MVP canonical tables and FTS index", () => {
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS memory");
+    expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS schema_migration");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS tag");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS memory_tag");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS user_profile");

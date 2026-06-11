@@ -1,6 +1,12 @@
 export const schemaVersion = "0.1.0";
 
 export const initialSchemaSql = `
+CREATE TABLE IF NOT EXISTS schema_migration (
+  id TEXT PRIMARY KEY,
+  version TEXT NOT NULL,
+  applied_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS memory (
   id TEXT PRIMARY KEY,
   raw_text TEXT NOT NULL,

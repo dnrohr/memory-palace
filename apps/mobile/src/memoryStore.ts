@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import type { MemoryArchive } from "../../../src/core/archive";
 import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiveOperations";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
+import { applyMigrations } from "../../../src/storage/migrations";
 import type { Memory, MemoryTag, Tag } from "../../../src/core/types";
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
@@ -240,7 +241,7 @@ async function getDatabase(): Promise<import("expo-sqlite").SQLiteDatabase> {
 async function openDatabase(): Promise<import("expo-sqlite").SQLiteDatabase> {
   const SQLite = await import("expo-sqlite");
   const db = await SQLite.openDatabaseAsync("memory-palace.db");
-  await db.execAsync(initialSchemaSql);
+  await applyMigrations(db);
   return db;
 }
 

@@ -29,13 +29,15 @@ Last updated: 2026-06-11
 - Added optional-AI adapter seams: no-op structured extraction engine, no-op embedding engine, and embedding storage schema.
 - Added transcription contract and manual-text fallback engine as the boundary for future native speech capture.
 - Added archive import merge preview and merge behavior with duplicate-memory detection and tag deduplication.
+- Added schema migration metadata and an idempotent migration runner.
+- Added portable search service with ranking, snippets, matched tags, and tests as the adapter target for future SQLite FTS search.
 
 ## Milestone Status
 
 | Milestone | Status | Notes |
 | --- | --- | --- |
-| 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, and native SQLite path exist. Migration versioning and richer settings remain. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, basic search, and timeline v1 exist. FTS-backed search and richer tag merge/type editing remain. |
+| 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, native SQLite path, and migration tracking exist. Richer settings remain. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and richer tag merge/type editing remain. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
 | 4. Rules-Based Metadata Suggestions | Partial | Date and tag suggestion prototypes exist. Needs confirmation inbox, provenance UI, and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types exist with a basic text matcher. Needs app UI, relationships, inference rules, and graph traversal. |
