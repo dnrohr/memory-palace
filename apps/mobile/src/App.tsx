@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Download, Edit3, List, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Wand2, X } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Download, Edit3, List, MapPin, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -25,21 +25,24 @@ import {
 } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
+import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { buildReviewInbox } from "../../../src/processing/reviewInbox";
 import {
   createMemory,
+  deleteLifeContext,
   loadArchive,
   replaceTags,
   saveArchive,
   softDeleteMemory,
   tagsForMemory,
+  upsertLifeContext,
   upsertMemory
 } from "./memoryStore";
 import type { MemoryArchive } from "../../../src/core/archive";
 
-type ViewMode = "list" | "editor" | "detail" | "timeline" | "review" | "tags" | "settings";
+type ViewMode = "list" | "editor" | "detail" | "timeline" | "review" | "context" | "tags" | "settings";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
@@ -91,6 +94,7 @@ export default function App() {
           onList={() => setMode("list")}
           onTimeline={() => setMode("timeline")}
           onReview={() => setMode("review")}
+          onContext={() => setMode("context")}
           onTags={() => setMode("tags")}
           onSettings={() => setMode("settings")}
         />
@@ -179,6 +183,14 @@ export default function App() {
           />
         ) : null}
 
+        {mode === "context" ? (
+          <LifeContextView
+            archive={archive}
+            onSave={async (entity) => persist(upsertLifeContext(archive, entity))}
+            onDelete={async (kind, id) => persist(deleteLifeContext(archive, kind, id))}
+          />
+        ) : null}
+
         {mode === "tags" ? (
           <TagManagement
             archive={archive}
@@ -208,6 +220,7 @@ function Header(props: {
   onList: () => void;
   onTimeline: () => void;
   onReview: () => void;
+  onContext: () => void;
   onTags: () => void;
   onSettings: () => void;
 }) {
@@ -222,11 +235,190 @@ function Header(props: {
         <IconButton label="New" active={props.mode === "editor"} onPress={props.onNew} icon={<Plus size={20} />} />
         <IconButton label="Timeline" active={props.mode === "timeline"} onPress={props.onTimeline} icon={<CalendarDays size={20} />} />
         <IconButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
+        <IconButton label="Context" active={props.mode === "context"} onPress={props.onContext} icon={<Users size={20} />} />
         <IconButton label="Tags" active={props.mode === "tags"} onPress={props.onTags} icon={<Tags size={20} />} />
         <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
     </View>
   );
+}
+
+type LifeContextKind = LifeContextEntity["kind"];
+
+function LifeContextView(props: {
+  archive: MemoryArchive;
+  onSave: (entity: LifeContextEntity) => Promise<void>;
+  onDelete: (kind: LifeContextKind, id: string) => Promise<void>;
+}) {
+  const [kind, setKind] = useState<LifeContextKind>("person");
+  const [name, setName] = useState("");
+  const [detail, setDetail] = useState("");
+
+  const entities = getLifeContextEntities(props.archive, kind);
+  const canSave = name.trim().length > 0;
+
+  async function save() {
+    if (!canSave) return;
+    const trimmedName = name.trim();
+    const now = new Date().toISOString();
+    await props.onSave(buildLifeContextEntity(kind, trimmedName, detail.trim(), now));
+    setName("");
+    setDetail("");
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.segmentRow}>
+        {(["person", "pet", "place", "life_period"] as LifeContextKind[]).map((value) => (
+          <Pressable
+            key={value}
+            onPress={() => setKind(value)}
+            style={[styles.segment, kind === value ? styles.segmentActive : null]}
+          >
+            <Text style={[styles.segmentText, kind === value ? styles.segmentTextActive : null]}>
+              {lifeContextKindLabel(value)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.filterPanel}>
+        <View style={styles.panelHeader}>
+          <MapPin size={18} color="#374236" />
+          <Text style={styles.panelTitle}>Add {lifeContextKindLabel(kind)}</Text>
+        </View>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Name"
+          placeholderTextColor="#7b8178"
+          style={styles.tagInput}
+        />
+        <TextInput
+          value={detail}
+          onChangeText={setDetail}
+          placeholder={lifeContextDetailPlaceholder(kind)}
+          placeholderTextColor="#7b8178"
+          style={styles.tagInput}
+        />
+        <PrimaryButton label="Save" onPress={save} disabled={!canSave} icon={<Save size={18} />} />
+      </View>
+      {entities.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>No {lifeContextKindLabel(kind).toLowerCase()} yet</Text>
+        </View>
+      ) : (
+        entities.map((entity) => (
+          <View key={entity.id} style={styles.tagCard}>
+            <View>
+              <Text style={styles.memoryTitle}>{entity.name}</Text>
+              {entity.detail ? <Text style={styles.metadata}>{entity.detail}</Text> : null}
+            </View>
+            <View style={styles.headerActions}>
+              <IconButton
+                label="Delete context"
+                danger
+                onPress={() => void props.onDelete(kind, entity.id)}
+                icon={<Trash2 size={20} />}
+              />
+            </View>
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
+}
+
+function getLifeContextEntities(archive: MemoryArchive, kind: LifeContextKind): Array<{ id: string; name: string; detail?: string }> {
+  switch (kind) {
+    case "person":
+      return archive.people.map((person) => ({
+        id: person.id,
+        name: person.displayName,
+        ...(person.relationship ? { detail: person.relationship } : {})
+      }));
+    case "pet":
+      return archive.pets.map((pet) => ({
+        id: pet.id,
+        name: pet.name,
+        ...(pet.species ? { detail: pet.species } : {})
+      }));
+    case "place":
+      return archive.places.map((place) => ({ id: place.id, name: place.name, detail: place.type }));
+    case "life_period":
+      return archive.lifePeriods.map((period) => ({ id: period.id, name: period.name, detail: period.datePrecision }));
+  }
+}
+
+function buildLifeContextEntity(kind: LifeContextKind, name: string, detail: string, now: string): LifeContextEntity {
+  switch (kind) {
+    case "person":
+      return {
+        kind,
+        value: {
+          id: createLifeContextId(kind, name),
+          displayName: name,
+          normalizedName: name.toLocaleLowerCase(),
+          ...(detail ? { relationship: detail } : {}),
+          createdAt: now
+        }
+      };
+    case "pet":
+      return {
+        kind,
+        value: {
+          id: createLifeContextId(kind, name),
+          name,
+          ...(detail ? { species: detail } : {})
+        }
+      };
+    case "place":
+      return {
+        kind,
+        value: {
+          id: createLifeContextId(kind, name),
+          name,
+          type: "custom",
+          privacyLevel: detail === "exact" || detail === "approximate" || detail === "hidden" ? detail : "vague",
+          ...(detail && !["exact", "approximate", "hidden", "vague"].includes(detail) ? { notes: detail } : {})
+        }
+      };
+    case "life_period":
+      return {
+        kind,
+        value: {
+          id: createLifeContextId(kind, name),
+          name,
+          datePrecision: "unknown",
+          ...(detail ? { notes: detail } : {})
+        }
+      };
+  }
+}
+
+function lifeContextKindLabel(kind: LifeContextKind): string {
+  switch (kind) {
+    case "person":
+      return "People";
+    case "pet":
+      return "Pets";
+    case "place":
+      return "Places";
+    case "life_period":
+      return "Life periods";
+  }
+}
+
+function lifeContextDetailPlaceholder(kind: LifeContextKind): string {
+  switch (kind) {
+    case "person":
+      return "Relationship";
+    case "pet":
+      return "Species";
+    case "place":
+      return "Privacy or notes";
+    case "life_period":
+      return "Notes";
+  }
 }
 
 function ReviewInboxView(props: { archive: MemoryArchive; onSelect: (id: string) => void }) {

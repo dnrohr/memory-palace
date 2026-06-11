@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import type { MemoryArchive } from "../../../src/core/archive";
 import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiveOperations";
+import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
 import type { Memory, MemoryTag, Tag } from "../../../src/core/types";
@@ -206,6 +207,24 @@ export function tagsForMemory(archive: MemoryArchive, memoryId: string): Tag[] {
 
 export function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function upsertLifeContext(archive: MemoryArchive, entity: LifeContextEntity): MemoryArchive {
+  return {
+    ...archive,
+    ...upsertLifeContextEntity(archive, entity)
+  };
+}
+
+export function deleteLifeContext(
+  archive: MemoryArchive,
+  kind: LifeContextEntity["kind"],
+  id: string
+): MemoryArchive {
+  return {
+    ...archive,
+    ...deleteLifeContextEntity(archive, kind, id)
+  };
 }
 
 function deriveTitle(text: string): string {

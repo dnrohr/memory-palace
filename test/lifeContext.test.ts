@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findLifeContextMatches } from "../src/core/lifeContext";
+import {
+  createLifeContextId,
+  deleteLifeContextEntity,
+  findLifeContextMatches,
+  upsertLifeContextEntity
+} from "../src/core/lifeContext";
 
 describe("life context", () => {
   it("matches known people, pets, places, and life periods in memory text", () => {
@@ -24,5 +29,26 @@ describe("life context", () => {
       { id: "period-1", name: "college", kind: "life_period" }
     ]);
   });
-});
 
+  it("upserts and deletes life context entities", () => {
+    const context = {
+      people: [],
+      pets: [],
+      places: [],
+      lifePeriods: []
+    };
+
+    const withPerson = upsertLifeContextEntity(context, {
+      kind: "person",
+      value: {
+        id: createLifeContextId("person", "Maya"),
+        displayName: "Maya",
+        normalizedName: "maya",
+        createdAt: "2026-06-11T00:00:00.000Z"
+      }
+    });
+
+    expect(withPerson.people).toHaveLength(1);
+    expect(deleteLifeContextEntity(withPerson, "person", "person_maya").people).toHaveLength(0);
+  });
+});
