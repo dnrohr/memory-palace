@@ -67,13 +67,14 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added richer import conflict preview details for duplicate memories, same-ID memory conflicts, and tag type conflicts.
 - Added SecureStore-backed PIN app lock support with Settings controls and PIN unlock flow.
 - Added typed audio capture errors plus voice-capture status, retry, and stop/save error states.
+- Added tag management UI for changing tag types and merging duplicate tags.
 
 ## Milestone Status
 
 | Milestone | Status | Done | Remaining |
 | --- | --- | --- | --- |
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking. | Richer settings, storage diagnostics, device-level QA. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, timeline v1, native SQLite FTS rebuild/query integration. | App UI for merge/type editing and stronger search highlighting. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search, timeline v1, native SQLite FTS rebuild/query integration. | Stronger search highlighting. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow. | Native speech-to-text adapter and interruption/background handling. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |

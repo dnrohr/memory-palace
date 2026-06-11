@@ -12,17 +12,19 @@ import {
   TextInput,
   View
 } from "react-native";
-import type { DateCandidate, DatePrecision, Memory, TagSuggestion } from "../../../src/core/types";
+import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
 import {
   buildTimelineBuckets,
   appendMemoryAddendum,
   deleteTag,
   filterMemories,
+  mergeTags,
   permanentlyDeleteMemory,
   renameTag,
   restoreMemory,
-  summarizeArchive
+  summarizeArchive,
+  updateTagType
 } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
@@ -374,6 +376,11 @@ export default function App() {
           <TagManagement
             archive={archive}
             onRename={async (tagId, name) => persist(renameTag(archive, tagId, name))}
+            onTypeChange={async (tagId, type) => persist(updateTagType(archive, tagId, type))}
+            onMerge={async (sourceTagId, targetTagId) => {
+              await persist(mergeTags(archive, sourceTagId, targetTagId));
+              setSelectedTagIds((current) => current.map((id) => (id === sourceTagId ? targetTagId : id)));
+            }}
             onDelete={async (tagId) => {
               await persist(deleteTag(archive, tagId));
               setSelectedTagIds((current) => current.filter((id) => id !== tagId));
@@ -1122,10 +1129,14 @@ function MemoryList(props: {
 function TagManagement(props: {
   archive: MemoryArchive;
   onRename: (tagId: string, name: string) => Promise<void>;
+  onTypeChange: (tagId: string, type: TagType) => Promise<void>;
+  onMerge: (sourceTagId: string, targetTagId: string) => Promise<void>;
   onDelete: (tagId: string) => Promise<void>;
 }) {
   const [editingTagId, setEditingTagId] = useState<string | undefined>();
+  const [mergingTagId, setMergingTagId] = useState<string | undefined>();
   const [draftName, setDraftName] = useState("");
+  const tagTypes: TagType[] = ["custom", "person", "pet", "place", "time", "emotion", "theme", "activity", "life_period"];
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -1154,6 +1165,35 @@ function TagManagement(props: {
                   <Text style={styles.metadata}>
                     {tag.type} · {usageCount} {usageCount === 1 ? "memory" : "memories"}
                   </Text>
+                  <View style={styles.segmentRow}>
+                    {tagTypes.map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => void props.onTypeChange(tag.id, type)}
+                        style={[styles.segment, tag.type === type ? styles.segmentActive : null]}
+                      >
+                        <Text style={[styles.segmentText, tag.type === type ? styles.segmentTextActive : null]}>{type}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {mergingTagId === tag.id ? (
+                    <View style={styles.segmentRow}>
+                      {props.archive.tags
+                        .filter((target) => target.id !== tag.id)
+                        .map((target) => (
+                          <Pressable
+                            key={target.id}
+                            onPress={async () => {
+                              await props.onMerge(tag.id, target.id);
+                              setMergingTagId(undefined);
+                            }}
+                            style={styles.segment}
+                          >
+                            <Text style={styles.segmentText}>{target.name}</Text>
+                          </Pressable>
+                        ))}
+                    </View>
+                  ) : null}
                 </View>
               )}
               <View style={styles.headerActions}>
@@ -1178,6 +1218,11 @@ function TagManagement(props: {
                         setDraftName(tag.name);
                       }}
                       icon={<Edit3 size={20} />}
+                    />
+                    <IconButton
+                      label="Merge tag"
+                      onPress={() => setMergingTagId((current) => (current === tag.id ? undefined : tag.id))}
+                      icon={<Tags size={20} />}
                     />
                     <IconButton label="Delete tag" danger onPress={() => void props.onDelete(tag.id)} icon={<Trash2 size={20} />} />
                   </>
