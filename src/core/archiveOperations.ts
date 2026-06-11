@@ -154,6 +154,30 @@ export function permanentlyDeleteMemory(archive: MemoryArchive, memoryId: string
   };
 }
 
+export function appendMemoryAddendum(
+  archive: MemoryArchive,
+  memoryId: string,
+  addendum: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  const trimmed = addendum.trim();
+  if (!trimmed) return archive;
+
+  return {
+    ...archive,
+    memories: archive.memories.map((memory) => {
+      if (memory.id !== memoryId) return memory;
+      const nextText = `${memory.rawText}\n\nAddendum (${now.slice(0, 10)}): ${trimmed}`;
+      return {
+        ...memory,
+        rawText: nextText,
+        cleanedText: nextText,
+        updatedAt: now
+      };
+    })
+  };
+}
+
 export function buildTimelineBuckets(memories: Memory[]): TimelineBucket[] {
   const bucketMap = new Map<string, TimelineBucket>();
 

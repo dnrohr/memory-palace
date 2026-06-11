@@ -16,6 +16,7 @@ import type { DateCandidate, DatePrecision, Memory, TagSuggestion } from "../../
 import type { AppLockSettings } from "../../../src/security/appLock";
 import {
   buildTimelineBuckets,
+  appendMemoryAddendum,
   deleteTag,
   filterMemories,
   permanentlyDeleteMemory,
@@ -275,6 +276,7 @@ export default function App() {
               setSelectedId(id);
               setMode("detail");
             }}
+            onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
             onDelete={async () => {
               await persist(softDeleteMemory(archive, selectedMemory.id));
               setSelectedId(undefined);
@@ -1190,8 +1192,10 @@ function MemoryDetail(props: {
   onEdit: () => void;
   onDelete: () => Promise<void>;
   onSelect: (id: string) => void;
+  onAddendum: (text: string) => Promise<void>;
 }) {
   const [relatedMemories, setRelatedMemories] = useState<RelatedMemoryResult[]>([]);
+  const [addendumText, setAddendumText] = useState("");
 
   useEffect(() => {
     let isCurrent = true;
@@ -1232,6 +1236,27 @@ function MemoryDetail(props: {
       <Text style={styles.metadata}>
         Memory date: {formatMemoryDate(props.memory)} ({props.memory.datePrecision})
       </Text>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Addendum</Text>
+        <TextInput
+          value={addendumText}
+          onChangeText={setAddendumText}
+          placeholder="Add a later note or correction"
+          placeholderTextColor="#7b8178"
+          multiline
+          textAlignVertical="top"
+          style={styles.addendumInput}
+        />
+        <PrimaryButton
+          label="Append"
+          disabled={!addendumText.trim()}
+          onPress={async () => {
+            await props.onAddendum(addendumText);
+            setAddendumText("");
+          }}
+          icon={<Save size={18} />}
+        />
+      </View>
       {relatedMemories.length > 0 ? (
         <View style={styles.relatedPanel}>
           <Text style={styles.panelTitle}>Related memories</Text>
@@ -1618,6 +1643,18 @@ const styles = StyleSheet.create({
     color: "#252925",
     fontSize: 16,
     lineHeight: 24,
+    outlineStyle: "none" as never
+  },
+  addendumInput: {
+    minHeight: 96,
+    borderWidth: 1,
+    borderColor: "#d1cdbf",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 12,
+    color: "#252925",
+    fontSize: 15,
+    lineHeight: 22,
     outlineStyle: "none" as never
   },
   tagInput: {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import {
   buildTimelineBuckets,
+  appendMemoryAddendum,
   deleteTag,
   filterMemories,
   permanentlyDeleteMemory,
@@ -155,6 +156,15 @@ describe("archive operations", () => {
     const purged = permanentlyDeleteMemory(archive, "mem-1");
     expect(purged.memories.map((memory) => memory.id)).toEqual(["mem-2"]);
     expect(purged.memoryTags.map((link) => link.memoryId)).toEqual(["mem-2"]);
+  });
+
+  it("appends memory addenda without replacing original text", () => {
+    const next = appendMemoryAddendum(archive, "mem-1", "I later remembered the window was blue.", "2026-06-12T00:00:00.000Z");
+    const memory = next.memories.find((item) => item.id === "mem-1");
+
+    expect(memory?.rawText).toContain("Patrick slept in the old house.");
+    expect(memory?.rawText).toContain("Addendum (2026-06-12): I later remembered the window was blue.");
+    expect(memory?.updatedAt).toBe("2026-06-12T00:00:00.000Z");
   });
 
   it("builds timeline buckets from approximate or created dates", () => {

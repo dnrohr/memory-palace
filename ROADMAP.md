@@ -57,6 +57,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added Explore tabs for timeline, tag graph summaries, shared-tag clusters, and editable life chapter candidates.
 - Added an Expo biometric app-lock provider plus Settings controls to enable biometric lock, disable lock, lock now, and unlock the app.
 - Added a prompt panel to the memory list for revisiting memories, finishing untagged memories, and filtering into common-tag prompts.
+- Added a memory addendum operation and detail-screen composer for later notes and corrections without replacing the original memory.
 
 ## Milestone Status
 
@@ -73,7 +74,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI. | Secure PIN provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
-| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts. | Fast capture mode, memory split/merge/addendum/correction flows, editing polish. |
+| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow. | Fast capture mode, memory split/merge flows, richer correction/private-note fields, editing polish. |
 
 ## Product Principles
 
