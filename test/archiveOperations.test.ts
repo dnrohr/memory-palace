@@ -1,0 +1,147 @@
+import { describe, expect, it } from "vitest";
+import type { MemoryArchive } from "../src/core/archive";
+import {
+  buildTimelineBuckets,
+  deleteTag,
+  filterMemories,
+  permanentlyDeleteMemory,
+  renameTag,
+  restoreMemory,
+  summarizeArchive,
+  tagsForMemoryArchive
+} from "../src/core/archiveOperations";
+
+const archive: MemoryArchive = {
+  exportedAt: "2026-06-11T00:00:00.000Z",
+  schemaVersion: "0.1.0",
+  memories: [
+    {
+      id: "mem-1",
+      rawText: "Patrick slept in the old house.",
+      title: "Patrick",
+      createdAt: "2026-06-11T00:00:00.000Z",
+      updatedAt: "2026-06-11T00:00:00.000Z",
+      sourceType: "typed",
+      isAudioRetained: false,
+      approximateStartDate: "1994-01-01",
+      datePrecision: "year",
+      userDateConfirmed: true
+    },
+    {
+      id: "mem-2",
+      rawText: "Maya and I worked late after college.",
+      title: "College work",
+      createdAt: "2026-06-10T00:00:00.000Z",
+      updatedAt: "2026-06-10T00:00:00.000Z",
+      sourceType: "typed",
+      isAudioRetained: false,
+      datePrecision: "unknown",
+      userDateConfirmed: false
+    }
+  ],
+  tags: [
+    {
+      id: "tag-1",
+      name: "Patrick",
+      normalizedName: "patrick",
+      type: "pet",
+      createdAt: "2026-06-11T00:00:00.000Z",
+      updatedAt: "2026-06-11T00:00:00.000Z",
+      isUserCreated: true
+    },
+    {
+      id: "tag-2",
+      name: "work",
+      normalizedName: "work",
+      type: "activity",
+      createdAt: "2026-06-11T00:00:00.000Z",
+      updatedAt: "2026-06-11T00:00:00.000Z",
+      isUserCreated: true
+    }
+  ],
+  memoryTags: [
+    {
+      memoryId: "mem-1",
+      tagId: "tag-1",
+      source: "explicit",
+      userConfirmed: true,
+      rejected: false,
+      createdAt: "2026-06-11T00:00:00.000Z"
+    },
+    {
+      memoryId: "mem-2",
+      tagId: "tag-2",
+      source: "explicit",
+      userConfirmed: true,
+      rejected: false,
+      createdAt: "2026-06-11T00:00:00.000Z"
+    }
+  ],
+  people: [],
+  pets: [],
+  places: [],
+  lifePeriods: [],
+  processingRuns: []
+};
+
+describe("archive operations", () => {
+  it("filters memories by text, tag, and date precision", () => {
+    expect(filterMemories(archive, { text: "old house" }).map((memory) => memory.id)).toEqual(["mem-1"]);
+    expect(filterMemories(archive, { tagIds: ["tag-2"] }).map((memory) => memory.id)).toEqual(["mem-2"]);
+    expect(filterMemories(archive, { datePrecisions: ["year"] }).map((memory) => memory.id)).toEqual(["mem-1"]);
+  });
+
+  it("lists memory tags sorted by name", () => {
+    expect(tagsForMemoryArchive(archive, "mem-1").map((tag) => tag.name)).toEqual(["Patrick"]);
+  });
+
+  it("renames tags without changing links", () => {
+    const next = renameTag(archive, "tag-1", "Patrick dog");
+
+    expect(next.tags.find((tag) => tag.id === "tag-1")).toEqual(
+      expect.objectContaining({ name: "Patrick dog", normalizedName: "patrick dog" })
+    );
+    expect(tagsForMemoryArchive(next, "mem-1").map((tag) => tag.name)).toEqual(["Patrick dog"]);
+  });
+
+  it("deletes tags and their memory links", () => {
+    const next = deleteTag(archive, "tag-1");
+
+    expect(next.tags.map((tag) => tag.id)).not.toContain("tag-1");
+    expect(tagsForMemoryArchive(next, "mem-1")).toEqual([]);
+  });
+
+  it("restores and permanently deletes memories", () => {
+    const deleted = {
+      ...archive,
+      memories: archive.memories.map((memory) => (memory.id === "mem-1" ? { ...memory, deletedAt: "2026-06-12" } : memory))
+    };
+
+    expect(restoreMemory(deleted, "mem-1").memories.find((memory) => memory.id === "mem-1")).not.toHaveProperty("deletedAt");
+
+    const purged = permanentlyDeleteMemory(archive, "mem-1");
+    expect(purged.memories.map((memory) => memory.id)).toEqual(["mem-2"]);
+    expect(purged.memoryTags.map((link) => link.memoryId)).toEqual(["mem-2"]);
+  });
+
+  it("builds timeline buckets from approximate or created dates", () => {
+    const buckets = buildTimelineBuckets(archive.memories);
+
+    expect(buckets.map((bucket) => bucket.key)).toEqual(["2026", "1994"]);
+    expect(buckets.find((bucket) => bucket.key === "1994")?.memories.map((memory) => memory.id)).toEqual(["mem-1"]);
+  });
+
+  it("summarizes archive audit data", () => {
+    expect(summarizeArchive(archive)).toEqual(
+      expect.objectContaining({
+        activeMemoryCount: 2,
+        deletedMemoryCount: 0,
+        tagCount: 2,
+        retainedAudioCount: 0,
+        confirmedDateCount: 1,
+        inferredDateCount: 0,
+        processingRunCount: 0
+      })
+    );
+  });
+});

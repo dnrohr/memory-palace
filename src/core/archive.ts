@@ -1,4 +1,4 @@
-import type { Memory, MemoryTag, ProcessingRunRecord, Tag, UserProfile } from "./types";
+import type { LifePeriod, Memory, MemoryTag, Person, Pet, Place, ProcessingRunRecord, Tag, UserProfile } from "./types";
 
 export type MemoryArchive = {
   exportedAt: string;
@@ -6,6 +6,10 @@ export type MemoryArchive = {
   memories: Memory[];
   tags: Tag[];
   memoryTags: MemoryTag[];
+  people: Person[];
+  pets: Pet[];
+  places: Place[];
+  lifePeriods: LifePeriod[];
   userProfile?: UserProfile;
   processingRuns: ProcessingRunRecord[];
 };

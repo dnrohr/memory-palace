@@ -25,6 +25,7 @@ export type TagType =
 
 export type SuggestionSource =
   | "explicit"
+  | "imported"
   | "inferred"
   | "known_context"
   | "model"
@@ -71,6 +72,46 @@ export type Tag = {
   createdAt: string;
   updatedAt: string;
   isUserCreated: boolean;
+};
+
+export type Person = {
+  id: string;
+  displayName: string;
+  normalizedName: string;
+  relationship?: string;
+  notes?: string;
+  createdAt: string;
+};
+
+export type Pet = {
+  id: string;
+  name: string;
+  species?: string;
+  breed?: string;
+  approximateStartDate?: string;
+  approximateEndDate?: string;
+  notes?: string;
+};
+
+export type Place = {
+  id: string;
+  name: string;
+  type: "house" | "apartment" | "school" | "workplace" | "town" | "landmark" | "vague_place" | "custom";
+  approximateStartDate?: string;
+  approximateEndDate?: string;
+  latitude?: number;
+  longitude?: number;
+  privacyLevel: "exact" | "approximate" | "vague" | "hidden";
+  notes?: string;
+};
+
+export type LifePeriod = {
+  id: string;
+  name: string;
+  startDate?: string;
+  endDate?: string;
+  datePrecision: DatePrecision;
+  notes?: string;
 };
 
 export type MemoryTag = {

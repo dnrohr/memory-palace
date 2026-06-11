@@ -67,6 +67,55 @@ CREATE TABLE processing_run (
   output_json TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+CREATE TABLE person (
+  id TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  normalized_name TEXT NOT NULL,
+  relationship TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE pet (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  species TEXT,
+  breed TEXT,
+  approximate_start_date TEXT,
+  approximate_end_date TEXT,
+  notes TEXT
+);
+
+CREATE TABLE place (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'custom',
+  approximate_start_date TEXT,
+  approximate_end_date TEXT,
+  latitude REAL,
+  longitude REAL,
+  privacy_level TEXT NOT NULL DEFAULT 'vague',
+  notes TEXT
+);
+
+CREATE TABLE life_period (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  start_date TEXT,
+  end_date TEXT,
+  date_precision TEXT NOT NULL DEFAULT 'unknown',
+  notes TEXT
+);
+
+CREATE TABLE memory_embedding (
+  memory_id TEXT PRIMARY KEY REFERENCES memory(id),
+  vector BLOB NOT NULL,
+  dimension INTEGER NOT NULL,
+  model_id TEXT NOT NULL,
+  model_version TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 ```
 
 ## FTS Index
@@ -91,4 +140,3 @@ CREATE VIRTUAL TABLE memory_fts USING fts5(
 6. Rules-based inference
 7. Local model suggestion
 8. Cloud model suggestion
-

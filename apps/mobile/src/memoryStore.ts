@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import type { MemoryArchive } from "../../../src/core/archive";
+import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiveOperations";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import type { Memory, MemoryTag, Tag } from "../../../src/core/types";
 
@@ -111,6 +112,10 @@ export function createEmptyArchive(): MemoryArchive {
     memories: [],
     tags: [],
     memoryTags: [],
+    people: [],
+    pets: [],
+    places: [],
+    lifePeriods: [],
     processingRuns: []
   };
 }
@@ -195,20 +200,11 @@ export function softDeleteMemory(archive: MemoryArchive, memoryId: string): Memo
 }
 
 export function tagsForMemory(archive: MemoryArchive, memoryId: string): Tag[] {
-  const tagsById = new Map(archive.tags.map((tag) => [tag.id, tag]));
-  return archive.memoryTags
-    .filter((link) => link.memoryId === memoryId && !link.rejected)
-    .map((link) => tagsById.get(link.tagId))
-    .filter((tag): tag is Tag => Boolean(tag))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return tagsForMemoryArchive(archive, memoryId);
 }
 
 export function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function normalizeTagName(value: string): string {
-  return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
 }
 
 function deriveTitle(text: string): string {

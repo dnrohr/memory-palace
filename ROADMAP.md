@@ -1,4 +1,58 @@
-Memory Journal Development Roadmap
+# Memory Palace Roadmap
+
+## Status Snapshot
+
+Last updated: 2026-06-11
+
+| Phase | Milestones | Status |
+| --- | --- | --- |
+| Phase 1: Useful Without AI | 1-4 | In progress |
+| Phase 2: Personal Intelligence | 5-7 | Not started |
+| Phase 3: Exploration and Durability | 8-10 | Not started |
+| Phase 4: Optional Expansion | 11-12 | Not started |
+
+## Implementation Log
+
+### 2026-06-11
+
+- Moved the original planning-heavy README into this roadmap and replaced `README.md` with a project README.
+- Added docs for data schema v0.1, processing pipeline contract v0.1, golden fixtures, and cross-platform shell ADR.
+- Added a strict TypeScript portable core with schema/types, processing contracts, rules-based cleanup/date/tag extraction, export providers, and tests.
+- Added an Expo app shell for iOS, Android, and web.
+- Implemented manual text memories: create, edit, list, detail, soft delete, basic search, manual tags, suggested tags/dates, approximate date fields, JSON/Markdown export actions, and local privacy disclosure.
+- Added native SQLite persistence for mobile platforms and a web storage fallback pending Expo SQLite WASM bundler work.
+- Added tested archive operations for search/filter, tag rename/delete, restore, permanent delete, and timeline bucket generation.
+- Added app UI for tag filters, date-precision filters, tag management, timeline browsing, and deleted-memory restore/permanent delete.
+- Added JSON and Markdown import preview providers, including a Markdown export/import round-trip test.
+- Added archive audit summary data and expanded settings stats for active/deleted memories, tags, retained audio, confirmed/inferred dates, and processing runs.
+- Added life-context schema/types for people, pets, places, and life periods, plus a tested matcher for known context mentions in memory text.
+- Added optional-AI adapter seams: no-op structured extraction engine, no-op embedding engine, and embedding storage schema.
+- Added transcription contract and manual-text fallback engine as the boundary for future native speech capture.
+
+## Milestone Status
+
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, and native SQLite path exist. Migration versioning and richer settings remain. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, basic search, and timeline v1 exist. FTS-backed search and richer tag merge/type editing remain. |
+| 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
+| 4. Rules-Based Metadata Suggestions | Partial | Date and tag suggestion prototypes exist. Needs confirmation inbox, provenance UI, and broader rules. |
+| 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types exist with a basic text matcher. Needs app UI, relationships, inference rules, and graph traversal. |
+| 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
+| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
+| 8. Timeline and Memory Visualization | Not started | Needs timeline v2, tag browser, graph, clusters, and life chapters. |
+| 9. Import, Export, and Data Portability | Partial | JSON/Markdown export providers and JSON/Markdown import preview providers exist. Needs file save/import UX, SQLite export, backup, duplicate handling, and conflict resolution. |
+| 10. Privacy, Security, and Trust | Partial | Local processing disclosure, deleted-memory controls, and archive audit counts exist. Needs app lock, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
+| 11. Optional Cloud and Sync Layer | Not started | Deferred by design. |
+| 12. Product Refinement and Habit Formation | Not started | Needs fast capture, prompts, review inbox, resurfacing, and editing polish. |
+
+## Original Product Plan
+
+The original product plan is preserved below. As implementation progresses, update the status snapshot and milestone table above with each major change.
+
+---
+
+# Memory Journal Development Roadmap
 0. Product Definition
 0.1 Core Concept
 Memory Journal is an offline-first mobile app for capturing, organizing, searching, and visualizing personal memories.

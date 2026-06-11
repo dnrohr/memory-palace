@@ -60,6 +60,10 @@ const archive: MemoryArchive = {
       createdAt: "2026-06-11T12:00:00.000Z"
     }
   ],
+  people: [],
+  pets: [],
+  places: [],
+  lifePeriods: [],
   processingRuns: []
 };
 

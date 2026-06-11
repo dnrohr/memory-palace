@@ -1,4 +1,4 @@
-import { CalendarDays, Download, Edit3, List, Plus, Save, Search, Tags, Trash2, Wand2, X } from "lucide-react-native";
+import { CalendarDays, Download, Edit3, List, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -14,6 +14,15 @@ import {
   View
 } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion } from "../../../src/core/types";
+import {
+  buildTimelineBuckets,
+  deleteTag,
+  filterMemories,
+  permanentlyDeleteMemory,
+  renameTag,
+  restoreMemory,
+  summarizeArchive
+} from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
@@ -29,30 +38,28 @@ import {
 } from "./memoryStore";
 import type { MemoryArchive } from "../../../src/core/archive";
 
-type ViewMode = "list" | "editor" | "detail" | "settings";
+type ViewMode = "list" | "editor" | "detail" | "timeline" | "tags" | "settings";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [query, setQuery] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
   useEffect(() => {
     void loadArchive().then(setArchive);
   }, []);
 
   const memories = useMemo(() => {
-    const active = archive?.memories.filter((memory) => !memory.deletedAt) ?? [];
-    const normalized = query.trim().toLocaleLowerCase();
-    if (!normalized) return active;
-
-    return active.filter((memory) => {
-      const tags = archive ? tagsForMemory(archive, memory.id).map((tag) => tag.name).join(" ") : "";
-      return `${memory.title ?? ""} ${memory.rawText} ${memory.cleanedText ?? ""} ${tags}`
-        .toLocaleLowerCase()
-        .includes(normalized);
+    if (!archive) return [];
+    return filterMemories(archive, {
+      text: query,
+      tagIds: selectedTagIds,
+      datePrecisions: selectedDatePrecision ? [selectedDatePrecision] : []
     });
-  }, [archive, query]);
+  }, [archive, query, selectedDatePrecision, selectedTagIds]);
 
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
@@ -81,6 +88,8 @@ export default function App() {
             setMode("editor");
           }}
           onList={() => setMode("list")}
+          onTimeline={() => setMode("timeline")}
+          onTags={() => setMode("tags")}
           onSettings={() => setMode("settings")}
         />
 
@@ -90,6 +99,21 @@ export default function App() {
             memories={memories}
             query={query}
             onQueryChange={setQuery}
+            selectedTagIds={selectedTagIds}
+            onToggleTag={(tagId) =>
+              setSelectedTagIds((current) =>
+                current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId]
+              )
+            }
+            {...(selectedDatePrecision ? { selectedDatePrecision } : {})}
+            onSelectDatePrecision={(precision) =>
+              setSelectedDatePrecision((current) => (current === precision ? undefined : precision))
+            }
+            onClearFilters={() => {
+              setQuery("");
+              setSelectedTagIds([]);
+              setSelectedDatePrecision(undefined);
+            }}
             onSelect={(id) => {
               setSelectedId(id);
               setMode("detail");
@@ -133,13 +157,47 @@ export default function App() {
           />
         ) : null}
 
-        {mode === "settings" ? <Settings archive={archive} /> : null}
+        {mode === "timeline" ? (
+          <TimelineView
+            memories={memories}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMode("detail");
+            }}
+          />
+        ) : null}
+
+        {mode === "tags" ? (
+          <TagManagement
+            archive={archive}
+            onRename={async (tagId, name) => persist(renameTag(archive, tagId, name))}
+            onDelete={async (tagId) => {
+              await persist(deleteTag(archive, tagId));
+              setSelectedTagIds((current) => current.filter((id) => id !== tagId));
+            }}
+          />
+        ) : null}
+
+        {mode === "settings" ? (
+          <Settings
+            archive={archive}
+            onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
+            onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
+          />
+        ) : null}
       </View>
     </SafeAreaView>
   );
 }
 
-function Header(props: { mode: ViewMode; onNew: () => void; onList: () => void; onSettings: () => void }) {
+function Header(props: {
+  mode: ViewMode;
+  onNew: () => void;
+  onList: () => void;
+  onTimeline: () => void;
+  onTags: () => void;
+  onSettings: () => void;
+}) {
   return (
     <View style={styles.header}>
       <View>
@@ -149,9 +207,40 @@ function Header(props: { mode: ViewMode; onNew: () => void; onList: () => void; 
       <View style={styles.headerActions}>
         <IconButton label="List" active={props.mode === "list"} onPress={props.onList} icon={<List size={20} />} />
         <IconButton label="New" active={props.mode === "editor"} onPress={props.onNew} icon={<Plus size={20} />} />
-        <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<Tags size={20} />} />
+        <IconButton label="Timeline" active={props.mode === "timeline"} onPress={props.onTimeline} icon={<CalendarDays size={20} />} />
+        <IconButton label="Tags" active={props.mode === "tags"} onPress={props.onTags} icon={<Tags size={20} />} />
+        <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
     </View>
+  );
+}
+
+function TimelineView(props: { memories: Memory[]; onSelect: (id: string) => void }) {
+  const buckets = buildTimelineBuckets(props.memories);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      {buckets.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>No timeline entries</Text>
+        </View>
+      ) : (
+        buckets.map((bucket) => (
+          <View key={bucket.key} style={styles.timelineBucket}>
+            <Text style={styles.timelineYear}>{bucket.label}</Text>
+            {bucket.memories.map((memory) => (
+              <Pressable key={memory.id} style={styles.timelineItem} onPress={() => props.onSelect(memory.id)}>
+                <Text style={styles.memoryTitle}>{memory.title}</Text>
+                <Text style={styles.memoryPreview} numberOfLines={2}>
+                  {memory.cleanedText || memory.rawText}
+                </Text>
+                <Text style={styles.metadata}>{formatMemoryDate(memory)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))
+      )}
+    </ScrollView>
   );
 }
 
@@ -160,6 +249,11 @@ function MemoryList(props: {
   memories: Memory[];
   query: string;
   onQueryChange: (query: string) => void;
+  selectedTagIds: string[];
+  onToggleTag: (tagId: string) => void;
+  selectedDatePrecision?: DatePrecision;
+  onSelectDatePrecision: (precision: DatePrecision) => void;
+  onClearFilters: () => void;
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
@@ -174,6 +268,39 @@ function MemoryList(props: {
           placeholderTextColor="#7b8178"
           style={styles.searchInput}
         />
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Filters</Text>
+        <View style={styles.tags}>
+          {props.archive.tags.length === 0 ? <Text style={styles.metadata}>No tags yet</Text> : null}
+          {props.archive.tags.map((tag) => (
+            <Pressable
+              key={tag.id}
+              onPress={() => props.onToggleTag(tag.id)}
+              style={[styles.tag, props.selectedTagIds.includes(tag.id) ? styles.tagSelected : null]}
+            >
+              <Text style={[styles.tagLabel, props.selectedTagIds.includes(tag.id) ? styles.tagLabelSelected : null]}>
+                {tag.name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.segmentRow}>
+          {(["unknown", "year", "grade", "range", "exact"] as DatePrecision[]).map((precision) => (
+            <Pressable
+              key={precision}
+              onPress={() => props.onSelectDatePrecision(precision)}
+              style={[styles.segment, props.selectedDatePrecision === precision ? styles.segmentActive : null]}
+            >
+              <Text style={[styles.segmentText, props.selectedDatePrecision === precision ? styles.segmentTextActive : null]}>
+                {precision}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {props.query || props.selectedTagIds.length > 0 || props.selectedDatePrecision ? (
+          <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} />
+        ) : null}
       </View>
 
       {props.memories.length === 0 ? (
@@ -191,6 +318,78 @@ function MemoryList(props: {
             <TagRow labels={tagsForMemory(props.archive, memory.id).map((tag) => tag.name)} />
           </Pressable>
         ))
+      )}
+    </ScrollView>
+  );
+}
+
+function TagManagement(props: {
+  archive: MemoryArchive;
+  onRename: (tagId: string, name: string) => Promise<void>;
+  onDelete: (tagId: string) => Promise<void>;
+}) {
+  const [editingTagId, setEditingTagId] = useState<string | undefined>();
+  const [draftName, setDraftName] = useState("");
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      {props.archive.tags.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>No tags yet</Text>
+        </View>
+      ) : (
+        props.archive.tags.map((tag) => {
+          const usageCount = props.archive.memoryTags.filter((link) => link.tagId === tag.id && !link.rejected).length;
+          const isEditing = editingTagId === tag.id;
+
+          return (
+            <View key={tag.id} style={styles.tagCard}>
+              {isEditing ? (
+                <TextInput
+                  value={draftName}
+                  onChangeText={setDraftName}
+                  placeholder="Tag name"
+                  placeholderTextColor="#7b8178"
+                  style={styles.tagInput}
+                />
+              ) : (
+                <View>
+                  <Text style={styles.memoryTitle}>{tag.name}</Text>
+                  <Text style={styles.metadata}>
+                    {tag.type} · {usageCount} {usageCount === 1 ? "memory" : "memories"}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.headerActions}>
+                {isEditing ? (
+                  <>
+                    <IconButton
+                      label="Save tag"
+                      onPress={async () => {
+                        await props.onRename(tag.id, draftName);
+                        setEditingTagId(undefined);
+                      }}
+                      icon={<Save size={20} />}
+                    />
+                    <IconButton label="Cancel edit" onPress={() => setEditingTagId(undefined)} icon={<X size={20} />} />
+                  </>
+                ) : (
+                  <>
+                    <IconButton
+                      label="Rename tag"
+                      onPress={() => {
+                        setEditingTagId(tag.id);
+                        setDraftName(tag.name);
+                      }}
+                      icon={<Edit3 size={20} />}
+                    />
+                    <IconButton label="Delete tag" danger onPress={() => void props.onDelete(tag.id)} icon={<Trash2 size={20} />} />
+                  </>
+                )}
+              </View>
+            </View>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -371,7 +570,14 @@ function MemoryDetail(props: { archive: MemoryArchive; memory: Memory; onEdit: (
   );
 }
 
-function Settings(props: { archive: MemoryArchive }) {
+function Settings(props: {
+  archive: MemoryArchive;
+  onRestore: (memoryId: string) => Promise<void>;
+  onPermanentlyDelete: (memoryId: string) => Promise<void>;
+}) {
+  const deletedMemories = props.archive.memories.filter((memory) => memory.deletedAt);
+  const summary = summarizeArchive(props.archive);
+
   async function shareJson() {
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
     if (artifact) await Share.share({ title: artifact.fileName, message: artifact.content });
@@ -386,13 +592,39 @@ function Settings(props: { archive: MemoryArchive }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.statsGrid}>
-        <Stat label="Memories" value={String(props.archive.memories.filter((memory) => !memory.deletedAt).length)} />
-        <Stat label="Tags" value={String(props.archive.tags.length)} />
+        <Stat label="Memories" value={String(summary.activeMemoryCount)} />
+        <Stat label="Deleted" value={String(summary.deletedMemoryCount)} />
+        <Stat label="Tags" value={String(summary.tagCount)} />
+        <Stat label="Retained audio" value={String(summary.retainedAudioCount)} />
+        <Stat label="Confirmed dates" value={String(summary.confirmedDateCount)} />
+        <Stat label="Inferred dates" value={String(summary.inferredDateCount)} />
+        <Stat label="Processing runs" value={String(summary.processingRunCount)} />
         <Stat label="Schema" value={props.archive.schemaVersion} />
       </View>
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
         <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Deleted memories</Text>
+        {deletedMemories.length === 0 ? <Text style={styles.metadata}>No deleted memories</Text> : null}
+        {deletedMemories.map((memory) => (
+          <View key={memory.id} style={styles.deletedRow}>
+            <View style={styles.deletedText}>
+              <Text style={styles.memoryTitle}>{memory.title}</Text>
+              <Text style={styles.metadata}>Deleted {memory.deletedAt ? new Date(memory.deletedAt).toLocaleString() : "recently"}</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <IconButton label="Restore memory" onPress={() => void props.onRestore(memory.id)} icon={<RotateCcw size={20} />} />
+              <IconButton
+                label="Delete permanently"
+                danger
+                onPress={() => void props.onPermanentlyDelete(memory.id)}
+                icon={<Trash2 size={20} />}
+              />
+            </View>
+          </View>
+        ))}
       </View>
       <Text style={styles.privacy}>Processing: on-device. Internet required: no. Memory text leaves device: no.</Text>
     </ScrollView>
@@ -634,6 +866,14 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 10
   },
+  filterPanel: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 10
+  },
   panelHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -716,10 +956,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5
   },
+  tagSelected: {
+    backgroundColor: "#38543c"
+  },
   tagLabel: {
     color: "#374236",
     fontSize: 13,
     fontWeight: "600"
+  },
+  tagLabelSelected: {
+    color: "#ffffff"
+  },
+  tagCard: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 12
+  },
+  timelineBucket: {
+    gap: 10
+  },
+  timelineYear: {
+    color: "#252925",
+    fontSize: 22,
+    fontWeight: "800"
+  },
+  timelineItem: {
+    borderLeftWidth: 3,
+    borderLeftColor: "#8aa17f",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 6
+  },
+  deletedRow: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 12,
+    gap: 10
+  },
+  deletedText: {
+    gap: 2
   },
   iconButton: {
     width: 42,
