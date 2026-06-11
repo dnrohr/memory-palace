@@ -7,6 +7,18 @@ export type AudioCaptureDraft = {
   retainAudio: boolean;
 };
 
+export type AudioCaptureErrorCode = "permission_denied" | "start_failed" | "stop_failed" | "missing_audio_uri";
+
+export class AudioCaptureError extends Error {
+  code: AudioCaptureErrorCode;
+
+  constructor(code: AudioCaptureErrorCode, message: string) {
+    super(message);
+    this.name = "AudioCaptureError";
+    this.code = code;
+  }
+}
+
 export type AudioCaptureSession = {
   startedAt: string;
   recording: Audio.Recording;
@@ -34,12 +46,17 @@ export async function startAudioCapture(): Promise<AudioCaptureSession> {
 }
 
 export async function stopAudioCapture(session: AudioCaptureSession): Promise<AudioArtifact> {
-  await session.recording.stopAndUnloadAsync();
-  const status = await session.recording.getStatusAsync();
+  let status: Audio.RecordingStatus;
+  try {
+    await session.recording.stopAndUnloadAsync();
+    status = await session.recording.getStatusAsync();
+  } catch (error) {
+    throw new AudioCaptureError("stop_failed", error instanceof Error ? error.message : "Recording could not be stopped.");
+  }
   const uri = session.recording.getURI();
 
   if (!uri) {
-    throw new Error("Audio recording did not produce a file URI.");
+    throw new AudioCaptureError("missing_audio_uri", "Audio recording did not produce a file URI.");
   }
 
   return {

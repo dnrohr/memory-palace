@@ -61,6 +61,7 @@ import {
   requestAudioCapturePermission,
   startAudioCapture,
   stopAudioCapture,
+  AudioCaptureError,
   type AudioCaptureDraft,
   type AudioCaptureSession
 } from "./audioCapture";
@@ -491,39 +492,65 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   const [session, setSession] = useState<AudioCaptureSession | undefined>();
   const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "draft_ready">("idle");
 
   async function start() {
     setError(undefined);
-    const granted = await requestAudioCapturePermission();
-    if (!granted) {
-      setError("Microphone permission was denied.");
-      return;
-    }
+    setStatus("requesting_permission");
+    try {
+      const granted = await requestAudioCapturePermission();
+      if (!granted) {
+        setError("Microphone permission was denied.");
+        setStatus("idle");
+        return;
+      }
 
-    setSession(await startAudioCapture());
+      setSession(await startAudioCapture());
+      setDraft(undefined);
+      setStatus("recording");
+    } catch (error) {
+      setError(formatAudioCaptureError(error, "Recording could not be started."));
+      setStatus("idle");
+    }
   }
 
   async function stop() {
     if (!session) return;
-    const artifact = await stopAudioCapture(session);
-    setSession(undefined);
-    setDraft({
-      artifact,
-      transcript: "",
-      retainAudio: false
-    });
+    setError(undefined);
+    setStatus("stopping");
+    try {
+      const artifact = await stopAudioCapture(session);
+      setSession(undefined);
+      setDraft({
+        artifact,
+        transcript: "",
+        retainAudio: false
+      });
+      setStatus("draft_ready");
+    } catch (error) {
+      setError(formatAudioCaptureError(error, "Recording could not be saved."));
+      setSession(undefined);
+      setStatus("idle");
+    }
   }
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Voice capture</Text>
+        <Text style={styles.metadata}>Status: {voiceCaptureStatusLabel(status)}</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {session ? (
           <PrimaryButton label="Stop recording" onPress={stop} icon={<Square size={18} />} />
         ) : (
-          <PrimaryButton label="Start recording" onPress={start} icon={<Mic size={18} />} />
+          <PrimaryButton
+            label={status === "requesting_permission" ? "Requesting permission" : "Start recording"}
+            onPress={start}
+            disabled={status === "requesting_permission" || status === "stopping"}
+            icon={<Mic size={18} />}
+          />
         )}
+        {error ? <SecondaryButton label="Try again" onPress={start} icon={<RotateCcw size={18} />} /> : null}
       </View>
       {draft ? (
         <View style={styles.filterPanel}>
@@ -558,6 +585,27 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
       ) : null}
     </ScrollView>
   );
+}
+
+function voiceCaptureStatusLabel(status: "idle" | "requesting_permission" | "recording" | "stopping" | "draft_ready"): string {
+  switch (status) {
+    case "requesting_permission":
+      return "requesting microphone access";
+    case "recording":
+      return "recording";
+    case "stopping":
+      return "saving audio";
+    case "draft_ready":
+      return "draft ready";
+    case "idle":
+      return "ready";
+  }
+}
+
+function formatAudioCaptureError(error: unknown, fallback: string): string {
+  if (error instanceof AudioCaptureError) return error.message;
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 type LifeContextKind = LifeContextEntity["kind"];
