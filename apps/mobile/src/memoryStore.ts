@@ -5,7 +5,7 @@ import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiv
 import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
-import type { Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
+import type { LifeChapterDecision, Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
 
@@ -23,13 +23,17 @@ export async function loadArchive(): Promise<MemoryArchive> {
   const memoryEmbeddings = (await db.getAllAsync<MemoryEmbeddingRow>("SELECT * FROM memory_embedding ORDER BY memory_id ASC")).map(
     rowToMemoryEmbedding
   );
+  const lifeChapterDecisions = (
+    await db.getAllAsync<LifeChapterDecisionRow>("SELECT * FROM life_chapter_decision ORDER BY updated_at DESC")
+  ).map(rowToLifeChapterDecision);
 
   return {
     ...createEmptyArchive(),
     memories,
     tags,
     memoryTags,
-    memoryEmbeddings
+    memoryEmbeddings,
+    lifeChapterDecisions
   };
 }
 
@@ -43,6 +47,7 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync("DELETE FROM memory_tag");
     await db.runAsync("DELETE FROM memory_embedding");
+    await db.runAsync("DELETE FROM life_chapter_decision");
     await db.runAsync("DELETE FROM tag");
     await db.runAsync("DELETE FROM memory");
 
@@ -127,6 +132,15 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
       );
     }
 
+    for (const decision of archive.lifeChapterDecisions ?? []) {
+      await db.runAsync(
+        `INSERT INTO life_chapter_decision (
+          candidate_id, action, name, updated_at
+        ) VALUES (?, ?, ?, ?)`,
+        [decision.candidateId, decision.action, decision.name ?? null, decision.updatedAt]
+      );
+    }
+
     await db.runAsync("INSERT INTO memory_fts(memory_fts) VALUES ('rebuild')");
   });
 }
@@ -159,6 +173,7 @@ export function createEmptyArchive(): MemoryArchive {
     pets: [],
     places: [],
     lifePeriods: [],
+    lifeChapterDecisions: [],
     memoryEmbeddings: [],
     processingRuns: []
   };
@@ -295,6 +310,7 @@ async function loadWebArchive(): Promise<MemoryArchive> {
     memories: parsed.memories ?? [],
     tags: parsed.tags ?? [],
     memoryTags: parsed.memoryTags ?? [],
+    lifeChapterDecisions: parsed.lifeChapterDecisions ?? [],
     memoryEmbeddings: parsed.memoryEmbeddings ?? [],
     processingRuns: parsed.processingRuns ?? []
   };
@@ -375,6 +391,13 @@ type MemoryEmbeddingRow = {
   created_at: string;
 };
 
+type LifeChapterDecisionRow = {
+  candidate_id: string;
+  action: LifeChapterDecision["action"];
+  name: string | null;
+  updated_at: string;
+};
+
 function rowToMemory(row: MemoryRow): Memory {
   return {
     id: row.id,
@@ -431,5 +454,14 @@ function rowToMemoryEmbedding(row: MemoryEmbeddingRow): MemoryEmbeddingRecord {
     modelVersion: row.model_version,
     inputHash: row.input_hash ?? "",
     createdAt: row.created_at
+  };
+}
+
+function rowToLifeChapterDecision(row: LifeChapterDecisionRow): LifeChapterDecision {
+  return {
+    candidateId: row.candidate_id,
+    action: row.action,
+    ...(row.name ? { name: row.name } : {}),
+    updatedAt: row.updated_at
   };
 }

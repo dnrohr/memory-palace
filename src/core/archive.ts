@@ -1,5 +1,6 @@
 import type {
   LifePeriod,
+  LifeChapterDecision,
   Memory,
   MemoryEmbeddingRecord,
   MemoryTag,
@@ -21,6 +22,7 @@ export type MemoryArchive = {
   pets: Pet[];
   places: Place[];
   lifePeriods: LifePeriod[];
+  lifeChapterDecisions?: LifeChapterDecision[];
   userProfile?: UserProfile;
   memoryEmbeddings?: MemoryEmbeddingRecord[];
   processingRuns: ProcessingRunRecord[];

@@ -37,7 +37,12 @@ import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/sear
 import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
 import { buildTagClusters } from "../../../src/visualization/clusters";
 import { buildTagGraphData } from "../../../src/visualization/graph";
-import { buildLifeChapterCandidates } from "../../../src/visualization/lifeChapters";
+import {
+  buildLifeChapterCandidates,
+  rejectLifeChapterCandidate,
+  renameLifeChapterCandidate,
+  type LifeChapterCandidate
+} from "../../../src/visualization/lifeChapters";
 import {
   createMemory,
   deleteLifeContext,
@@ -334,6 +339,7 @@ export default function App() {
           <TimelineView
             archive={archive}
             memories={memories}
+            onArchiveChange={persist}
             onSelect={(id) => {
               setSelectedId(id);
               setMode("detail");
@@ -753,7 +759,12 @@ function ReviewInboxView(props: {
   );
 }
 
-function TimelineView(props: { archive: MemoryArchive; memories: Memory[]; onSelect: (id: string) => void }) {
+function TimelineView(props: {
+  archive: MemoryArchive;
+  memories: Memory[];
+  onArchiveChange: (archive: MemoryArchive) => Promise<void>;
+  onSelect: (id: string) => void;
+}) {
   const [tab, setTab] = useState<ExploreTab>("timeline");
   const buckets = buildTimelineBuckets(props.memories);
   const graph = buildTagGraphData(props.archive);
@@ -858,25 +869,60 @@ function TimelineView(props: { archive: MemoryArchive; memories: Memory[]; onSel
           </View>
         ) : (
           chapters.map((chapter) => (
-            <View key={chapter.id} style={styles.filterPanel}>
-              <Text style={styles.panelTitle}>{chapter.name}</Text>
-              <Text style={styles.metadata}>
-                {chapter.memoryIds.length} memories · {chapter.basis.replace("_", " ")}
-              </Text>
-              {chapter.memoryIds.slice(0, 5).map((memoryId) => {
-                const memory = memoriesById.get(memoryId);
-                if (!memory) return null;
-                return (
-                  <Pressable key={memoryId} style={styles.relatedItem} onPress={() => props.onSelect(memoryId)}>
-                    <Text style={styles.memoryTitle}>{memory.title}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <ChapterCandidateCard
+              key={chapter.id}
+              chapter={chapter}
+              memoriesById={memoriesById}
+              onSelect={props.onSelect}
+              onRename={(name) => props.onArchiveChange(renameLifeChapterCandidate(props.archive, chapter.id, name))}
+              onReject={() => props.onArchiveChange(rejectLifeChapterCandidate(props.archive, chapter.id))}
+            />
           ))
         )
       ) : null}
     </ScrollView>
+  );
+}
+
+function ChapterCandidateCard(props: {
+  chapter: LifeChapterCandidate;
+  memoriesById: Map<string, Memory>;
+  onSelect: (id: string) => void;
+  onRename: (name: string) => Promise<void>;
+  onReject: () => Promise<void>;
+}) {
+  const [draftName, setDraftName] = useState(props.chapter.name);
+
+  useEffect(() => {
+    setDraftName(props.chapter.name);
+  }, [props.chapter.name]);
+
+  return (
+    <View style={styles.filterPanel}>
+      <TextInput
+        value={draftName}
+        onChangeText={setDraftName}
+        placeholder="Chapter name"
+        placeholderTextColor="#7b8178"
+        style={styles.tagInput}
+      />
+      <Text style={styles.metadata}>
+        {props.chapter.memoryIds.length} memories · {props.chapter.basis.replace("_", " ")}
+      </Text>
+      <View style={styles.actionRow}>
+        <SecondaryButton label="Rename" onPress={() => props.onRename(draftName)} icon={<Save size={18} />} />
+        <SecondaryButton label="Reject" onPress={props.onReject} icon={<X size={18} />} />
+      </View>
+      {props.chapter.memoryIds.slice(0, 5).map((memoryId) => {
+        const memory = props.memoriesById.get(memoryId);
+        if (!memory) return null;
+        return (
+          <Pressable key={memoryId} style={styles.relatedItem} onPress={() => props.onSelect(memoryId)}>
+            <Text style={styles.memoryTitle}>{memory.title}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 

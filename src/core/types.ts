@@ -114,6 +114,13 @@ export type LifePeriod = {
   notes?: string;
 };
 
+export type LifeChapterDecision = {
+  candidateId: string;
+  action: "renamed" | "rejected";
+  name?: string;
+  updatedAt: string;
+};
+
 export type MemoryTag = {
   memoryId: string;
   tagId: string;

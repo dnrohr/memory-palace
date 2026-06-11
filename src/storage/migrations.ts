@@ -20,6 +20,18 @@ export const migrations: Migration[] = [
     sql: `
 ALTER TABLE memory_embedding ADD COLUMN input_hash TEXT;
 `
+  },
+  {
+    id: "0003_life_chapter_decisions",
+    version: schemaVersion,
+    sql: `
+CREATE TABLE IF NOT EXISTS life_chapter_decision (
+  candidate_id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  name TEXT,
+  updated_at TEXT NOT NULL
+);
+`
   }
 ];
 

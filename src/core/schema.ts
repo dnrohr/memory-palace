@@ -110,6 +110,13 @@ CREATE TABLE IF NOT EXISTS life_period (
   notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS life_chapter_decision (
+  candidate_id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  name TEXT,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS memory_embedding (
   memory_id TEXT PRIMARY KEY REFERENCES memory(id),
   vector BLOB NOT NULL,

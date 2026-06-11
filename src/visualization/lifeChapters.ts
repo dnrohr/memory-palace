@@ -58,6 +58,56 @@ export function buildLifeChapterCandidates(archive: MemoryArchive): LifeChapterC
     }
   }
 
-  return chapters;
+  return applyChapterDecisions(chapters, archive);
 }
 
+export function renameLifeChapterCandidate(
+  archive: MemoryArchive,
+  candidateId: string,
+  name: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  const trimmed = name.trim();
+  if (!trimmed) return archive;
+
+  return upsertChapterDecision(archive, {
+    candidateId,
+    action: "renamed",
+    name: trimmed,
+    updatedAt: now
+  });
+}
+
+export function rejectLifeChapterCandidate(
+  archive: MemoryArchive,
+  candidateId: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  return upsertChapterDecision(archive, {
+    candidateId,
+    action: "rejected",
+    updatedAt: now
+  });
+}
+
+function applyChapterDecisions(chapters: LifeChapterCandidate[], archive: MemoryArchive): LifeChapterCandidate[] {
+  const decisions = new Map((archive.lifeChapterDecisions ?? []).map((decision) => [decision.candidateId, decision]));
+
+  return chapters
+    .filter((chapter) => decisions.get(chapter.id)?.action !== "rejected")
+    .map((chapter) => {
+      const decision = decisions.get(chapter.id);
+      return decision?.action === "renamed" && decision.name ? { ...chapter, name: decision.name } : chapter;
+    });
+}
+
+function upsertChapterDecision(archive: MemoryArchive, decision: NonNullable<MemoryArchive["lifeChapterDecisions"]>[number]): MemoryArchive {
+  const decisions = archive.lifeChapterDecisions ?? [];
+  return {
+    ...archive,
+    lifeChapterDecisions: [
+      decision,
+      ...decisions.filter((existing) => existing.candidateId !== decision.candidateId)
+    ]
+  };
+}
