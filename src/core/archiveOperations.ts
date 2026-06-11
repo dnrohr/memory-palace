@@ -1,5 +1,5 @@
 import type { MemoryArchive } from "./archive";
-import type { DatePrecision, Memory, Tag } from "./types";
+import type { DatePrecision, Memory, Tag, TagType } from "./types";
 
 export type MemoryFilter = {
   text?: string;
@@ -94,6 +94,35 @@ export function deleteTag(archive: MemoryArchive, tagId: string): MemoryArchive 
     ...archive,
     tags: archive.tags.filter((tag) => tag.id !== tagId),
     memoryTags: archive.memoryTags.filter((link) => link.tagId !== tagId)
+  };
+}
+
+export function updateTagType(archive: MemoryArchive, tagId: string, type: TagType): MemoryArchive {
+  const now = new Date().toISOString();
+  return {
+    ...archive,
+    tags: archive.tags.map((tag) => (tag.id === tagId ? { ...tag, type, updatedAt: now } : tag))
+  };
+}
+
+export function mergeTags(archive: MemoryArchive, sourceTagId: string, targetTagId: string): MemoryArchive {
+  if (sourceTagId === targetTagId) return archive;
+
+  const existingLinks = new Set<string>();
+  const nextLinks = [];
+
+  for (const link of archive.memoryTags) {
+    const tagId = link.tagId === sourceTagId ? targetTagId : link.tagId;
+    const key = `${link.memoryId}:${tagId}`;
+    if (existingLinks.has(key)) continue;
+    existingLinks.add(key);
+    nextLinks.push({ ...link, tagId });
+  }
+
+  return {
+    ...archive,
+    tags: archive.tags.filter((tag) => tag.id !== sourceTagId),
+    memoryTags: nextLinks
   };
 }
 

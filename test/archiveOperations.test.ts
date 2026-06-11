@@ -6,11 +6,13 @@ import {
   filterMemories,
   permanentlyDeleteMemory,
   mergeArchive,
+  mergeTags,
   previewArchiveMerge,
   renameTag,
   restoreMemory,
   summarizeArchive,
-  tagsForMemoryArchive
+  tagsForMemoryArchive,
+  updateTagType
 } from "../src/core/archiveOperations";
 
 const archive: MemoryArchive = {
@@ -111,6 +113,35 @@ describe("archive operations", () => {
 
     expect(next.tags.map((tag) => tag.id)).not.toContain("tag-1");
     expect(tagsForMemoryArchive(next, "mem-1")).toEqual([]);
+  });
+
+  it("updates tag types", () => {
+    const next = updateTagType(archive, "tag-2", "theme");
+
+    expect(next.tags.find((tag) => tag.id === "tag-2")).toEqual(expect.objectContaining({ type: "theme" }));
+  });
+
+  it("merges tags and deduplicates links", () => {
+    const source: MemoryArchive = {
+      ...archive,
+      memoryTags: [
+        ...archive.memoryTags,
+        {
+          memoryId: "mem-1",
+          tagId: "tag-2",
+          source: "explicit",
+          userConfirmed: true,
+          rejected: false,
+          createdAt: "2026-06-11T00:00:00.000Z"
+        }
+      ]
+    };
+
+    const next = mergeTags(source, "tag-2", "tag-1");
+
+    expect(next.tags.map((tag) => tag.id)).toEqual(["tag-1"]);
+    expect(next.memoryTags.filter((link) => link.memoryId === "mem-1" && link.tagId === "tag-1")).toHaveLength(1);
+    expect(next.memoryTags.find((link) => link.memoryId === "mem-2")).toEqual(expect.objectContaining({ tagId: "tag-1" }));
   });
 
   it("restores and permanently deletes memories", () => {

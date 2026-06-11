@@ -38,13 +38,14 @@ Last updated: 2026-06-11
 - Added backup export bundle manifest and gentle resurfacing prompt generation.
 - Added editable life chapter candidate generation from timeline buckets, tag clusters, and life periods.
 - Added app review inbox UI for untagged memories, suggested tags, and suggested dates.
+- Added tag type editing and tag merge operations with link deduplication.
 
 ## Milestone Status
 
 | Milestone | Status | Notes |
 | --- | --- | --- |
 | 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, native SQLite path, and migration tracking exist. Richer settings remain. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and richer tag merge/type editing remain. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and app UI for merge/type editing remain. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, and review UI exist. Needs accept/reject actions, provenance UI, and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types exist with a basic text matcher. Needs app UI, relationships, inference rules, and graph traversal. |
