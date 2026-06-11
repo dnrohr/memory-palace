@@ -43,6 +43,7 @@ Last updated: 2026-06-11
 - Added review accept/reject operations and app actions for confirming tag/date suggestions or rejecting tag suggestions.
 - Added portable import workflow for provider detection, import preview, merge preview, and applying imports.
 - Added Expo audio capture wrapper and app voice capture draft flow with microphone permission, recording start/stop, editable transcript, optional audio retention, and save-to-memory.
+- Added a local rules-backed structured extraction engine that returns title, date, tag, and emotional-tone suggestions through the structured extraction contract.
 
 ## Milestone Status
 
@@ -53,7 +54,7 @@ Last updated: 2026-06-11
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and transcript draft flow exist. Needs native speech-to-text adapter, interruption/background handling, and deeper error states. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, and accept/reject actions exist. Needs richer provenance UI and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, and a basic text matcher exist. Needs relationship graph edges, inference rules, and graph traversal. |
-| 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
+| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, and local rules-backed extraction engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, tag graph data, shared-tag cluster data, and editable life chapter candidates exist. Needs timeline v2 UI, graph UI, and cluster/chapter editing UI. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, import workflow preview/apply, duplicate detection, and archive merge behavior exist. Needs platform file save/import UI, SQLite export, and richer conflict resolution. |

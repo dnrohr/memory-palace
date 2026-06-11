@@ -1,5 +1,7 @@
 import type { DateCandidate, TagSuggestion } from "../core/types";
 import type { LifeContext } from "../core/lifeContext";
+import { extractDateCandidates } from "./rules/dateExtraction";
+import { suggestTags } from "./rules/tagSuggestion";
 
 export type StructuredExtractionInput = {
   text: string;
@@ -36,4 +38,55 @@ export class NoStructuredExtractionEngine implements IStructuredExtractionEngine
       engineVersion: "0.1.0"
     };
   }
+}
+
+export class RulesStructuredExtractionEngine implements IStructuredExtractionEngine {
+  id = "rules-structured";
+  displayName = "Rules structured extraction";
+  runsLocally = true;
+
+  async extract(input: StructuredExtractionInput): Promise<StructuredExtractionResult> {
+    const title = suggestTitle(input.text);
+    return {
+      ...(title ? { title } : {}),
+      dates: extractDateCandidates(input.text),
+      tags: suggestTags(input.text),
+      emotionalTone: suggestEmotionTags(input.text),
+      engineId: this.id,
+      engineVersion: "0.1.0"
+    };
+  }
+}
+
+function suggestTitle(text: string): string | undefined {
+  const firstSentence = text.trim().split(/[.!?]/)[0]?.trim();
+  if (!firstSentence) return undefined;
+  return firstSentence.length > 72 ? `${firstSentence.slice(0, 69)}...` : firstSentence;
+}
+
+function suggestEmotionTags(text: string): TagSuggestion[] {
+  const suggestions: TagSuggestion[] = [];
+  const lower = text.toLocaleLowerCase();
+
+  if (/\b(grief|died|lost|death)\b/.test(lower)) {
+    suggestions.push({
+      name: "grief",
+      type: "emotion",
+      confidence: 0.76,
+      source: "rule",
+      explanation: "Matched grief-related language."
+    });
+  }
+
+  if (/\b(loved|happy|joy|delighted)\b/.test(lower)) {
+    suggestions.push({
+      name: "joy",
+      type: "emotion",
+      confidence: 0.65,
+      source: "rule",
+      explanation: "Matched positive emotional language."
+    });
+  }
+
+  return suggestions;
 }
