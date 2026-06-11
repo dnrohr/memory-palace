@@ -31,6 +31,7 @@ Last updated: 2026-06-11
 - Added archive import merge preview and merge behavior with duplicate-memory detection and tag deduplication.
 - Added schema migration metadata and an idempotent migration runner.
 - Added portable search service with ranking, snippets, matched tags, and tests as the adapter target for future SQLite FTS search.
+- Added review inbox generation for untagged memories, tag suggestions, and date suggestions that need user confirmation.
 
 ## Milestone Status
 
@@ -39,7 +40,7 @@ Last updated: 2026-06-11
 | 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, native SQLite path, and migration tracking exist. Richer settings remain. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and richer tag merge/type editing remain. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
-| 4. Rules-Based Metadata Suggestions | Partial | Date and tag suggestion prototypes exist. Needs confirmation inbox, provenance UI, and broader rules. |
+| 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes and review inbox generation exist. Needs app review UI, provenance UI, and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types exist with a basic text matcher. Needs app UI, relationships, inference rules, and graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
@@ -47,7 +48,7 @@ Last updated: 2026-06-11
 | 9. Import, Export, and Data Portability | Partial | JSON/Markdown export providers, JSON/Markdown import preview providers, duplicate detection, and archive merge behavior exist. Needs file save/import UX, SQLite export, backup, and richer conflict resolution. |
 | 10. Privacy, Security, and Trust | Partial | Local processing disclosure, deleted-memory controls, and archive audit counts exist. Needs app lock, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
 | 11. Optional Cloud and Sync Layer | Not started | Deferred by design. |
-| 12. Product Refinement and Habit Formation | Not started | Needs fast capture, prompts, review inbox, resurfacing, and editing polish. |
+| 12. Product Refinement and Habit Formation | In progress | Review inbox data generation exists. Needs fast capture, prompts, resurfacing, and editing polish. |
 
 ## Original Product Plan
 
