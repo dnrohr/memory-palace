@@ -59,6 +59,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added a prompt panel to the memory list for revisiting memories, finishing untagged memories, and filtering into common-tag prompts.
 - Added a memory addendum operation and detail-screen composer for later notes and corrections without replacing the original memory.
 - Added native SQLite FTS rebuild maintenance after archive saves so the FTS table stays populated on mobile.
+- Added structured extraction schema/prompt metadata and validation for result shape, confidence ranges, and engine metadata.
 
 ## Milestone Status
 
@@ -69,7 +70,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, transcript draft flow. | Native speech-to-text adapter, interruption/background handling, deeper recording error states. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
-| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine. | Local model adapter, schema validation, prompt/version metadata, UI controls. |
+| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata. | Local model adapter and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers, semantic search UI. | Production local embedding model, background indexing queue, explicit regeneration controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, related memories. | Cluster/chapter rename/merge/reject actions, richer timeline filtering. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |

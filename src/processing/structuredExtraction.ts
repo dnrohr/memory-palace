@@ -15,6 +15,13 @@ export type StructuredExtractionResult = {
   emotionalTone: TagSuggestion[];
   engineId: string;
   engineVersion: string;
+  schemaVersion: "structured-extraction.v1";
+  promptVersion?: string;
+};
+
+export type StructuredExtractionValidation = {
+  valid: boolean;
+  warnings: string[];
 };
 
 export interface IStructuredExtractionEngine {
@@ -35,7 +42,8 @@ export class NoStructuredExtractionEngine implements IStructuredExtractionEngine
       tags: [],
       emotionalTone: [],
       engineId: this.id,
-      engineVersion: "0.1.0"
+      engineVersion: "0.1.0",
+      schemaVersion: "structured-extraction.v1"
     };
   }
 }
@@ -53,9 +61,37 @@ export class RulesStructuredExtractionEngine implements IStructuredExtractionEng
       tags: suggestTags(input.text),
       emotionalTone: suggestEmotionTags(input.text),
       engineId: this.id,
-      engineVersion: "0.1.0"
+      engineVersion: "0.1.0",
+      schemaVersion: "structured-extraction.v1",
+      promptVersion: "rules.v1"
     };
   }
+}
+
+export function validateStructuredExtractionResult(result: StructuredExtractionResult): StructuredExtractionValidation {
+  const warnings: string[] = [];
+
+  if (result.schemaVersion !== "structured-extraction.v1") {
+    warnings.push("Unexpected structured extraction schema version.");
+  }
+
+  for (const date of result.dates) {
+    if (date.confidence < 0 || date.confidence > 1) warnings.push(`Date candidate "${date.label}" has invalid confidence.`);
+    if (!date.label.trim()) warnings.push("Date candidate is missing a label.");
+  }
+
+  for (const tag of [...result.tags, ...result.emotionalTone]) {
+    if (tag.confidence < 0 || tag.confidence > 1) warnings.push(`Tag suggestion "${tag.name}" has invalid confidence.`);
+    if (!tag.name.trim()) warnings.push("Tag suggestion is missing a name.");
+  }
+
+  if (!result.engineId.trim()) warnings.push("Result is missing engineId.");
+  if (!result.engineVersion.trim()) warnings.push("Result is missing engineVersion.");
+
+  return {
+    valid: warnings.length === 0,
+    warnings
+  };
 }
 
 function suggestTitle(text: string): string | undefined {
