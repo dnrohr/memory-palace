@@ -5,6 +5,8 @@ import {
   deleteTag,
   filterMemories,
   permanentlyDeleteMemory,
+  mergeArchive,
+  previewArchiveMerge,
   renameTag,
   restoreMemory,
   summarizeArchive,
@@ -143,5 +145,61 @@ describe("archive operations", () => {
         processingRunCount: 0
       })
     );
+  });
+
+  it("previews and merges imported archives without duplicating existing memories", () => {
+    const incoming: MemoryArchive = {
+      ...archive,
+      memories: [
+        archive.memories[0]!,
+        {
+          id: "mem-3",
+          rawText: "A new imported memory.",
+          title: "Imported",
+          createdAt: "2026-06-12T00:00:00.000Z",
+          updatedAt: "2026-06-12T00:00:00.000Z",
+          sourceType: "import",
+          isAudioRetained: false,
+          datePrecision: "unknown",
+          userDateConfirmed: false
+        }
+      ],
+      tags: [
+        archive.tags[0]!,
+        {
+          id: "tag-3",
+          name: "imported",
+          normalizedName: "imported",
+          type: "custom",
+          createdAt: "2026-06-12T00:00:00.000Z",
+          updatedAt: "2026-06-12T00:00:00.000Z",
+          isUserCreated: false
+        }
+      ],
+      memoryTags: [
+        {
+          memoryId: "mem-3",
+          tagId: "tag-3",
+          source: "imported",
+          userConfirmed: true,
+          rejected: false,
+          createdAt: "2026-06-12T00:00:00.000Z"
+        }
+      ]
+    };
+
+    expect(previewArchiveMerge(archive, incoming)).toEqual(
+      expect.objectContaining({
+        incomingMemoryCount: 2,
+        newMemoryCount: 1,
+        duplicateMemoryCount: 1,
+        newTagCount: 1
+      })
+    );
+
+    const merged = mergeArchive(archive, incoming);
+    expect(merged.memories.map((memory) => memory.id)).toContain("mem-3");
+    expect(merged.memories.filter((memory) => memory.rawText === archive.memories[0]?.rawText)).toHaveLength(1);
+    expect(merged.tags.map((tag) => tag.normalizedName)).toContain("imported");
   });
 });

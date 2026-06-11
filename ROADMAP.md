@@ -28,6 +28,7 @@ Last updated: 2026-06-11
 - Added life-context schema/types for people, pets, places, and life periods, plus a tested matcher for known context mentions in memory text.
 - Added optional-AI adapter seams: no-op structured extraction engine, no-op embedding engine, and embedding storage schema.
 - Added transcription contract and manual-text fallback engine as the boundary for future native speech capture.
+- Added archive import merge preview and merge behavior with duplicate-memory detection and tag deduplication.
 
 ## Milestone Status
 
@@ -41,7 +42,7 @@ Last updated: 2026-06-11
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
 | 8. Timeline and Memory Visualization | Not started | Needs timeline v2, tag browser, graph, clusters, and life chapters. |
-| 9. Import, Export, and Data Portability | Partial | JSON/Markdown export providers and JSON/Markdown import preview providers exist. Needs file save/import UX, SQLite export, backup, duplicate handling, and conflict resolution. |
+| 9. Import, Export, and Data Portability | Partial | JSON/Markdown export providers, JSON/Markdown import preview providers, duplicate detection, and archive merge behavior exist. Needs file save/import UX, SQLite export, backup, and richer conflict resolution. |
 | 10. Privacy, Security, and Trust | Partial | Local processing disclosure, deleted-memory controls, and archive audit counts exist. Needs app lock, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
 | 11. Optional Cloud and Sync Layer | Not started | Deferred by design. |
 | 12. Product Refinement and Habit Formation | Not started | Needs fast capture, prompts, review inbox, resurfacing, and editing polish. |

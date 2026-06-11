@@ -27,6 +27,14 @@ export type ArchiveAuditSummary = {
   lastExportedAt: string;
 };
 
+export type ArchiveMergePreview = {
+  incomingMemoryCount: number;
+  newMemoryCount: number;
+  duplicateMemoryCount: number;
+  newTagCount: number;
+  warnings: string[];
+};
+
 export function filterMemories(archive: MemoryArchive, filter: MemoryFilter = {}): Memory[] {
   const normalizedText = normalize(filter.text ?? "");
   const tagIds = new Set(filter.tagIds ?? []);
@@ -143,6 +151,67 @@ export function summarizeArchive(archive: MemoryArchive): ArchiveAuditSummary {
   };
 }
 
+export function previewArchiveMerge(current: MemoryArchive, incoming: MemoryArchive): ArchiveMergePreview {
+  const currentMemoryKeys = new Set(current.memories.map(memoryDeduplicationKey));
+  const currentTagNames = new Set(current.tags.map((tag) => tag.normalizedName));
+  const duplicateMemoryCount = incoming.memories.filter((memory) => currentMemoryKeys.has(memoryDeduplicationKey(memory))).length;
+  const newTagCount = incoming.tags.filter((tag) => !currentTagNames.has(tag.normalizedName)).length;
+
+  return {
+    incomingMemoryCount: incoming.memories.length,
+    newMemoryCount: incoming.memories.length - duplicateMemoryCount,
+    duplicateMemoryCount,
+    newTagCount,
+    warnings: incoming.schemaVersion !== current.schemaVersion ? ["Incoming archive schema differs from current schema."] : []
+  };
+}
+
+export function mergeArchive(current: MemoryArchive, incoming: MemoryArchive): MemoryArchive {
+  const currentMemoryKeys = new Set(current.memories.map(memoryDeduplicationKey));
+  const currentTagByName = new Map(current.tags.map((tag) => [tag.normalizedName, tag]));
+  const tagIdRemap = new Map<string, string>();
+  const nextTags = [...current.tags];
+
+  for (const tag of incoming.tags) {
+    const existing = currentTagByName.get(tag.normalizedName);
+    if (existing) {
+      tagIdRemap.set(tag.id, existing.id);
+    } else {
+      currentTagByName.set(tag.normalizedName, tag);
+      tagIdRemap.set(tag.id, tag.id);
+      nextTags.push(tag);
+    }
+  }
+
+  const incomingMemories = incoming.memories.filter((memory) => !currentMemoryKeys.has(memoryDeduplicationKey(memory)));
+  const incomingMemoryIds = new Set(incomingMemories.map((memory) => memory.id));
+  const existingLinks = new Set(current.memoryTags.map((link) => `${link.memoryId}:${link.tagId}`));
+  const nextLinks = [...current.memoryTags];
+
+  for (const link of incoming.memoryTags) {
+    if (!incomingMemoryIds.has(link.memoryId)) continue;
+    const tagId = tagIdRemap.get(link.tagId);
+    if (!tagId) continue;
+    const key = `${link.memoryId}:${tagId}`;
+    if (existingLinks.has(key)) continue;
+    existingLinks.add(key);
+    nextLinks.push({ ...link, tagId });
+  }
+
+  return {
+    ...current,
+    exportedAt: new Date().toISOString(),
+    memories: [...incomingMemories, ...current.memories],
+    tags: nextTags,
+    memoryTags: nextLinks,
+    people: mergeById(current.people, incoming.people),
+    pets: mergeById(current.pets, incoming.pets),
+    places: mergeById(current.places, incoming.places),
+    lifePeriods: mergeById(current.lifePeriods, incoming.lifePeriods),
+    processingRuns: [...current.processingRuns, ...incoming.processingRuns]
+  };
+}
+
 export function normalizeTagName(value: string): string {
   return normalize(value).replace(/\s+/g, " ");
 }
@@ -173,4 +242,13 @@ function compareTimelineKeys(a: string, b: string): number {
   if (a === "unknown") return 1;
   if (b === "unknown") return -1;
   return b.localeCompare(a);
+}
+
+function memoryDeduplicationKey(memory: Memory): string {
+  return normalize([memory.rawText, memory.approximateStartDate ?? "", memory.title ?? ""].join("|"));
+}
+
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const seen = new Set(current.map((item) => item.id));
+  return [...current, ...incoming.filter((item) => !seen.has(item.id))];
 }
