@@ -1,0 +1,110 @@
+export type DatePrecision =
+  | "exact"
+  | "day"
+  | "month"
+  | "year"
+  | "range"
+  | "age"
+  | "grade"
+  | "decade"
+  | "unknown";
+
+export type SourceType = "voice" | "typed" | "import" | "edit";
+
+export type TagType =
+  | "person"
+  | "pet"
+  | "place"
+  | "time"
+  | "object"
+  | "emotion"
+  | "theme"
+  | "activity"
+  | "life_period"
+  | "custom";
+
+export type SuggestionSource =
+  | "explicit"
+  | "inferred"
+  | "known_context"
+  | "model"
+  | "rule"
+  | "user_history";
+
+export type UserProfile = {
+  id?: string;
+  birthYear?: number;
+  birthMonth?: number;
+  birthDay?: number;
+  preferredDatePrecision?: DatePrecision;
+  allowInferredDates?: boolean;
+  allowEmotionDetection?: boolean;
+  allowAudioRetention?: boolean;
+};
+
+export type Memory = {
+  id: string;
+  rawText: string;
+  cleanedText?: string;
+  title?: string;
+  summary?: string;
+  createdAt: string;
+  updatedAt: string;
+  capturedAt?: string;
+  sourceType: SourceType;
+  audioUri?: string;
+  isAudioRetained: boolean;
+  approximateStartDate?: string;
+  approximateEndDate?: string;
+  datePrecision: DatePrecision;
+  dateConfidence?: number;
+  dateExplanation?: string;
+  userDateConfirmed: boolean;
+  deletedAt?: string;
+};
+
+export type Tag = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  type: TagType;
+  createdAt: string;
+  updatedAt: string;
+  isUserCreated: boolean;
+};
+
+export type MemoryTag = {
+  memoryId: string;
+  tagId: string;
+  source: SuggestionSource;
+  confidence?: number;
+  userConfirmed: boolean;
+  rejected: boolean;
+  createdAt: string;
+};
+
+export type DateCandidate = {
+  label: string;
+  startDate?: string;
+  endDate?: string;
+  precision: DatePrecision;
+  confidence: number;
+  sourceText: string;
+  inferenceExplanation?: string;
+};
+
+export type TagSuggestion = {
+  name: string;
+  type: TagType;
+  confidence: number;
+  source: SuggestionSource;
+  explanation?: string;
+};
+
+export type ProcessingRunRecord = {
+  processorName: string;
+  processorVersion: string;
+  inputHash: string;
+  outputJson: string;
+  createdAt: string;
+};
