@@ -30,6 +30,7 @@ import { createLifeContextId, type LifeContextEntity } from "../../../src/core/l
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
+import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
 import { rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
@@ -121,6 +122,7 @@ export default function App() {
   }, [archive, selectedDatePrecision, selectedTagIds, semanticMemories]);
 
   const memories = searchMode === "semantic" && query.trim() ? semanticFilteredMemories : keywordMemories;
+  const prompts = useMemo(() => (archive ? buildResurfacingPrompts(archive) : []), [archive]);
 
   useEffect(() => {
     if (!archive || searchMode !== "semantic" || !query.trim()) {
@@ -221,6 +223,18 @@ export default function App() {
               setQuery("");
               setSelectedTagIds([]);
               setSelectedDatePrecision(undefined);
+            }}
+            prompts={prompts}
+            onPrompt={(prompt) => {
+              if (prompt.memoryId) {
+                setSelectedId(prompt.memoryId);
+                setMode("detail");
+                return;
+              }
+              if (prompt.tagId) {
+                setSelectedTagIds([prompt.tagId]);
+                setMode("list");
+              }
             }}
             onSelect={(id) => {
               setSelectedId(id);
@@ -862,11 +876,23 @@ function MemoryList(props: {
   selectedDatePrecision?: DatePrecision;
   onSelectDatePrecision: (precision: DatePrecision) => void;
   onClearFilters: () => void;
+  prompts: ResurfacingPrompt[];
+  onPrompt: (prompt: ResurfacingPrompt) => void;
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {props.prompts.length > 0 ? (
+        <View style={styles.promptPanel}>
+          <Text style={styles.panelTitle}>Prompts</Text>
+          {props.prompts.slice(0, 3).map((prompt) => (
+            <Pressable key={prompt.id} style={styles.promptItem} onPress={() => props.onPrompt(prompt)}>
+              <Text style={styles.memoryPreview}>{prompt.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <View style={styles.searchRow}>
         <Search size={20} color="#5f655d" />
         <TextInput
@@ -1625,6 +1651,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 10
+  },
+  promptPanel: {
+    borderWidth: 1,
+    borderColor: "#d4dccb",
+    backgroundColor: "#f7faf3",
+    borderRadius: 8,
+    padding: 14,
+    gap: 10
+  },
+  promptItem: {
+    borderTopWidth: 1,
+    borderTopColor: "#e1e7d9",
+    paddingTop: 10
   },
   relatedPanel: {
     borderWidth: 1,
