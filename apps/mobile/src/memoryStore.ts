@@ -5,7 +5,7 @@ import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiv
 import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
-import type { Memory, MemoryTag, Tag } from "../../../src/core/types";
+import type { Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
 
@@ -20,12 +20,16 @@ export async function loadArchive(): Promise<MemoryArchive> {
   const memories = (await db.getAllAsync<MemoryRow>("SELECT * FROM memory ORDER BY created_at DESC")).map(rowToMemory);
   const tags = (await db.getAllAsync<TagRow>("SELECT * FROM tag ORDER BY name ASC")).map(rowToTag);
   const memoryTags = (await db.getAllAsync<MemoryTagRow>("SELECT * FROM memory_tag ORDER BY created_at ASC")).map(rowToMemoryTag);
+  const memoryEmbeddings = (await db.getAllAsync<MemoryEmbeddingRow>("SELECT * FROM memory_embedding ORDER BY memory_id ASC")).map(
+    rowToMemoryEmbedding
+  );
 
   return {
     ...createEmptyArchive(),
     memories,
     tags,
-    memoryTags
+    memoryTags,
+    memoryEmbeddings
   };
 }
 
@@ -38,6 +42,7 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {
     await db.runAsync("DELETE FROM memory_tag");
+    await db.runAsync("DELETE FROM memory_embedding");
     await db.runAsync("DELETE FROM tag");
     await db.runAsync("DELETE FROM memory");
 
@@ -104,6 +109,23 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
         ]
       );
     }
+
+    for (const embedding of archive.memoryEmbeddings ?? []) {
+      await db.runAsync(
+        `INSERT INTO memory_embedding (
+          memory_id, vector, dimension, model_id, model_version, created_at, input_hash
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          embedding.memoryId,
+          JSON.stringify(embedding.values),
+          embedding.dimension,
+          embedding.modelId,
+          embedding.modelVersion,
+          embedding.createdAt,
+          embedding.inputHash
+        ]
+      );
+    }
   });
 }
 
@@ -118,6 +140,7 @@ export function createEmptyArchive(): MemoryArchive {
     pets: [],
     places: [],
     lifePeriods: [],
+    memoryEmbeddings: [],
     processingRuns: []
   };
 }
@@ -244,6 +267,7 @@ async function loadWebArchive(): Promise<MemoryArchive> {
     memories: parsed.memories ?? [],
     tags: parsed.tags ?? [],
     memoryTags: parsed.memoryTags ?? [],
+    memoryEmbeddings: parsed.memoryEmbeddings ?? [],
     processingRuns: parsed.processingRuns ?? []
   };
 }
@@ -313,6 +337,16 @@ type MemoryTagRow = {
   created_at: string;
 };
 
+type MemoryEmbeddingRow = {
+  memory_id: string;
+  vector: string;
+  dimension: number;
+  model_id: string;
+  model_version: string;
+  input_hash: string | null;
+  created_at: string;
+};
+
 function rowToMemory(row: MemoryRow): Memory {
   return {
     id: row.id,
@@ -356,6 +390,18 @@ function rowToMemoryTag(row: MemoryTagRow): MemoryTag {
     ...(row.confidence !== null ? { confidence: row.confidence } : {}),
     userConfirmed: integerToBoolean(row.user_confirmed),
     rejected: integerToBoolean(row.rejected),
+    createdAt: row.created_at
+  };
+}
+
+function rowToMemoryEmbedding(row: MemoryEmbeddingRow): MemoryEmbeddingRecord {
+  return {
+    memoryId: row.memory_id,
+    values: JSON.parse(row.vector) as number[],
+    dimension: row.dimension,
+    modelId: row.model_id,
+    modelVersion: row.model_version,
+    inputHash: row.input_hash ?? "",
     createdAt: row.created_at
   };
 }

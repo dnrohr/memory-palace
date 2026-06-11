@@ -149,3 +149,13 @@ export type ProcessingRunRecord = {
   outputJson: string;
   createdAt: string;
 };
+
+export type MemoryEmbeddingRecord = {
+  memoryId: string;
+  values: number[];
+  dimension: number;
+  modelId: string;
+  modelVersion: string;
+  inputHash: string;
+  createdAt: string;
+};

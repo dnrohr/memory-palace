@@ -29,6 +29,7 @@ import { createLifeContextId, type LifeContextEntity } from "../../../src/core/l
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
+import { rebuildEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import {
   createMemory,
@@ -61,7 +62,13 @@ export default function App() {
   const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
   useEffect(() => {
-    void loadArchive().then(setArchive);
+    void loadArchive().then(async (loadedArchive) => {
+      const { archive: indexedArchive, indexedMemoryIds, removedMemoryIds } = await rebuildEmbeddingIndex(loadedArchive);
+      setArchive(indexedArchive);
+      if (indexedMemoryIds.length > 0 || removedMemoryIds.length > 0) {
+        await saveArchive(indexedArchive);
+      }
+    });
   }, []);
 
   const memories = useMemo(() => {
@@ -76,8 +83,9 @@ export default function App() {
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
   async function persist(nextArchive: MemoryArchive) {
-    setArchive(nextArchive);
-    await saveArchive(nextArchive);
+    const { archive: indexedArchive } = await rebuildEmbeddingIndex(nextArchive);
+    setArchive(indexedArchive);
+    await saveArchive(indexedArchive);
   }
 
   if (!archive) {

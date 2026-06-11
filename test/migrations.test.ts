@@ -25,8 +25,10 @@ describe("storage migrations", () => {
   it("applies unapplied migrations once", async () => {
     const db = new FakeMigrationDatabase();
 
-    await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual(["0001_initial_schema"]);
+    await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual([
+      "0001_initial_schema",
+      "0002_embedding_input_hash"
+    ]);
     await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual([]);
   });
 });
-

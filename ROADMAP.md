@@ -49,6 +49,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added deterministic local hash embeddings and semantic search by cosine similarity as a lightweight local semantic-search baseline.
 - Added related-memory ranking from shared tags, approximate time period, and optional local semantic similarity, plus a detail-screen related memories section.
 - Reformatted this roadmap into a living implementation tracker.
+- Added persistent memory embedding records, stale-vector detection, index rebuild/search helpers, native/web persistence, and app save/load index maintenance.
 
 ## Milestone Status
 
@@ -60,7 +61,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine. | Local model adapter, schema validation, prompt/version metadata, UI controls. |
-| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema. | Production local embedding model, indexing queue, persistent vectors, semantic UI, regeneration flow. |
+| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers. | Production local embedding model, background indexing queue, semantic UI, explicit regeneration controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, tag graph data, shared-tag clusters, editable life chapter candidates, related memories. | Timeline v2 UI, graph UI, cluster/chapter editing UI. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, import workflow preview/apply, duplicate detection, archive merge behavior. | Platform file save/import UI, SQLite export, richer conflict resolution. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, app-lock contract. | Native PIN/biometric provider, storage sizing, deletion guarantees for model/audio artifacts, encryption options. |
@@ -109,7 +110,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
 2. Add FTS-backed search adapter while keeping the portable ranked search fallback.
-3. Add persistent embedding index and queue stale embeddings when memories change.
+3. Add background queue controls and explicit regeneration for stale embeddings.
 4. Add timeline v2 visual distinctions for confirmed, inferred, range, and unknown dates.
 5. Add platform import/export file UI for JSON and Markdown bundles.
 6. Expand privacy/audit controls for retained audio, embeddings, processing outputs, and storage use.

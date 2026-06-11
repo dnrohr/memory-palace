@@ -13,6 +13,13 @@ export const migrations: Migration[] = [
     id: "0001_initial_schema",
     version: schemaVersion,
     sql: initialSchemaSql
+  },
+  {
+    id: "0002_embedding_input_hash",
+    version: schemaVersion,
+    sql: `
+ALTER TABLE memory_embedding ADD COLUMN input_hash TEXT;
+`
   }
 ];
 
