@@ -1,4 +1,4 @@
-import { CalendarDays, Download, Edit3, List, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Wand2, X } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Download, Edit3, List, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -27,6 +27,7 @@ import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
+import { buildReviewInbox } from "../../../src/processing/reviewInbox";
 import {
   createMemory,
   loadArchive,
@@ -38,7 +39,7 @@ import {
 } from "./memoryStore";
 import type { MemoryArchive } from "../../../src/core/archive";
 
-type ViewMode = "list" | "editor" | "detail" | "timeline" | "tags" | "settings";
+type ViewMode = "list" | "editor" | "detail" | "timeline" | "review" | "tags" | "settings";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
@@ -89,6 +90,7 @@ export default function App() {
           }}
           onList={() => setMode("list")}
           onTimeline={() => setMode("timeline")}
+          onReview={() => setMode("review")}
           onTags={() => setMode("tags")}
           onSettings={() => setMode("settings")}
         />
@@ -167,6 +169,16 @@ export default function App() {
           />
         ) : null}
 
+        {mode === "review" ? (
+          <ReviewInboxView
+            archive={archive}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMode("detail");
+            }}
+          />
+        ) : null}
+
         {mode === "tags" ? (
           <TagManagement
             archive={archive}
@@ -195,6 +207,7 @@ function Header(props: {
   onNew: () => void;
   onList: () => void;
   onTimeline: () => void;
+  onReview: () => void;
   onTags: () => void;
   onSettings: () => void;
 }) {
@@ -208,10 +221,41 @@ function Header(props: {
         <IconButton label="List" active={props.mode === "list"} onPress={props.onList} icon={<List size={20} />} />
         <IconButton label="New" active={props.mode === "editor"} onPress={props.onNew} icon={<Plus size={20} />} />
         <IconButton label="Timeline" active={props.mode === "timeline"} onPress={props.onTimeline} icon={<CalendarDays size={20} />} />
+        <IconButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
         <IconButton label="Tags" active={props.mode === "tags"} onPress={props.onTags} icon={<Tags size={20} />} />
         <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
     </View>
+  );
+}
+
+function ReviewInboxView(props: { archive: MemoryArchive; onSelect: (id: string) => void }) {
+  const items = buildReviewInbox(props.archive);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      {items.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Nothing to review</Text>
+        </View>
+      ) : (
+        items.map((item) => {
+          const memory = props.archive.memories.find((candidate) => candidate.id === item.memoryId);
+          return (
+            <Pressable key={item.id} style={styles.reviewItem} onPress={() => props.onSelect(item.memoryId)}>
+              <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
+              <Text style={styles.memoryTitle}>{item.label}</Text>
+              {memory ? (
+                <Text style={styles.memoryPreview} numberOfLines={2}>
+                  {memory.cleanedText || memory.rawText}
+                </Text>
+              ) : null}
+              <Text style={styles.metadata}>Confidence {Math.round(item.confidence * 100)}%</Text>
+            </Pressable>
+          );
+        })
+      )}
+    </ScrollView>
   );
 }
 
@@ -242,6 +286,19 @@ function TimelineView(props: { memories: Memory[]; onSelect: (id: string) => voi
       )}
     </ScrollView>
   );
+}
+
+function reviewTypeLabel(type: string): string {
+  switch (type) {
+    case "tag_suggestion":
+      return "Suggested tag";
+    case "date_suggestion":
+      return "Suggested date";
+    case "untagged_memory":
+      return "Needs tags";
+    default:
+      return "Review";
+  }
 }
 
 function MemoryList(props: {
@@ -998,6 +1055,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 10
+  },
+  reviewItem: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 8
+  },
+  reviewType: {
+    color: "#5d6b58",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase"
   },
   deletedText: {
     gap: 2
