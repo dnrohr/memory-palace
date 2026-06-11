@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NoEmbeddingEngine } from "../src/processing/embeddings";
+import { HashEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
 import { NoStructuredExtractionEngine, RulesStructuredExtractionEngine } from "../src/processing/structuredExtraction";
 
 describe("optional AI adapter seams", () => {
@@ -20,6 +20,13 @@ describe("optional AI adapter seams", () => {
 
     await expect(engine.embedText("A memory.")).resolves.toBeUndefined();
     await expect(engine.embedBatch(["one", "two"])).resolves.toEqual([undefined, undefined]);
+  });
+
+  it("provides a local hash embedding engine", async () => {
+    const vector = await new HashEmbeddingEngine(16).embedText("dog window");
+
+    expect(vector.values).toHaveLength(16);
+    expect(vector.modelId).toBe("hash-embedding");
   });
 
   it("provides a local rules-backed structured extraction engine", async () => {
