@@ -7,7 +7,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +24,7 @@ import {
 } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
+import { applyArchiveImport, previewArchiveImport, type ArchiveImportWorkflowPreview } from "../../../src/import/importWorkflow";
 import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
@@ -50,6 +50,7 @@ import {
   type AudioCaptureDraft,
   type AudioCaptureSession
 } from "./audioCapture";
+import { combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
@@ -286,6 +287,7 @@ export default function App() {
         {mode === "settings" ? (
           <Settings
             archive={archive}
+            onImport={async (preview) => persist(applyArchiveImport(archive, preview))}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -1053,21 +1055,40 @@ function MemoryDetail(props: {
 
 function Settings(props: {
   archive: MemoryArchive;
+  onImport: (preview: ArchiveImportWorkflowPreview) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
   const deletedMemories = props.archive.memories.filter((memory) => memory.deletedAt);
   const summary = summarizeArchive(props.archive);
+  const [importPreview, setImportPreview] = useState<ArchiveImportWorkflowPreview | undefined>();
+  const [portabilityError, setPortabilityError] = useState<string | undefined>();
 
   async function shareJson() {
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
-    if (artifact) await Share.share({ title: artifact.fileName, message: artifact.content });
+    if (artifact) await shareExportArtifact(artifact);
   }
 
   async function shareMarkdown() {
     const artifacts = await new MarkdownExportProvider().exportArchive(props.archive);
-    const message = artifacts.map((artifact) => `# ${artifact.fileName}\n\n${artifact.content}`).join("\n\n");
-    await Share.share({ title: "Memory Palace Markdown Export", message });
+    await shareExportArtifact(combineMarkdownArtifacts(artifacts));
+  }
+
+  async function previewImport() {
+    setPortabilityError(undefined);
+    const artifacts = await pickImportArtifacts();
+    if (artifacts.length === 0) return;
+    try {
+      setImportPreview(await previewArchiveImport(props.archive, artifacts));
+    } catch (error) {
+      setPortabilityError(error instanceof Error ? error.message : "Import preview failed.");
+    }
+  }
+
+  async function applyImport() {
+    if (!importPreview) return;
+    await props.onImport(importPreview);
+    setImportPreview(undefined);
   }
 
   return (
@@ -1085,7 +1106,27 @@ function Settings(props: {
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
         <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
+        <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
       </View>
+      {portabilityError ? <Text style={styles.errorText}>{portabilityError}</Text> : null}
+      {importPreview ? (
+        <View style={styles.filterPanel}>
+          <Text style={styles.panelTitle}>Import preview</Text>
+          <Text style={styles.metadata}>
+            {importPreview.mergePreview.newMemoryCount} new memories, {importPreview.mergePreview.duplicateMemoryCount} duplicates,{" "}
+            {importPreview.mergePreview.newTagCount} new tags
+          </Text>
+          {importPreview.warnings.concat(importPreview.mergePreview.warnings).map((warning) => (
+            <Text key={warning} style={styles.errorText}>
+              {warning}
+            </Text>
+          ))}
+          <View style={styles.actionRow}>
+            <SecondaryButton label="Cancel" onPress={() => setImportPreview(undefined)} icon={<X size={18} />} />
+            <PrimaryButton label="Apply import" onPress={applyImport} icon={<Save size={18} />} />
+          </View>
+        </View>
+      ) : null}
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Deleted memories</Text>
         {deletedMemories.length === 0 ? <Text style={styles.metadata}>No deleted memories</Text> : null}

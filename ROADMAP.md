@@ -52,6 +52,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added persistent memory embedding records, stale-vector detection, index rebuild/search helpers, native/web persistence, and app save/load index maintenance.
 - Added a keyword/semantic search mode switch in the memory list that searches the local embedding index and keeps tag/date filters applied.
 - Added timeline entry metadata and UI cues for confirmed, inferred, range, and unknown memory dates.
+- Added Expo document/file portability support for JSON/Markdown export sharing and JSON/Markdown import preview/apply from picked files.
 
 ## Milestone Status
 
@@ -65,7 +66,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine. | Local model adapter, schema validation, prompt/version metadata, UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers, semantic search UI. | Production local embedding model, background indexing queue, explicit regeneration controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph data, shared-tag clusters, editable life chapter candidates, related memories. | Graph UI, cluster/chapter editing UI, richer timeline filtering. |
-| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, import workflow preview/apply, duplicate detection, archive merge behavior. | Platform file save/import UI, SQLite export, richer conflict resolution. |
+| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, app-lock contract. | Native PIN/biometric provider, storage sizing, deletion guarantees for model/audio artifacts, encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompts, related-memory prompts. | Fast capture mode, prompt UI, memory split/merge/addendum/correction flows, editing polish. |
@@ -113,6 +114,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
 2. Add FTS-backed search adapter while keeping the portable ranked search fallback.
 3. Add background queue controls and explicit regeneration for stale embeddings.
-4. Add platform import/export file UI for JSON and Markdown bundles.
-5. Expand privacy/audit controls for retained audio, embeddings, processing outputs, and storage use.
-6. Add graph, cluster, and chapter editing views.
+4. Expand privacy/audit controls for retained audio, embeddings, processing outputs, and storage use.
+5. Add graph, cluster, and chapter editing views.
+6. Add SQLite export and richer import conflict resolution.
