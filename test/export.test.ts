@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import { JsonExportProvider } from "../src/export/jsonExport";
 import { MarkdownExportProvider } from "../src/export/markdownExport";
+import { SqliteExportProvider } from "../src/export/sqliteExport";
 
 const archive: MemoryArchive = {
   exportedAt: "2026-06-11T12:00:00.000Z",
@@ -88,5 +89,22 @@ describe("export providers", () => {
     expect(artifact?.content).toContain('  - "Patrick"');
     expect(artifact?.content).toContain('  - "old house"');
     expect(artifact?.content).toContain("My dog Patrick loved the old house.");
+  });
+
+  it("exports a portable SQLite SQL dump", async () => {
+    const [artifact] = await new SqliteExportProvider().exportArchive({
+      ...archive,
+      memories: [{ ...archive.memories[0]!, title: "Patrick's old house" }]
+    });
+
+    expect(artifact).toEqual(
+      expect.objectContaining({
+        fileName: "memory-palace-export.sql",
+        mediaType: "application/sql"
+      })
+    );
+    expect(artifact?.content).toContain("CREATE TABLE IF NOT EXISTS memory");
+    expect(artifact?.content).toContain("'Patrick''s old house'");
+    expect(artifact?.content).toContain("INSERT INTO memory_fts(memory_fts) VALUES ('rebuild');");
   });
 });

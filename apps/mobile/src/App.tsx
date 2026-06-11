@@ -26,6 +26,7 @@ import {
 } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
+import { SqliteExportProvider } from "../../../src/export/sqliteExport";
 import { applyArchiveImport, previewArchiveImport, type ArchiveImportWorkflowPreview } from "../../../src/import/importWorkflow";
 import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
@@ -1379,6 +1380,11 @@ function Settings(props: {
     await shareExportArtifact(combineMarkdownArtifacts(artifacts));
   }
 
+  async function shareSqlite() {
+    const [artifact] = await new SqliteExportProvider().exportArchive(props.archive);
+    if (artifact) await shareExportArtifact(artifact);
+  }
+
   async function previewImport() {
     setPortabilityError(undefined);
     const artifacts = await pickImportArtifacts();
@@ -1443,6 +1449,7 @@ function Settings(props: {
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
         <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
+        <SecondaryButton label="SQLite SQL" onPress={shareSqlite} icon={<Download size={18} />} />
         <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
       </View>
       {portabilityError ? <Text style={styles.errorText}>{portabilityError}</Text> : null}
