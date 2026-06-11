@@ -29,6 +29,7 @@ import { createLifeContextId, type LifeContextEntity } from "../../../src/core/l
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
+import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import {
   createMemory,
   deleteLifeContext,
@@ -163,6 +164,10 @@ export default function App() {
             archive={archive}
             memory={selectedMemory}
             onEdit={() => setMode("editor")}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMode("detail");
+            }}
             onDelete={async () => {
               await persist(softDeleteMemory(archive, selectedMemory.id));
               setSelectedId(undefined);
@@ -903,7 +908,25 @@ function MemoryEditor(props: {
   );
 }
 
-function MemoryDetail(props: { archive: MemoryArchive; memory: Memory; onEdit: () => void; onDelete: () => Promise<void> }) {
+function MemoryDetail(props: {
+  archive: MemoryArchive;
+  memory: Memory;
+  onEdit: () => void;
+  onDelete: () => Promise<void>;
+  onSelect: (id: string) => void;
+}) {
+  const [relatedMemories, setRelatedMemories] = useState<RelatedMemoryResult[]>([]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    void findRelatedMemories(props.archive, props.memory.id, { limit: 3 }).then((results) => {
+      if (isCurrent) setRelatedMemories(results);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.archive, props.memory.id]);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.detailHeader}>
@@ -933,6 +956,20 @@ function MemoryDetail(props: { archive: MemoryArchive; memory: Memory; onEdit: (
       <Text style={styles.metadata}>
         Memory date: {formatMemoryDate(props.memory)} ({props.memory.datePrecision})
       </Text>
+      {relatedMemories.length > 0 ? (
+        <View style={styles.relatedPanel}>
+          <Text style={styles.panelTitle}>Related memories</Text>
+          {relatedMemories.map((result) => (
+            <Pressable key={result.memory.id} style={styles.relatedItem} onPress={() => props.onSelect(result.memory.id)}>
+              <Text style={styles.memoryTitle}>{result.memory.title}</Text>
+              <Text style={styles.memoryPreview} numberOfLines={2}>
+                {result.memory.cleanedText || result.memory.rawText}
+              </Text>
+              <Text style={styles.metadata}>{formatRelatedReasons(result)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -1078,6 +1115,23 @@ function formatMemoryDate(memory: Memory): string {
   }
 
   return memory.approximateStartDate ?? memory.approximateEndDate ?? "unknown";
+}
+
+function formatRelatedReasons(result: RelatedMemoryResult): string {
+  const labels = result.reasons.map((reason) => {
+    switch (reason) {
+      case "shared_tag":
+        return result.sharedTagNames.length > 0 ? `shared tags: ${result.sharedTagNames.join(", ")}` : "shared tags";
+      case "same_period":
+        return "same period";
+      case "semantic_similarity":
+        return "similar wording";
+      default:
+        return reason;
+    }
+  });
+
+  return labels.join(" · ");
 }
 
 const styles = StyleSheet.create({
@@ -1232,6 +1286,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 10
+  },
+  relatedPanel: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 10
+  },
+  relatedItem: {
+    borderTopWidth: 1,
+    borderTopColor: "#e4e0d5",
+    paddingTop: 10,
+    gap: 6
   },
   filterPanel: {
     borderWidth: 1,
