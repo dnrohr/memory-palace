@@ -206,8 +206,9 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <UnlockView
-          onUnlock={async () => {
-            const unlocked = await appLockProvider.unlock();
+          mode={appLockSettings.mode}
+          onUnlock={async (secret) => {
+            const unlocked = await appLockProvider.unlock(secret);
             setIsAppLocked(await appLockProvider.isLocked());
             return unlocked;
           }}
@@ -394,12 +395,22 @@ export default function App() {
                 hidePreviewsInSwitcher: true
               })
             }
+            onSavePin={async (pin) => {
+              await appLockProvider.savePin(pin);
+              setAppLockSettings(await appLockProvider.getSettings());
+              setIsAppLocked(await appLockProvider.isLocked());
+            }}
             onDisableAppLock={async () =>
-              saveAppLockSettings({
-                mode: "disabled",
-                autoLockTimeoutMs: 0,
-                hidePreviewsInSwitcher: false
-              })
+              appLockSettings.mode === "pin"
+                ? appLockProvider.clearPin().then(async () => {
+                    setAppLockSettings(await appLockProvider.getSettings());
+                    setIsAppLocked(await appLockProvider.isLocked());
+                  })
+                : saveAppLockSettings({
+                    mode: "disabled",
+                    autoLockTimeoutMs: 0,
+                    hidePreviewsInSwitcher: false
+                  })
             }
             onLockNow={async () => {
               await appLockProvider.lock();
@@ -445,12 +456,13 @@ function Header(props: {
   );
 }
 
-function UnlockView(props: { onUnlock: () => Promise<boolean> }) {
+function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: string) => Promise<boolean> }) {
   const [error, setError] = useState<string | undefined>();
+  const [pin, setPin] = useState("");
 
   async function unlock() {
     setError(undefined);
-    const unlocked = await props.onUnlock();
+    const unlocked = await props.onUnlock(props.mode === "pin" ? pin : undefined);
     if (!unlocked) setError("Unlock was not completed.");
   }
 
@@ -458,6 +470,17 @@ function UnlockView(props: { onUnlock: () => Promise<boolean> }) {
     <View style={styles.lockScreen}>
       <Lock size={32} color="#374236" />
       <Text style={styles.detailTitle}>Memory Palace is locked</Text>
+      {props.mode === "pin" ? (
+        <TextInput
+          value={pin}
+          onChangeText={setPin}
+          placeholder="PIN"
+          placeholderTextColor="#7b8178"
+          secureTextEntry
+          keyboardType="number-pad"
+          style={styles.tagInput}
+        />
+      ) : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       <PrimaryButton label="Unlock" onPress={unlock} icon={<Lock size={18} />} />
     </View>
@@ -1358,6 +1381,7 @@ function Settings(props: {
   onClearRetainedAudio: () => Promise<void>;
   onRegenerateEmbeddings: () => Promise<void>;
   onEnableBiometricLock: () => Promise<void>;
+  onSavePin: (pin: string) => Promise<void>;
   onDisableAppLock: () => Promise<void>;
   onLockNow: () => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
@@ -1369,6 +1393,7 @@ function Settings(props: {
   const staleEmbeddingCount = findStaleEmbeddingMemoryIds(props.archive).length;
   const [importPreview, setImportPreview] = useState<ArchiveImportWorkflowPreview | undefined>();
   const [portabilityError, setPortabilityError] = useState<string | undefined>();
+  const [pinDraft, setPinDraft] = useState("");
 
   async function shareJson() {
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
@@ -1437,7 +1462,26 @@ function Settings(props: {
         </Text>
         <View style={styles.actionRow}>
           {props.appLockSettings.mode === "disabled" ? (
-            <PrimaryButton label="Enable biometric" onPress={props.onEnableBiometricLock} icon={<Lock size={18} />} />
+            <>
+              <PrimaryButton label="Enable biometric" onPress={props.onEnableBiometricLock} icon={<Lock size={18} />} />
+              <TextInput
+                value={pinDraft}
+                onChangeText={setPinDraft}
+                placeholder="Set PIN"
+                placeholderTextColor="#7b8178"
+                secureTextEntry
+                keyboardType="number-pad"
+                style={styles.dateInput}
+              />
+              <SecondaryButton
+                label="Save PIN"
+                onPress={async () => {
+                  await props.onSavePin(pinDraft);
+                  setPinDraft("");
+                }}
+                icon={<Save size={18} />}
+              />
+            </>
           ) : (
             <>
               <SecondaryButton label="Lock now" onPress={props.onLockNow} icon={<Lock size={18} />} />

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AppLockSettings, IAppLockProvider } from "../../../src/security/appLock";
 
 const SETTINGS_KEY = "memory-palace.app-lock.v1";
+const PIN_KEY = "memory-palace.app-lock.pin.v1";
 
 const defaultSettings: AppLockSettings = {
   mode: "disabled",
@@ -30,8 +31,10 @@ export class ExpoBiometricAppLockProvider implements IAppLockProvider {
     }
 
     if (settings.mode === "pin") {
-      this.locked = !secret;
-      return Boolean(secret);
+      const savedPin = await this.getSavedPin();
+      const success = Boolean(secret && savedPin && secret === savedPin);
+      this.locked = !success;
+      return success;
     }
 
     const LocalAuthentication = await import("expo-local-authentication");
@@ -55,5 +58,26 @@ export class ExpoBiometricAppLockProvider implements IAppLockProvider {
 
   async isLocked(): Promise<boolean> {
     return this.locked;
+  }
+
+  async savePin(pin: string): Promise<void> {
+    const SecureStore = await import("expo-secure-store");
+    await SecureStore.setItemAsync(PIN_KEY, pin);
+    await this.saveSettings({
+      mode: "pin",
+      autoLockTimeoutMs: 60_000,
+      hidePreviewsInSwitcher: true
+    });
+  }
+
+  async clearPin(): Promise<void> {
+    const SecureStore = await import("expo-secure-store");
+    await SecureStore.deleteItemAsync(PIN_KEY);
+    await this.saveSettings(defaultSettings);
+  }
+
+  private async getSavedPin(): Promise<string | null> {
+    const SecureStore = await import("expo-secure-store");
+    return SecureStore.getItemAsync(PIN_KEY);
   }
 }
