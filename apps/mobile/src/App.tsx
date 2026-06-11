@@ -44,6 +44,7 @@ import {
   loadArchive,
   replaceTags,
   saveArchive,
+  searchMemoryIdsWithFts,
   softDeleteMemory,
   tagsForMemory,
   upsertLifeContext,
@@ -79,6 +80,7 @@ export default function App() {
   const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
   const [semanticMemories, setSemanticMemories] = useState<Memory[]>([]);
   const [semanticSearchPending, setSemanticSearchPending] = useState(false);
+  const [ftsMemoryIds, setFtsMemoryIds] = useState<string[] | undefined>();
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
@@ -104,12 +106,22 @@ export default function App() {
 
   const keywordMemories = useMemo(() => {
     if (!archive) return [];
-    return filterMemories(archive, {
+    const filtered = filterMemories(archive, {
       text: query,
       tagIds: selectedTagIds,
       datePrecisions: selectedDatePrecision ? [selectedDatePrecision] : []
     });
-  }, [archive, query, selectedDatePrecision, selectedTagIds]);
+
+    if (!query.trim() || !ftsMemoryIds) return filtered;
+
+    const memoriesById = new Map(
+      filterMemories(archive, {
+        tagIds: selectedTagIds,
+        datePrecisions: selectedDatePrecision ? [selectedDatePrecision] : []
+      }).map((memory) => [memory.id, memory])
+    );
+    return ftsMemoryIds.map((id) => memoriesById.get(id)).filter((memory): memory is Memory => Boolean(memory));
+  }, [archive, ftsMemoryIds, query, selectedDatePrecision, selectedTagIds]);
 
   const semanticFilteredMemories = useMemo(() => {
     if (!archive) return [];
@@ -124,6 +136,21 @@ export default function App() {
 
   const memories = searchMode === "semantic" && query.trim() ? semanticFilteredMemories : keywordMemories;
   const prompts = useMemo(() => (archive ? buildResurfacingPrompts(archive) : []), [archive]);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setFtsMemoryIds(undefined);
+      return;
+    }
+
+    let isCurrent = true;
+    void searchMemoryIdsWithFts(query).then((ids) => {
+      if (isCurrent) setFtsMemoryIds(ids);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [query]);
 
   useEffect(() => {
     if (!archive || searchMode !== "semantic" || !query.trim()) {

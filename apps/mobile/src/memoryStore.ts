@@ -131,6 +131,23 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
   });
 }
 
+export async function searchMemoryIdsWithFts(query: string, limit = 100): Promise<string[] | undefined> {
+  const ftsQuery = toFtsQuery(query);
+  if (!ftsQuery || Platform.OS === "web") return undefined;
+
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ id: string }>(
+    `SELECT memory.id
+     FROM memory_fts
+     JOIN memory ON memory_fts.rowid = memory.rowid
+     WHERE memory_fts MATCH ? AND memory.deleted_at IS NULL
+     ORDER BY bm25(memory_fts)
+     LIMIT ?`,
+    [ftsQuery, limit]
+  );
+  return rows.map((row) => row.id);
+}
+
 export function createEmptyArchive(): MemoryArchive {
   return {
     exportedAt: new Date().toISOString(),
@@ -256,6 +273,15 @@ function deriveTitle(text: string): string {
   const firstSentence = text.split(/[.!?]/)[0]?.trim();
   if (!firstSentence) return "Untitled memory";
   return firstSentence.length > 64 ? `${firstSentence.slice(0, 61)}...` : firstSentence;
+}
+
+function toFtsQuery(query: string): string | undefined {
+  const terms = query
+    .toLocaleLowerCase()
+    .match(/[a-z0-9]+/g)
+    ?.slice(0, 8);
+  if (!terms || terms.length === 0) return undefined;
+  return terms.map((term) => `${term}*`).join(" ");
 }
 
 async function loadWebArchive(): Promise<MemoryArchive> {

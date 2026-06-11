@@ -60,13 +60,14 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added a memory addendum operation and detail-screen composer for later notes and corrections without replacing the original memory.
 - Added native SQLite FTS rebuild maintenance after archive saves so the FTS table stays populated on mobile.
 - Added structured extraction schema/prompt metadata and validation for result shape, confidence ranges, and engine metadata.
+- Added a native SQLite FTS keyword query adapter and app integration while keeping the portable search fallback for web.
 
 ## Milestone Status
 
 | Milestone | Status | Done | Remaining |
 | --- | --- | --- | --- |
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking. | Richer settings, storage diagnostics, device-level QA. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, timeline v1, native SQLite FTS rebuild maintenance. | Native FTS query adapter, app UI for merge/type editing, stronger search highlighting. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, timeline v1, native SQLite FTS rebuild/query integration. | App UI for merge/type editing and stronger search highlighting. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, transcript draft flow. | Native speech-to-text adapter, interruption/background handling, deeper recording error states. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
@@ -119,8 +120,8 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 ## Next Implementation Priorities
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
-2. Add FTS-backed search adapter while keeping the portable ranked search fallback.
-3. Add background queue controls and explicit regeneration for stale embeddings.
-4. Add cluster/chapter rename, merge, split, and reject actions.
-5. Add SQLite export and richer import conflict resolution.
-6. Add secure PIN lock and encryption options.
+2. Add background queue controls and explicit regeneration for stale embeddings.
+3. Add cluster/chapter rename, merge, split, and reject actions.
+4. Add SQLite export and richer import conflict resolution.
+5. Add secure PIN lock and encryption options.
+6. Add native speech-to-text interruption/background handling and deeper errors.
