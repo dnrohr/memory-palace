@@ -162,6 +162,19 @@ describe("archive operations", () => {
 
     expect(buckets.map((bucket) => bucket.key)).toEqual(["2026", "1994"]);
     expect(buckets.find((bucket) => bucket.key === "1994")?.memories.map((memory) => memory.id)).toEqual(["mem-1"]);
+    expect(buckets.find((bucket) => bucket.key === "1994")?.entries[0]).toEqual(
+      expect.objectContaining({
+        dateLabel: "1994-01-01",
+        certainty: "confirmed",
+        span: "point"
+      })
+    );
+    expect(buckets.find((bucket) => bucket.key === "2026")?.entries[0]).toEqual(
+      expect.objectContaining({
+        certainty: "unknown",
+        span: "unknown"
+      })
+    );
   });
 
   it("summarizes archive audit data", () => {

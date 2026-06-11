@@ -635,13 +635,25 @@ function TimelineView(props: { memories: Memory[]; onSelect: (id: string) => voi
         buckets.map((bucket) => (
           <View key={bucket.key} style={styles.timelineBucket}>
             <Text style={styles.timelineYear}>{bucket.label}</Text>
-            {bucket.memories.map((memory) => (
-              <Pressable key={memory.id} style={styles.timelineItem} onPress={() => props.onSelect(memory.id)}>
-                <Text style={styles.memoryTitle}>{memory.title}</Text>
+            {bucket.entries.map((entry) => (
+              <Pressable
+                key={entry.memory.id}
+                style={[
+                  styles.timelineItem,
+                  entry.certainty === "inferred" ? styles.timelineItemInferred : null,
+                  entry.span === "range" ? styles.timelineItemRange : null,
+                  entry.certainty === "unknown" ? styles.timelineItemUnknown : null
+                ]}
+                onPress={() => props.onSelect(entry.memory.id)}
+              >
+                <View style={styles.timelineItemHeader}>
+                  <Text style={styles.memoryTitle}>{entry.memory.title}</Text>
+                  <Text style={styles.timelineBadge}>{formatTimelineBadge(entry.certainty, entry.span)}</Text>
+                </View>
                 <Text style={styles.memoryPreview} numberOfLines={2}>
-                  {memory.cleanedText || memory.rawText}
+                  {entry.memory.cleanedText || entry.memory.rawText}
                 </Text>
-                <Text style={styles.metadata}>{formatMemoryDate(memory)}</Text>
+                <Text style={styles.metadata}>{entry.dateLabel}</Text>
               </Pressable>
             ))}
           </View>
@@ -1182,6 +1194,12 @@ function formatMemoryDate(memory: Memory): string {
   return memory.approximateStartDate ?? memory.approximateEndDate ?? "unknown";
 }
 
+function formatTimelineBadge(certainty: "confirmed" | "inferred" | "unknown", span: "point" | "range" | "unknown"): string {
+  if (certainty === "unknown") return "unknown";
+  if (span === "range") return certainty === "confirmed" ? "confirmed range" : "inferred range";
+  return certainty;
+}
+
 function formatRelatedReasons(result: RelatedMemoryResult): string {
   const labels = result.reasons.map((reason) => {
     switch (reason) {
@@ -1490,6 +1508,33 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 6
+  },
+  timelineItemInferred: {
+    borderLeftColor: "#c0ad72",
+    backgroundColor: "#fffaf0"
+  },
+  timelineItemRange: {
+    borderLeftWidth: 6
+  },
+  timelineItemUnknown: {
+    borderLeftColor: "#b7b9b0",
+    backgroundColor: "#f3f2ed"
+  },
+  timelineItemHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  timelineBadge: {
+    color: "#4e554c",
+    backgroundColor: "#e9eee4",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    fontWeight: "800",
+    overflow: "hidden"
   },
   deletedRow: {
     borderWidth: 1,

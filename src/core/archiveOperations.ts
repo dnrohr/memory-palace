@@ -14,6 +14,14 @@ export type TimelineBucket = {
   key: string;
   label: string;
   memories: Memory[];
+  entries: TimelineEntry[];
+};
+
+export type TimelineEntry = {
+  memory: Memory;
+  dateLabel: string;
+  certainty: "confirmed" | "inferred" | "unknown";
+  span: "point" | "range" | "unknown";
 };
 
 export type ArchiveAuditSummary = {
@@ -154,11 +162,13 @@ export function buildTimelineBuckets(memories: Memory[]): TimelineBucket[] {
     const existing = bucketMap.get(key);
     if (existing) {
       existing.memories.push(memory);
+      existing.entries.push(timelineEntry(memory));
     } else {
       bucketMap.set(key, {
         key,
         label: timelineLabel(key),
-        memories: [memory]
+        memories: [memory],
+        entries: [timelineEntry(memory)]
       });
     }
   }
@@ -265,6 +275,27 @@ function timelineKey(memory: Memory): string {
 
 function timelineLabel(key: string): string {
   return key === "unknown" ? "Unknown date" : key;
+}
+
+function timelineEntry(memory: Memory): TimelineEntry {
+  const hasStart = Boolean(memory.approximateStartDate);
+  const hasEnd = Boolean(memory.approximateEndDate);
+  const hasApproximateDate = hasStart || hasEnd;
+
+  return {
+    memory,
+    dateLabel: formatTimelineDate(memory),
+    certainty: !hasApproximateDate ? "unknown" : memory.userDateConfirmed ? "confirmed" : "inferred",
+    span: !hasApproximateDate ? "unknown" : hasStart && hasEnd ? "range" : "point"
+  };
+}
+
+function formatTimelineDate(memory: Memory): string {
+  if (memory.approximateStartDate && memory.approximateEndDate) {
+    return `${memory.approximateStartDate} to ${memory.approximateEndDate}`;
+  }
+
+  return memory.approximateStartDate ?? memory.approximateEndDate ?? "Unknown date";
 }
 
 function compareTimelineKeys(a: string, b: string): number {
