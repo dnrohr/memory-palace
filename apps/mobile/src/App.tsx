@@ -29,7 +29,7 @@ import { createLifeContextId, type LifeContextEntity } from "../../../src/core/l
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
-import { rebuildEmbeddingIndex } from "../../../src/search/embeddingIndex";
+import { rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import {
   createMemory,
@@ -52,12 +52,16 @@ import {
 } from "./audioCapture";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
+type SearchMode = "keyword" | "semantic";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [query, setQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
+  const [semanticMemories, setSemanticMemories] = useState<Memory[]>([]);
+  const [semanticSearchPending, setSemanticSearchPending] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
@@ -71,7 +75,7 @@ export default function App() {
     });
   }, []);
 
-  const memories = useMemo(() => {
+  const keywordMemories = useMemo(() => {
     if (!archive) return [];
     return filterMemories(archive, {
       text: query,
@@ -79,6 +83,39 @@ export default function App() {
       datePrecisions: selectedDatePrecision ? [selectedDatePrecision] : []
     });
   }, [archive, query, selectedDatePrecision, selectedTagIds]);
+
+  const semanticFilteredMemories = useMemo(() => {
+    if (!archive) return [];
+    const allowedIds = new Set(
+      filterMemories(archive, {
+        tagIds: selectedTagIds,
+        datePrecisions: selectedDatePrecision ? [selectedDatePrecision] : []
+      }).map((memory) => memory.id)
+    );
+    return semanticMemories.filter((memory) => allowedIds.has(memory.id));
+  }, [archive, selectedDatePrecision, selectedTagIds, semanticMemories]);
+
+  const memories = searchMode === "semantic" && query.trim() ? semanticFilteredMemories : keywordMemories;
+
+  useEffect(() => {
+    if (!archive || searchMode !== "semantic" || !query.trim()) {
+      setSemanticMemories([]);
+      setSemanticSearchPending(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setSemanticSearchPending(true);
+    void searchEmbeddingIndex(archive, query, { limit: 50 }).then((results) => {
+      if (!isCurrent) return;
+      setSemanticMemories(results.map((result) => result.memory));
+      setSemanticSearchPending(false);
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [archive, query, searchMode]);
 
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
@@ -122,6 +159,9 @@ export default function App() {
             memories={memories}
             query={query}
             onQueryChange={setQuery}
+            searchMode={searchMode}
+            onSearchModeChange={setSearchMode}
+            semanticSearchPending={semanticSearchPending}
             selectedTagIds={selectedTagIds}
             onToggleTag={(tagId) =>
               setSelectedTagIds((current) =>
@@ -629,6 +669,9 @@ function MemoryList(props: {
   memories: Memory[];
   query: string;
   onQueryChange: (query: string) => void;
+  searchMode: SearchMode;
+  onSearchModeChange: (mode: SearchMode) => void;
+  semanticSearchPending: boolean;
   selectedTagIds: string[];
   onToggleTag: (tagId: string) => void;
   selectedDatePrecision?: DatePrecision;
@@ -644,10 +687,24 @@ function MemoryList(props: {
         <TextInput
           value={props.query}
           onChangeText={props.onQueryChange}
-          placeholder="Search memories or tags"
+          placeholder={props.searchMode === "semantic" ? "Search by meaning" : "Search memories or tags"}
           placeholderTextColor="#7b8178"
           style={styles.searchInput}
         />
+      </View>
+      <View style={styles.segmentRow}>
+        {(["keyword", "semantic"] as SearchMode[]).map((mode) => (
+          <Pressable
+            key={mode}
+            onPress={() => props.onSearchModeChange(mode)}
+            style={[styles.segment, props.searchMode === mode ? styles.segmentActive : null]}
+          >
+            <Text style={[styles.segmentText, props.searchMode === mode ? styles.segmentTextActive : null]}>
+              {mode}
+            </Text>
+          </Pressable>
+        ))}
+        {props.semanticSearchPending ? <Text style={styles.metadata}>Searching local index</Text> : null}
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Filters</Text>
