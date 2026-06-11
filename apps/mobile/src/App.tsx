@@ -31,6 +31,7 @@ import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
 import { rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
+import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
 import {
   createMemory,
   deleteLifeContext,
@@ -288,6 +289,8 @@ export default function App() {
           <Settings
             archive={archive}
             onImport={async (preview) => persist(applyArchiveImport(archive, preview))}
+            onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
+            onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -1056,11 +1059,14 @@ function MemoryDetail(props: {
 function Settings(props: {
   archive: MemoryArchive;
   onImport: (preview: ArchiveImportWorkflowPreview) => Promise<void>;
+  onClearProcessingRuns: () => Promise<void>;
+  onClearRetainedAudio: () => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
   const deletedMemories = props.archive.memories.filter((memory) => memory.deletedAt);
   const summary = summarizeArchive(props.archive);
+  const audit = buildDataAuditReport(props.archive);
   const [importPreview, setImportPreview] = useState<ArchiveImportWorkflowPreview | undefined>();
   const [portabilityError, setPortabilityError] = useState<string | undefined>();
 
@@ -1101,7 +1107,20 @@ function Settings(props: {
         <Stat label="Confirmed dates" value={String(summary.confirmedDateCount)} />
         <Stat label="Inferred dates" value={String(summary.inferredDateCount)} />
         <Stat label="Processing runs" value={String(summary.processingRunCount)} />
+        <Stat label="Embeddings" value={String(audit.embeddingCount)} />
+        <Stat label="Vector bytes" value={String(audit.estimatedEmbeddingBytes)} />
         <Stat label="Schema" value={props.archive.schemaVersion} />
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Data audit</Text>
+        <Text style={styles.metadata}>Local modes: {audit.localProcessingModes.join(", ")}</Text>
+        <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
+        <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
+        <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
+        <View style={styles.actionRow}>
+          <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
+        </View>
       </View>
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
