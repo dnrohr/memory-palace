@@ -126,6 +126,8 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
         ]
       );
     }
+
+    await db.runAsync("INSERT INTO memory_fts(memory_fts) VALUES ('rebuild')");
   });
 }
 

@@ -58,13 +58,14 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added an Expo biometric app-lock provider plus Settings controls to enable biometric lock, disable lock, lock now, and unlock the app.
 - Added a prompt panel to the memory list for revisiting memories, finishing untagged memories, and filtering into common-tag prompts.
 - Added a memory addendum operation and detail-screen composer for later notes and corrections without replacing the original memory.
+- Added native SQLite FTS rebuild maintenance after archive saves so the FTS table stays populated on mobile.
 
 ## Milestone Status
 
 | Milestone | Status | Done | Remaining |
 | --- | --- | --- | --- |
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking. | Richer settings, storage diagnostics, device-level QA. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, timeline v1. | FTS-backed search, app UI for merge/type editing, stronger search highlighting. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, timeline v1, native SQLite FTS rebuild maintenance. | Native FTS query adapter, app UI for merge/type editing, stronger search highlighting. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, transcript draft flow. | Native speech-to-text adapter, interruption/background handling, deeper recording error states. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
