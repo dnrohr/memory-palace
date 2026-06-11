@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Download, Edit3, List, MapPin, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Download, Edit3, List, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -41,8 +41,15 @@ import {
   upsertMemory
 } from "./memoryStore";
 import type { MemoryArchive } from "../../../src/core/archive";
+import {
+  requestAudioCapturePermission,
+  startAudioCapture,
+  stopAudioCapture,
+  type AudioCaptureDraft,
+  type AudioCaptureSession
+} from "./audioCapture";
 
-type ViewMode = "list" | "editor" | "detail" | "timeline" | "review" | "context" | "tags" | "settings";
+type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 
 export default function App() {
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
@@ -91,6 +98,7 @@ export default function App() {
             setSelectedId(undefined);
             setMode("editor");
           }}
+          onVoice={() => setMode("voice")}
           onList={() => setMode("list")}
           onTimeline={() => setMode("timeline")}
           onReview={() => setMode("review")}
@@ -163,6 +171,24 @@ export default function App() {
           />
         ) : null}
 
+        {mode === "voice" ? (
+          <VoiceCaptureView
+            onSave={async (draft) => {
+              const baseMemory = createMemory(draft.transcript || "Untitled voice memory");
+              const memory = {
+                ...baseMemory,
+                sourceType: "voice" as const,
+                isAudioRetained: draft.retainAudio,
+                ...(draft.retainAudio ? { audioUri: draft.artifact.uri } : {})
+              };
+              const nextArchive = upsertMemory(archive, memory);
+              await persist(nextArchive);
+              setSelectedId(memory.id);
+              setMode("detail");
+            }}
+          />
+        ) : null}
+
         {mode === "timeline" ? (
           <TimelineView
             memories={memories}
@@ -219,6 +245,7 @@ export default function App() {
 function Header(props: {
   mode: ViewMode;
   onNew: () => void;
+  onVoice: () => void;
   onList: () => void;
   onTimeline: () => void;
   onReview: () => void;
@@ -235,6 +262,7 @@ function Header(props: {
       <View style={styles.headerActions}>
         <IconButton label="List" active={props.mode === "list"} onPress={props.onList} icon={<List size={20} />} />
         <IconButton label="New" active={props.mode === "editor"} onPress={props.onNew} icon={<Plus size={20} />} />
+        <IconButton label="Voice" active={props.mode === "voice"} onPress={props.onVoice} icon={<Mic size={20} />} />
         <IconButton label="Timeline" active={props.mode === "timeline"} onPress={props.onTimeline} icon={<CalendarDays size={20} />} />
         <IconButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
         <IconButton label="Context" active={props.mode === "context"} onPress={props.onContext} icon={<Users size={20} />} />
@@ -242,6 +270,79 @@ function Header(props: {
         <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
     </View>
+  );
+}
+
+function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise<void> }) {
+  const [session, setSession] = useState<AudioCaptureSession | undefined>();
+  const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
+  const [error, setError] = useState<string | undefined>();
+
+  async function start() {
+    setError(undefined);
+    const granted = await requestAudioCapturePermission();
+    if (!granted) {
+      setError("Microphone permission was denied.");
+      return;
+    }
+
+    setSession(await startAudioCapture());
+  }
+
+  async function stop() {
+    if (!session) return;
+    const artifact = await stopAudioCapture(session);
+    setSession(undefined);
+    setDraft({
+      artifact,
+      transcript: "",
+      retainAudio: false
+    });
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Voice capture</Text>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {session ? (
+          <PrimaryButton label="Stop recording" onPress={stop} icon={<Square size={18} />} />
+        ) : (
+          <PrimaryButton label="Start recording" onPress={start} icon={<Mic size={18} />} />
+        )}
+      </View>
+      {draft ? (
+        <View style={styles.filterPanel}>
+          <Text style={styles.panelTitle}>Draft transcript</Text>
+          <TextInput
+            value={draft.transcript}
+            onChangeText={(transcript) => setDraft({ ...draft, transcript })}
+            placeholder="Type or paste the transcript"
+            placeholderTextColor="#7b8178"
+            multiline
+            textAlignVertical="top"
+            style={styles.bodyInput}
+          />
+          <Pressable
+            onPress={() => setDraft({ ...draft, retainAudio: !draft.retainAudio })}
+            style={[styles.segment, draft.retainAudio ? styles.segmentActive : null]}
+          >
+            <Text style={[styles.segmentText, draft.retainAudio ? styles.segmentTextActive : null]}>
+              Retain audio file
+            </Text>
+          </Pressable>
+          <Text style={styles.metadata}>
+            Audio: {draft.artifact.durationMs ? `${Math.round(draft.artifact.durationMs / 1000)}s` : "recorded"}
+          </Text>
+          <PrimaryButton
+            label="Save voice memory"
+            onPress={() => void props.onSave(draft)}
+            disabled={!draft.transcript.trim()}
+            icon={<Save size={18} />}
+          />
+        </View>
+      ) : null}
+    </ScrollView>
   );
 }
 
@@ -1278,6 +1379,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase"
+  },
+  errorText: {
+    color: "#9a3d2f",
+    fontSize: 14,
+    fontWeight: "700"
   },
   deletedText: {
     gap: 2

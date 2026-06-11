@@ -42,6 +42,7 @@ Last updated: 2026-06-11
 - Added app UI and archive operations for managing life-context people, pets, places, and life periods.
 - Added review accept/reject operations and app actions for confirming tag/date suggestions or rejecting tag suggestions.
 - Added portable import workflow for provider detection, import preview, merge preview, and applying imports.
+- Added Expo audio capture wrapper and app voice capture draft flow with microphone permission, recording start/stop, editable transcript, optional audio retention, and save-to-memory.
 
 ## Milestone Status
 
@@ -49,7 +50,7 @@ Last updated: 2026-06-11
 | --- | --- | --- |
 | 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, native SQLite path, and migration tracking exist. Richer settings remain. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and app UI for merge/type editing remain. |
-| 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
+| 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and transcript draft flow exist. Needs native speech-to-text adapter, interruption/background handling, and deeper error states. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, and accept/reject actions exist. Needs richer provenance UI and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, and a basic text matcher exist. Needs relationship graph edges, inference rules, and graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
