@@ -40,8 +40,29 @@ export type ArchiveMergePreview = {
   newMemoryCount: number;
   duplicateMemoryCount: number;
   newTagCount: number;
+  conflicts: ArchiveMergeConflict[];
   warnings: string[];
 };
+
+export type ArchiveMergeConflict =
+  | {
+      kind: "duplicate_memory";
+      incomingId: string;
+      existingId: string;
+      title?: string;
+    }
+  | {
+      kind: "memory_id_conflict";
+      memoryId: string;
+      existingTitle?: string;
+      incomingTitle?: string;
+    }
+  | {
+      kind: "tag_type_conflict";
+      tagName: string;
+      existingType: TagType;
+      incomingType: TagType;
+    };
 
 export function filterMemories(archive: MemoryArchive, filter: MemoryFilter = {}): Memory[] {
   const normalizedText = normalize(filter.text ?? "");
@@ -215,9 +236,49 @@ export function summarizeArchive(archive: MemoryArchive): ArchiveAuditSummary {
 }
 
 export function previewArchiveMerge(current: MemoryArchive, incoming: MemoryArchive): ArchiveMergePreview {
-  const currentMemoryKeys = new Set(current.memories.map(memoryDeduplicationKey));
-  const currentTagNames = new Set(current.tags.map((tag) => tag.normalizedName));
-  const duplicateMemoryCount = incoming.memories.filter((memory) => currentMemoryKeys.has(memoryDeduplicationKey(memory))).length;
+  const currentMemoryKeys = new Map(current.memories.map((memory) => [memoryDeduplicationKey(memory), memory]));
+  const currentMemoriesById = new Map(current.memories.map((memory) => [memory.id, memory]));
+  const currentTagsByName = new Map(current.tags.map((tag) => [tag.normalizedName, tag]));
+  const conflicts: ArchiveMergeConflict[] = [];
+
+  for (const memory of incoming.memories) {
+    const duplicate = currentMemoryKeys.get(memoryDeduplicationKey(memory));
+    if (duplicate) {
+      conflicts.push({
+        kind: "duplicate_memory",
+        incomingId: memory.id,
+        existingId: duplicate.id,
+        ...(memory.title ? { title: memory.title } : {})
+      });
+      continue;
+    }
+
+    const existingById = currentMemoriesById.get(memory.id);
+    if (existingById) {
+      conflicts.push({
+        kind: "memory_id_conflict",
+        memoryId: memory.id,
+        ...(existingById.title ? { existingTitle: existingById.title } : {}),
+        ...(memory.title ? { incomingTitle: memory.title } : {})
+      });
+    }
+  }
+
+  for (const tag of incoming.tags) {
+    const existing = currentTagsByName.get(tag.normalizedName);
+    if (existing && existing.type !== tag.type) {
+      conflicts.push({
+        kind: "tag_type_conflict",
+        tagName: tag.name,
+        existingType: existing.type,
+        incomingType: tag.type
+      });
+    }
+  }
+
+  const currentMemoryKeySet = new Set(currentMemoryKeys.keys());
+  const currentTagNames = new Set(currentTagsByName.keys());
+  const duplicateMemoryCount = incoming.memories.filter((memory) => currentMemoryKeySet.has(memoryDeduplicationKey(memory))).length;
   const newTagCount = incoming.tags.filter((tag) => !currentTagNames.has(tag.normalizedName)).length;
 
   return {
@@ -225,6 +286,7 @@ export function previewArchiveMerge(current: MemoryArchive, incoming: MemoryArch
     newMemoryCount: incoming.memories.length - duplicateMemoryCount,
     duplicateMemoryCount,
     newTagCount,
+    conflicts,
     warnings: incoming.schemaVersion !== current.schemaVersion ? ["Incoming archive schema differs from current schema."] : []
   };
 }

@@ -64,6 +64,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added Settings visibility for stale embedding queue size and a manual regenerate embeddings control.
 - Added persisted life chapter rename/reject decisions plus Explore controls for editing or hiding generated chapter candidates.
 - Added a portable SQLite SQL dump export provider and Settings export action.
+- Added richer import conflict preview details for duplicate memories, same-ID memory conflicts, and tag type conflicts.
 
 ## Milestone Status
 
@@ -77,7 +78,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata. | Local model adapter and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control. | Production local embedding model and richer background scheduling controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject actions, related memories. | Cluster/chapter merge/split actions and richer timeline filtering. |
-| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | Richer conflict resolution and folder-style Markdown bundle import/export. |
+| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior. | User-selectable conflict resolution and folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI. | Secure PIN provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow. | Fast capture mode, memory split/merge flows, richer correction/private-note fields, editing polish. |
@@ -124,7 +125,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
 2. Add cluster/chapter merge and split actions.
-3. Add richer import conflict resolution.
+3. Add user-selectable import conflict resolution.
 4. Add secure PIN lock and encryption options.
 5. Add native speech-to-text interruption/background handling and deeper errors.
 6. Add production local embedding/model adapters when target models are selected.

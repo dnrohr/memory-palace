@@ -1465,6 +1465,11 @@ function Settings(props: {
               {warning}
             </Text>
           ))}
+          {importPreview.mergePreview.conflicts.map((conflict, index) => (
+            <Text key={`${conflict.kind}-${index}`} style={styles.metadata}>
+              {formatImportConflict(conflict)}
+            </Text>
+          ))}
           <View style={styles.actionRow}>
             <SecondaryButton label="Cancel" onPress={() => setImportPreview(undefined)} icon={<X size={18} />} />
             <PrimaryButton label="Apply import" onPress={applyImport} icon={<Save size={18} />} />
@@ -1600,6 +1605,17 @@ function formatRelatedReasons(result: RelatedMemoryResult): string {
   });
 
   return labels.join(" · ");
+}
+
+function formatImportConflict(conflict: ArchiveImportWorkflowPreview["mergePreview"]["conflicts"][number]): string {
+  switch (conflict.kind) {
+    case "duplicate_memory":
+      return `Duplicate memory: ${conflict.title ?? conflict.incomingId}`;
+    case "memory_id_conflict":
+      return `Memory ID conflict: ${conflict.memoryId}`;
+    case "tag_type_conflict":
+      return `Tag type conflict: ${conflict.tagName} (${conflict.existingType} vs ${conflict.incomingType})`;
+  }
 }
 
 const styles = StyleSheet.create({
