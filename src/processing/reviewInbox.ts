@@ -1,4 +1,5 @@
 import type { MemoryArchive } from "../core/archive";
+import { normalizeTagName } from "../core/archiveOperations";
 import { extractDateCandidates } from "./rules/dateExtraction";
 import { suggestTags } from "./rules/tagSuggestion";
 
@@ -32,8 +33,9 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
 
   for (const memory of archive.memories.filter((item) => !item.deletedAt)) {
     const links = archive.memoryTags.filter((link) => link.memoryId === memory.id && !link.rejected);
+    const reviewedLinks = archive.memoryTags.filter((link) => link.memoryId === memory.id);
     const existingTagNames = new Set(
-      links
+      reviewedLinks
         .map((link) => archive.tags.find((tag) => tag.id === link.tagId)?.normalizedName)
         .filter((name): name is string => Boolean(name))
     );
@@ -77,3 +79,100 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
   return items.sort((a, b) => b.confidence - a.confidence || a.label.localeCompare(b.label));
 }
 
+export function acceptReviewItem(archive: MemoryArchive, item: ReviewItem): MemoryArchive {
+  const now = new Date().toISOString();
+
+  if (item.type === "tag_suggestion") {
+    const normalizedName = normalizeTagName(item.label);
+    const existingTag = archive.tags.find((tag) => tag.normalizedName === normalizedName);
+    const tag =
+      existingTag ??
+      {
+        id: `tag_${normalizedName.replace(/[^a-z0-9]+/g, "_")}`,
+        name: item.label,
+        normalizedName,
+        type: "custom" as const,
+        createdAt: now,
+        updatedAt: now,
+        isUserCreated: false
+      };
+    const linkExists = archive.memoryTags.some((link) => link.memoryId === item.memoryId && link.tagId === tag.id);
+
+    return {
+      ...archive,
+      tags: existingTag ? archive.tags : [...archive.tags, tag],
+      memoryTags: linkExists
+        ? archive.memoryTags
+        : [
+            ...archive.memoryTags,
+            {
+              memoryId: item.memoryId,
+              tagId: tag.id,
+              source: "inferred",
+              confidence: item.confidence,
+              userConfirmed: true,
+              rejected: false,
+              createdAt: now
+            }
+          ]
+    };
+  }
+
+  if (item.type === "date_suggestion") {
+    return {
+      ...archive,
+      memories: archive.memories.map((memory) =>
+        memory.id === item.memoryId
+          ? {
+              ...memory,
+              ...(item.startDate ? { approximateStartDate: item.startDate } : {}),
+              ...(item.endDate ? { approximateEndDate: item.endDate } : {}),
+              datePrecision: "year",
+              dateConfidence: item.confidence,
+              dateExplanation: `Accepted review suggestion "${item.label}".`,
+              userDateConfirmed: true,
+              updatedAt: now
+            }
+          : memory
+      )
+    };
+  }
+
+  return archive;
+}
+
+export function rejectReviewItem(archive: MemoryArchive, item: ReviewItem): MemoryArchive {
+  if (item.type !== "tag_suggestion") return archive;
+
+  const now = new Date().toISOString();
+  const normalizedName = normalizeTagName(item.label);
+  const existingTag = archive.tags.find((tag) => tag.normalizedName === normalizedName);
+  const tag =
+    existingTag ??
+    {
+      id: `tag_${normalizedName.replace(/[^a-z0-9]+/g, "_")}`,
+      name: item.label,
+      normalizedName,
+      type: "custom" as const,
+      createdAt: now,
+      updatedAt: now,
+      isUserCreated: false
+    };
+
+  return {
+    ...archive,
+    tags: existingTag ? archive.tags : [...archive.tags, tag],
+    memoryTags: [
+      ...archive.memoryTags.filter((link) => !(link.memoryId === item.memoryId && link.tagId === tag.id)),
+      {
+        memoryId: item.memoryId,
+        tagId: tag.id,
+        source: "inferred",
+        confidence: item.confidence,
+        userConfirmed: false,
+        rejected: true,
+        createdAt: now
+      }
+    ]
+  };
+}

@@ -40,6 +40,7 @@ Last updated: 2026-06-11
 - Added app review inbox UI for untagged memories, suggested tags, and suggested dates.
 - Added tag type editing and tag merge operations with link deduplication.
 - Added app UI and archive operations for managing life-context people, pets, places, and life periods.
+- Added review accept/reject operations and app actions for confirming tag/date suggestions or rejecting tag suggestions.
 
 ## Milestone Status
 
@@ -48,7 +49,7 @@ Last updated: 2026-06-11
 | 1. Product Skeleton and Local Database | Partial | App shell, CRUD, export, restore, permanent delete, native SQLite path, and migration tracking exist. Richer settings remain. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge operations, basic search, ranked portable search, and timeline v1 exist. FTS-backed search and app UI for merge/type editing remain. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract and manual-text fallback exist. Needs audio capture, permissions, native speech adapter, and transcript draft flow. |
-| 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, and review UI exist. Needs accept/reject actions, provenance UI, and broader rules. |
+| 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, and accept/reject actions exist. Needs richer provenance UI and broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, and a basic text matcher exist. Needs relationship graph edges, inference rules, and graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |

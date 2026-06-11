@@ -28,7 +28,7 @@ import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
-import { buildReviewInbox } from "../../../src/processing/reviewInbox";
+import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
 import {
   createMemory,
   deleteLifeContext,
@@ -176,6 +176,8 @@ export default function App() {
         {mode === "review" ? (
           <ReviewInboxView
             archive={archive}
+            onAccept={async (item) => persist(acceptReviewItem(archive, item))}
+            onReject={async (item) => persist(rejectReviewItem(archive, item))}
             onSelect={(id) => {
               setSelectedId(id);
               setMode("detail");
@@ -421,7 +423,14 @@ function lifeContextDetailPlaceholder(kind: LifeContextKind): string {
   }
 }
 
-function ReviewInboxView(props: { archive: MemoryArchive; onSelect: (id: string) => void }) {
+type ReviewInboxItem = ReturnType<typeof buildReviewInbox>[number];
+
+function ReviewInboxView(props: {
+  archive: MemoryArchive;
+  onAccept: (item: ReviewInboxItem) => Promise<void>;
+  onReject: (item: ReviewInboxItem) => Promise<void>;
+  onSelect: (id: string) => void;
+}) {
   const items = buildReviewInbox(props.archive);
 
   return (
@@ -443,6 +452,14 @@ function ReviewInboxView(props: { archive: MemoryArchive; onSelect: (id: string)
                 </Text>
               ) : null}
               <Text style={styles.metadata}>Confidence {Math.round(item.confidence * 100)}%</Text>
+              <View style={styles.actionRow}>
+                {item.type !== "untagged_memory" ? (
+                  <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
+                ) : null}
+                {item.type === "tag_suggestion" ? (
+                  <SecondaryButton label="Reject" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
+                ) : null}
+              </View>
             </Pressable>
           );
         })
