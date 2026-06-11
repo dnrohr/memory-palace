@@ -36,6 +36,7 @@ Last updated: 2026-06-11
 - Added optional sync provider contract with disabled/no-op implementation and conflict shape.
 - Added visualization data providers for tag graph nodes/edges and shared-tag memory clusters.
 - Added backup export bundle manifest and gentle resurfacing prompt generation.
+- Added editable life chapter candidate generation from timeline buckets, tag clusters, and life periods.
 
 ## Milestone Status
 
@@ -48,7 +49,7 @@ Last updated: 2026-06-11
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types exist with a basic text matcher. Needs app UI, relationships, inference rules, and graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface and no-op local engine exist. Needs local model adapter, schema validation, prompt/version metadata, and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, and storage schema exist. Needs local embedding model, indexing queue, nearest-neighbor search, and semantic UI. |
-| 8. Timeline and Memory Visualization | In progress | Timeline v1, tag graph data, and shared-tag cluster data exist. Needs timeline v2 UI, graph UI, cluster editing, and life chapters. |
+| 8. Timeline and Memory Visualization | In progress | Timeline v1, tag graph data, shared-tag cluster data, and editable life chapter candidates exist. Needs timeline v2 UI, graph UI, and cluster/chapter editing UI. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import preview providers, duplicate detection, and archive merge behavior exist. Needs file save/import UX, SQLite export, and richer conflict resolution. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, and app-lock contract exist. Needs native PIN/biometric provider, storage sizing, deletion guarantees for model/audio artifacts, and encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, and conflict shape exist. Cloud/sync providers remain deferred and opt-in. |
