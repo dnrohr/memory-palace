@@ -1,5 +1,3 @@
-# memory-palace
-
 Memory Journal Development Roadmap
 0. Product Definition
 0.1 Core Concept
