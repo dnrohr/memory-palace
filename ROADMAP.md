@@ -61,6 +61,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added native SQLite FTS rebuild maintenance after archive saves so the FTS table stays populated on mobile.
 - Added structured extraction schema/prompt metadata and validation for result shape, confidence ranges, and engine metadata.
 - Added a native SQLite FTS keyword query adapter and app integration while keeping the portable search fallback for web.
+- Added Settings visibility for stale embedding queue size and a manual regenerate embeddings control.
 
 ## Milestone Status
 
@@ -72,7 +73,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher. | Relationship graph edges, inference rules, graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata. | Local model adapter and UI controls. |
-| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, index rebuild/search helpers, semantic search UI. | Production local embedding model, background indexing queue, explicit regeneration controls. |
+| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control. | Production local embedding model and richer background scheduling controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, related memories. | Cluster/chapter rename/merge/reject actions, richer timeline filtering. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, archive merge behavior. | SQLite export, richer conflict resolution, folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI. | Secure PIN provider, richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
@@ -120,8 +121,8 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 ## Next Implementation Priorities
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
-2. Add background queue controls and explicit regeneration for stale embeddings.
-3. Add cluster/chapter rename, merge, split, and reject actions.
-4. Add SQLite export and richer import conflict resolution.
-5. Add secure PIN lock and encryption options.
-6. Add native speech-to-text interruption/background handling and deeper errors.
+2. Add cluster/chapter rename, merge, split, and reject actions.
+3. Add SQLite export and richer import conflict resolution.
+4. Add secure PIN lock and encryption options.
+5. Add native speech-to-text interruption/background handling and deeper errors.
+6. Add production local embedding/model adapters when target models are selected.

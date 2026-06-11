@@ -32,7 +32,7 @@ import { extractDateCandidates } from "../../../src/processing/rules/dateExtract
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
 import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
-import { rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
+import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
 import { buildTagClusters } from "../../../src/visualization/clusters";
@@ -379,6 +379,7 @@ export default function App() {
             onImport={async (preview) => persist(applyArchiveImport(archive, preview))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
+            onRegenerateEmbeddings={async () => persist(archive)}
             onEnableBiometricLock={async () =>
               saveAppLockSettings({
                 mode: "biometric",
@@ -1308,6 +1309,7 @@ function Settings(props: {
   onImport: (preview: ArchiveImportWorkflowPreview) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
+  onRegenerateEmbeddings: () => Promise<void>;
   onEnableBiometricLock: () => Promise<void>;
   onDisableAppLock: () => Promise<void>;
   onLockNow: () => Promise<void>;
@@ -1317,6 +1319,7 @@ function Settings(props: {
   const deletedMemories = props.archive.memories.filter((memory) => memory.deletedAt);
   const summary = summarizeArchive(props.archive);
   const audit = buildDataAuditReport(props.archive);
+  const staleEmbeddingCount = findStaleEmbeddingMemoryIds(props.archive).length;
   const [importPreview, setImportPreview] = useState<ArchiveImportWorkflowPreview | undefined>();
   const [portabilityError, setPortabilityError] = useState<string | undefined>();
 
@@ -1367,9 +1370,11 @@ function Settings(props: {
         <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
         <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
         <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
+        <Text style={styles.metadata}>Stale embedding queue: {staleEmbeddingCount}</Text>
         <View style={styles.actionRow}>
           <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Regenerate embeddings" onPress={props.onRegenerateEmbeddings} icon={<Search size={18} />} />
         </View>
       </View>
       <View style={styles.filterPanel}>
