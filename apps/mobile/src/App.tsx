@@ -1576,7 +1576,7 @@ function Settings(props: {
         <Stat label="Inferred dates" value={String(summary.inferredDateCount)} />
         <Stat label="Processing runs" value={String(summary.processingRunCount)} />
         <Stat label="Embeddings" value={String(audit.embeddingCount)} />
-        <Stat label="Vector bytes" value={String(audit.estimatedEmbeddingBytes)} />
+        <Stat label="Local bytes" value={formatBytes(audit.estimatedTotalLocalBytes)} />
         <Stat label="Schema" value={props.archive.schemaVersion} />
       </View>
       <View style={styles.filterPanel}>
@@ -1585,6 +1585,10 @@ function Settings(props: {
         <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
         <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
         <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
+        <Text style={styles.metadata}>
+          Estimated storage: text {formatBytes(audit.estimatedTextBytes)}, embeddings {formatBytes(audit.estimatedEmbeddingBytes)},
+          processing {formatBytes(audit.estimatedProcessingBytes)}
+        </Text>
         <Text style={styles.metadata}>Stale embedding queue: {staleEmbeddingCount}</Text>
         <View style={styles.actionRow}>
           <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
@@ -1798,6 +1802,13 @@ function formatImportConflict(conflict: ArchiveImportWorkflowPreview["mergePrevi
     case "tag_type_conflict":
       return `Tag type conflict: ${conflict.tagName} (${conflict.existingType} vs ${conflict.incomingType})`;
   }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kilobytes = bytes / 1024;
+  if (kilobytes < 1024) return `${kilobytes.toFixed(1)} KB`;
+  return `${(kilobytes / 1024).toFixed(1)} MB`;
 }
 
 const styles = StyleSheet.create({

@@ -70,7 +70,10 @@ describe("data audit", () => {
         retainedAudioCount: 1,
         embeddingCount: 1,
         processingRunCount: 1,
-        estimatedEmbeddingBytes: 24
+        estimatedTextBytes: 40,
+        estimatedEmbeddingBytes: 24,
+        estimatedProcessingBytes: 2,
+        estimatedTotalLocalBytes: 66
       })
     );
   });

@@ -6,7 +6,10 @@ export type DataAuditReport = {
   retainedAudioCount: number;
   embeddingCount: number;
   processingRunCount: number;
+  estimatedTextBytes: number;
   estimatedEmbeddingBytes: number;
+  estimatedProcessingBytes: number;
+  estimatedTotalLocalBytes: number;
   localProcessingModes: string[];
 };
 
@@ -18,6 +21,10 @@ export function buildDataAuditReport(archive: MemoryArchive): DataAuditReport {
     (total, embedding) => total + embedding.values.length * Float64Array.BYTES_PER_ELEMENT,
     0
   );
+  const estimatedTextBytes = archive.memories.reduce((total, memory) => {
+    return total + utf8Bytes([memory.rawText, memory.cleanedText, memory.title, memory.summary].filter(Boolean).join("\n"));
+  }, 0);
+  const estimatedProcessingBytes = archive.processingRuns.reduce((total, run) => total + utf8Bytes(run.outputJson), 0);
 
   return {
     activeMemoryCount: activeMemories.length,
@@ -25,7 +32,10 @@ export function buildDataAuditReport(archive: MemoryArchive): DataAuditReport {
     retainedAudioCount,
     embeddingCount,
     processingRunCount: archive.processingRuns.length,
+    estimatedTextBytes,
     estimatedEmbeddingBytes,
+    estimatedProcessingBytes,
+    estimatedTotalLocalBytes: estimatedTextBytes + estimatedEmbeddingBytes + estimatedProcessingBytes,
     localProcessingModes: [
       "rules metadata suggestions",
       "embedding index",
@@ -33,6 +43,10 @@ export function buildDataAuditReport(archive: MemoryArchive): DataAuditReport {
       "keyword search"
     ]
   };
+}
+
+function utf8Bytes(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
 }
 
 export function clearProcessingRuns(archive: MemoryArchive): MemoryArchive {

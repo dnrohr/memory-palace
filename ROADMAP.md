@@ -69,12 +69,13 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added typed audio capture errors plus voice-capture status, retry, and stop/save error states.
 - Added tag management UI for changing tag types and merging duplicate tags.
 - Added keyword search snippets with highlighted query matches and matched-tag labels in the memory list.
+- Added richer storage diagnostics for estimated text, embedding, processing-output, and total local bytes.
 
 ## Milestone Status
 
 | Milestone | Status | Done | Remaining |
 | --- | --- | --- | --- |
-| 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking. | Richer settings, storage diagnostics, device-level QA. |
+| 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking, richer settings, storage diagnostics. | Device-level QA. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, timeline v1, native SQLite FTS rebuild/query integration. | Search polish and device-level QA. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow. | Native speech-to-text adapter and interruption/background handling. |
 | 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions. | Richer provenance UI, broader rules, feedback from rejected suggestions. |
@@ -83,7 +84,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control. | Production local embedding model and richer background scheduling controls. |
 | 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject actions, related memories. | Cluster/chapter merge/split actions and richer timeline filtering. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior. | User-selectable conflict resolution and folder-style Markdown bundle import/export. |
-| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock. | Richer storage sizing, deletion guarantees for model files/audio files, encryption options. |
+| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock. | Deletion guarantees for model files/audio files and encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow. | Fast capture mode, memory split/merge flows, richer correction/private-note fields, editing polish. |
 
