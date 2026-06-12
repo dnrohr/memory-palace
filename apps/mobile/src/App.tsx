@@ -92,6 +92,7 @@ type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
 type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
 type StructuredExtractionMode = "none" | "rules";
+type EmbeddingMaintenanceMode = "automatic" | "manual";
 
 export default function App() {
   const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
@@ -107,6 +108,7 @@ export default function App() {
     requireUnlockForExport: false
   });
   const [structuredExtractionMode, setStructuredExtractionMode] = useState<StructuredExtractionMode>("rules");
+  const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>("automatic");
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -208,10 +210,11 @@ export default function App() {
 
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
-  async function persist(nextArchive: MemoryArchive) {
-    const { archive: indexedArchive } = await rebuildEmbeddingIndex(nextArchive);
-    setArchive(indexedArchive);
-    await saveArchive(indexedArchive);
+  async function persist(nextArchive: MemoryArchive, options: { rebuildEmbeddings?: boolean } = {}) {
+    const shouldRebuildEmbeddings = embeddingMaintenanceMode === "automatic" || options.rebuildEmbeddings;
+    const archiveToSave = shouldRebuildEmbeddings ? (await rebuildEmbeddingIndex(nextArchive)).archive : nextArchive;
+    setArchive(archiveToSave);
+    await saveArchive(archiveToSave);
   }
 
   async function saveAppLockSettings(settings: AppLockSettings) {
@@ -428,11 +431,12 @@ export default function App() {
             appLockSettings={appLockSettings}
             encryptionSettings={encryptionSettings}
             structuredExtractionMode={structuredExtractionMode}
+            embeddingMaintenanceMode={embeddingMaintenanceMode}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
             onClearDeletedArtifacts={async () => persist(clearDeletedMemoryArtifacts(archive))}
-            onRegenerateEmbeddings={async () => persist(archive)}
+            onRegenerateEmbeddings={async () => persist(archive, { rebuildEmbeddings: true })}
             onEnableBiometricLock={async () =>
               saveAppLockSettings({
                 mode: "biometric",
@@ -463,6 +467,7 @@ export default function App() {
             }}
             onSaveEncryptionSettings={async (settings) => setEncryptionSettings(settings)}
             onStructuredExtractionModeChange={async (mode) => setStructuredExtractionMode(mode)}
+            onEmbeddingMaintenanceModeChange={async (mode) => setEmbeddingMaintenanceMode(mode)}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -1700,6 +1705,7 @@ function Settings(props: {
   appLockSettings: AppLockSettings;
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
+  embeddingMaintenanceMode: EmbeddingMaintenanceMode;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
@@ -1711,6 +1717,7 @@ function Settings(props: {
   onLockNow: () => Promise<void>;
   onSaveEncryptionSettings: (settings: EncryptionSettings) => Promise<void>;
   onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
+  onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
@@ -1811,6 +1818,20 @@ function Settings(props: {
             selected={props.structuredExtractionMode === "rules"}
             onPress={() => void props.onStructuredExtractionModeChange("rules")}
           />
+        </View>
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Embedding maintenance</Text>
+        <Text style={styles.metadata}>Mode: {props.embeddingMaintenanceMode}</Text>
+        <View style={styles.tags}>
+          {(["automatic", "manual"] as EmbeddingMaintenanceMode[]).map((mode) => (
+            <FilterChip
+              key={mode}
+              label={mode}
+              selected={props.embeddingMaintenanceMode === mode}
+              onPress={() => void props.onEmbeddingMaintenanceModeChange(mode)}
+            />
+          ))}
         </View>
       </View>
       <View style={styles.filterPanel}>
