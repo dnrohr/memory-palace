@@ -73,6 +73,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web Settings QA on `http://localhost:8081`: the WebDAV encrypted sync panel rendered at normal width without horizontal overflow or console errors.
 - Polished the memory detail view into a museum-label composition with a metadata plaque, a distinct original-memory reading panel, and stronger nearby-memory connection labels.
 - Ran local web detail QA on `http://localhost:8081`: normal and mobile-width detail views rendered the new labels and connection explanation without horizontal overflow or console errors.
+- Polished the people, pets, places, and life-period context screen into constellation-style entity cards with memory counts, recurring details, linked memories, and connection explanations.
+- Ran local web context QA on `http://localhost:8081`: empty entity states, populated pet constellation cards, and mobile-width navigation rendered without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -201,6 +203,7 @@ Status: Done
 Done:
 - People, pets, places, and life-period schema/types, app management UI, and basic text matcher.
 - Graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships.
+- Constellation-style entity cards with quiet memory counts, recurring details, approximate periods where available, and linked memories.
 
 Remaining:
 - None.
@@ -278,7 +281,7 @@ Status: Done
 Done:
 - Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
-- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:
 - None.

@@ -51,7 +51,7 @@ import {
   type ArchiveImportWorkflowPreview,
   type ArchiveMergeOptions
 } from "../../../src/import/importWorkflow";
-import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
+import { createLifeContextId, findLifeContextMatches, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
@@ -509,6 +509,10 @@ export default function App() {
             archive={archive}
             onSave={async (entity) => persist(upsertLifeContext(archive, entity))}
             onDelete={async (kind, id) => persist(deleteLifeContext(archive, kind, id))}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMode("detail");
+            }}
           />
         ) : null}
 
@@ -903,6 +907,7 @@ function LifeContextView(props: {
   archive: MemoryArchive;
   onSave: (entity: LifeContextEntity) => Promise<void>;
   onDelete: (kind: LifeContextKind, id: string) => Promise<void>;
+  onSelect: (id: string) => void;
 }) {
   const [kind, setKind] = useState<LifeContextKind>("person");
   const [name, setName] = useState("");
@@ -961,28 +966,134 @@ function LifeContextView(props: {
           <Text style={styles.emptyTitle}>No {lifeContextKindLabel(kind).toLowerCase()} yet</Text>
         </View>
       ) : (
-        entities.map((entity) => (
-          <View key={entity.id} style={styles.tagCard}>
-            <View>
-              <Text style={styles.memoryTitle}>{entity.name}</Text>
-              {entity.detail ? <Text style={styles.metadata}>{entity.detail}</Text> : null}
+        entities.map((entity) => {
+          const constellation = buildLifeContextConstellation(props.archive, kind, entity);
+          return (
+            <View key={entity.id} style={styles.constellationCard}>
+              <View style={styles.constellationHeader}>
+                <View style={styles.detailTitleBlock}>
+                  <Text style={styles.sectionEyebrow}>{lifeContextSingularLabel(kind)}</Text>
+                  <Text style={styles.memoryTitle}>{entity.name}</Text>
+                  {entity.detail ? <Text style={styles.metadata}>{entity.detail}</Text> : null}
+                </View>
+                <IconButton
+                  label="Delete context"
+                  danger
+                  onPress={() => void props.onDelete(kind, entity.id)}
+                  icon={<Trash2 size={20} />}
+                />
+              </View>
+              <View style={styles.constellationStats}>
+                <Text style={styles.timelineBadge}>
+                  {constellation.memoryCount} {constellation.memoryCount === 1 ? "memory" : "memories"}
+                </Text>
+                {constellation.period ? <Text style={styles.metadata}>{constellation.period}</Text> : null}
+              </View>
+              <View style={styles.constellationSection}>
+                <Text style={styles.sectionEyebrow}>{kind === "place" ? "Recurring details" : "Often with"}</Text>
+                {constellation.recurringDetails.length > 0 ? (
+                  <TagRow labels={constellation.recurringDetails} />
+                ) : (
+                  <Text style={styles.metadata}>More connections will appear as memories mention this.</Text>
+                )}
+              </View>
+              <View style={styles.constellationSection}>
+                <Text style={styles.sectionEyebrow}>Memories</Text>
+                {constellation.memories.length > 0 ? (
+                  constellation.memories.map((memory) => (
+                    <Pressable key={memory.id} style={styles.constellationMemory} onPress={() => props.onSelect(memory.id)}>
+                      <Text style={styles.memoryPreview} numberOfLines={2}>
+                        {memory.title ?? memory.rawText}
+                      </Text>
+                      <Text style={styles.connectionReason}>Connected by: {entity.name}</Text>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text style={styles.metadata}>No matching memories yet.</Text>
+                )}
+              </View>
             </View>
-            <View style={styles.headerActions}>
-              <IconButton
-                label="Delete context"
-                danger
-                onPress={() => void props.onDelete(kind, entity.id)}
-                icon={<Trash2 size={20} />}
-              />
-            </View>
-          </View>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
 }
 
-function getLifeContextEntities(archive: MemoryArchive, kind: LifeContextKind): Array<{ id: string; name: string; detail?: string }> {
+type LifeContextListEntity = { id: string; name: string; detail?: string };
+
+function buildLifeContextConstellation(archive: MemoryArchive, kind: LifeContextKind, entity: LifeContextListEntity) {
+  const activeMemories = archive.memories.filter((memory) => !memory.deletedAt);
+  const memories = activeMemories.filter((memory) =>
+    findLifeContextMatches(memory.cleanedText ?? memory.rawText, archive).some(
+      (match) => match.kind === kind && match.id === entity.id
+    )
+  );
+  const details = topRecurringLifeContextDetails(archive, kind, entity, memories);
+  const period = kind === "place" || kind === "life_period" ? formatConstellationPeriod(memories, entity) : undefined;
+
+  return {
+    memoryCount: memories.length,
+    memories: memories.slice(0, 4),
+    recurringDetails: details,
+    period
+  };
+}
+
+function topRecurringLifeContextDetails(
+  archive: MemoryArchive,
+  kind: LifeContextKind,
+  entity: LifeContextListEntity,
+  memories: Memory[]
+): string[] {
+  const counts = new Map<string, number>();
+
+  for (const memory of memories) {
+    for (const match of findLifeContextMatches(memory.cleanedText ?? memory.rawText, archive)) {
+      if (match.kind === kind && match.id === entity.id) continue;
+      incrementCount(counts, match.name);
+    }
+    for (const tag of tagsForMemory(archive, memory.id)) {
+      if (tag.name.toLocaleLowerCase() === entity.name.toLocaleLowerCase()) continue;
+      incrementCount(counts, tag.name);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 5)
+    .map(([name]) => name);
+}
+
+function incrementCount(counts: Map<string, number>, label: string) {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+  counts.set(trimmed, (counts.get(trimmed) ?? 0) + 1);
+}
+
+function formatConstellationPeriod(memories: Memory[], entity: LifeContextListEntity): string | undefined {
+  const years = memories.flatMap((memory) => [
+    parseYearFromDateText(memory.approximateStartDate),
+    parseYearFromDateText(memory.approximateEndDate)
+  ]).filter((year): year is number => year !== undefined);
+
+  if (years.length > 0) {
+    const first = Math.min(...years);
+    const last = Math.max(...years);
+    return first === last ? `around ${first}` : `roughly ${first}-${last}`;
+  }
+
+  const detailYear = parseYearFromDateText(entity.detail);
+  return detailYear ? `around ${detailYear}` : undefined;
+}
+
+function parseYearFromDateText(value?: string): number | undefined {
+  if (!value) return undefined;
+  const match = value.match(/\b(19|20)\d{2}\b/);
+  return match ? Number(match[0]) : undefined;
+}
+
+function getLifeContextEntities(archive: MemoryArchive, kind: LifeContextKind): LifeContextListEntity[] {
   switch (kind) {
     case "person":
       return archive.people.map((person) => ({
@@ -1699,6 +1810,19 @@ function PathCard(props: { label: string; detail: string; icon: ReactNode; onPre
       </View>
     </Pressable>
   );
+}
+
+function lifeContextSingularLabel(kind: LifeContextKind): string {
+  switch (kind) {
+    case "person":
+      return "Person";
+    case "pet":
+      return "Pet";
+    case "place":
+      return "Place";
+    case "life_period":
+      return "Life period";
+  }
 }
 
 function pathToneStyle(tone: "sage" | "clay" | "blue" | "paper" | "stone") {
@@ -3316,6 +3440,40 @@ const styles = StyleSheet.create({
     borderTopColor: "#e4e0d5",
     paddingTop: 10,
     gap: 6
+  },
+  constellationCard: {
+    borderWidth: 1,
+    borderColor: "#d7d0c1",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 16,
+    gap: 14
+  },
+  constellationHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  constellationStats: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8
+  },
+  constellationSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#e6e0d3",
+    paddingTop: 12,
+    gap: 8
+  },
+  constellationMemory: {
+    borderWidth: 1,
+    borderColor: "#e0d8c9",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 12,
+    gap: 5
   },
   graphRow: {
     borderTopWidth: 1,
