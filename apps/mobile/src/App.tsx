@@ -76,6 +76,7 @@ import {
 } from "../../../src/visualization/lifeChapters";
 import {
   createMemory,
+  clearPlaintextArchiveStorage,
   deleteLifeContext,
   loadArchive,
   replaceTags,
@@ -291,6 +292,7 @@ export default function App() {
     const passphrase = passphraseOverride ?? archiveAtRestPassphrase;
     if (encryptionSettings.scope === "archive" && encryptionSettings.keySource === "user_passphrase" && passphrase.trim()) {
       await (await createArchiveAtRestAdapter(passphrase)).saveArchive(archiveToSave);
+      await clearPlaintextArchiveStorage();
       return;
     }
     await saveArchive(archiveToSave);

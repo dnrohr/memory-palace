@@ -184,6 +184,23 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
   });
 }
 
+export async function clearPlaintextArchiveStorage(): Promise<void> {
+  if (Platform.OS === "web") {
+    await AsyncStorage.removeItem(WEB_STORAGE_KEY);
+    return;
+  }
+
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM memory_tag");
+    await db.runAsync("DELETE FROM memory_embedding");
+    await db.runAsync("DELETE FROM life_context_relationship");
+    await db.runAsync("DELETE FROM life_chapter_decision");
+    await db.runAsync("DELETE FROM tag");
+    await db.runAsync("DELETE FROM memory");
+  });
+}
+
 export async function searchMemoryIdsWithFts(query: string, limit = 100): Promise<string[] | undefined> {
   const ftsQuery = toFtsQuery(query);
   if (!ftsQuery || Platform.OS === "web") return undefined;
