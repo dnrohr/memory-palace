@@ -28,6 +28,7 @@ import {
   mergeMemories,
   summarizeArchive,
   splitMemory,
+  updateMemorySafety,
   updateTagType
 } from "../../../src/core/archiveOperations";
 import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
@@ -356,6 +357,7 @@ export default function App() {
             onAcceptPostSave={async (item) => persist(acceptReviewItem(archive, item))}
             onDismissPostSave={() => setPostSaveMemoryId(undefined)}
             onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
+            onUpdateSafety={async (safety) => persist(updateMemorySafety(archive, selectedMemory.id, safety))}
             onSplit={async (splitIndex) => persist(splitMemory(archive, selectedMemory.id, splitIndex))}
             onMergeRelated={async (sourceMemoryId) => persist(mergeMemories(archive, selectedMemory.id, sourceMemoryId))}
             onDelete={async () => {
@@ -1784,6 +1786,7 @@ function MemoryDetail(props: {
   onAcceptPostSave: (item: ReviewInboxItem) => Promise<void>;
   onDismissPostSave: () => void;
   onAddendum: (text: string) => Promise<void>;
+  onUpdateSafety: (safety: Pick<Memory, "isSensitive" | "excludeFromResurfacing" | "showLessLikeThis">) => Promise<void>;
   onSplit: (splitIndex: number) => Promise<void>;
   onMergeRelated: (sourceMemoryId: string) => Promise<void>;
 }) {
@@ -1841,6 +1844,45 @@ function MemoryDetail(props: {
       <View style={styles.dateSummary}>
         <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>
         <Text style={styles.metadata}>{formatMemoryDate(props.memory)}</Text>
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Resurfacing</Text>
+        <Text style={styles.metadata}>These controls keep this memory from appearing unexpectedly.</Text>
+        <View style={styles.tags}>
+          <FilterChip
+            label="sensitive"
+            selected={Boolean(props.memory.isSensitive)}
+            onPress={() =>
+              void props.onUpdateSafety({
+                isSensitive: !props.memory.isSensitive,
+                excludeFromResurfacing: Boolean(props.memory.excludeFromResurfacing),
+                showLessLikeThis: Boolean(props.memory.showLessLikeThis)
+              })
+            }
+          />
+          <FilterChip
+            label="exclude from resurfacing"
+            selected={Boolean(props.memory.excludeFromResurfacing)}
+            onPress={() =>
+              void props.onUpdateSafety({
+                isSensitive: Boolean(props.memory.isSensitive),
+                excludeFromResurfacing: !props.memory.excludeFromResurfacing,
+                showLessLikeThis: Boolean(props.memory.showLessLikeThis)
+              })
+            }
+          />
+          <FilterChip
+            label="show less like this"
+            selected={Boolean(props.memory.showLessLikeThis)}
+            onPress={() =>
+              void props.onUpdateSafety({
+                isSensitive: Boolean(props.memory.isSensitive),
+                excludeFromResurfacing: true,
+                showLessLikeThis: !props.memory.showLessLikeThis
+              })
+            }
+          />
+        </View>
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Addendum</Text>

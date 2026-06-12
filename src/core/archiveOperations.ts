@@ -215,6 +215,28 @@ export function appendMemoryAddendum(
   };
 }
 
+export function updateMemorySafety(
+  archive: MemoryArchive,
+  memoryId: string,
+  safety: Pick<Memory, "isSensitive" | "excludeFromResurfacing" | "showLessLikeThis">,
+  now = new Date().toISOString()
+): MemoryArchive {
+  return {
+    ...archive,
+    memories: archive.memories.map((memory) =>
+      memory.id === memoryId
+        ? {
+            ...memory,
+            isSensitive: Boolean(safety.isSensitive),
+            excludeFromResurfacing: Boolean(safety.excludeFromResurfacing || safety.showLessLikeThis),
+            showLessLikeThis: Boolean(safety.showLessLikeThis),
+            updatedAt: now
+          }
+        : memory
+    )
+  };
+}
+
 export function splitMemory(
   archive: MemoryArchive,
   memoryId: string,

@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS memory (
   date_confidence REAL,
   date_explanation TEXT,
   user_date_confirmed INTEGER NOT NULL DEFAULT 0,
+  is_sensitive INTEGER NOT NULL DEFAULT 0,
+  exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0,
+  show_less_like_this INTEGER NOT NULL DEFAULT 0,
   deleted_at TEXT
 );
 

@@ -69,5 +69,17 @@ describe("backup and resurfacing", () => {
       ])
     );
   });
-});
 
+  it("skips sensitive or excluded memories while resurfacing", () => {
+    const hidden: MemoryArchive = {
+      ...archive,
+      memories: archive.memories.map((memory) => ({
+        ...memory,
+        isSensitive: true,
+        excludeFromResurfacing: true
+      }))
+    };
+
+    expect(buildResurfacingPrompts(hidden)).toEqual([]);
+  });
+});

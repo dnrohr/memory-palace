@@ -40,6 +40,15 @@ CREATE TABLE IF NOT EXISTS life_chapter_decision (
 ALTER TABLE life_chapter_decision ADD COLUMN target_candidate_id TEXT;
 ALTER TABLE life_chapter_decision ADD COLUMN memory_ids_json TEXT;
 `
+  },
+  {
+    id: "0005_memory_safety_controls",
+    version: schemaVersion,
+    sql: `
+ALTER TABLE memory ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE memory ADD COLUMN exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;
+`
   }
 ];
 

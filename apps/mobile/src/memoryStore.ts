@@ -56,8 +56,9 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
         `INSERT INTO memory (
           id, raw_text, cleaned_text, title, summary, created_at, updated_at, captured_at,
           source_type, audio_uri, is_audio_retained, approximate_start_date, approximate_end_date,
-          date_precision, date_confidence, date_explanation, user_date_confirmed, deleted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          date_precision, date_confidence, date_explanation, user_date_confirmed,
+          is_sensitive, exclude_from_resurfacing, show_less_like_this, deleted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memory.id,
           memory.rawText,
@@ -76,6 +77,9 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
           memory.dateConfidence ?? null,
           memory.dateExplanation ?? null,
           booleanToInteger(memory.userDateConfirmed),
+          booleanToInteger(Boolean(memory.isSensitive)),
+          booleanToInteger(Boolean(memory.excludeFromResurfacing)),
+          booleanToInteger(Boolean(memory.showLessLikeThis)),
           memory.deletedAt ?? null
         ]
       );
@@ -365,6 +369,9 @@ type MemoryRow = {
   date_confidence: number | null;
   date_explanation: string | null;
   user_date_confirmed: number;
+  is_sensitive: number;
+  exclude_from_resurfacing: number;
+  show_less_like_this: number;
   deleted_at: string | null;
 };
 
@@ -426,6 +433,9 @@ function rowToMemory(row: MemoryRow): Memory {
     ...(row.date_confidence !== null ? { dateConfidence: row.date_confidence } : {}),
     ...(row.date_explanation ? { dateExplanation: row.date_explanation } : {}),
     userDateConfirmed: integerToBoolean(row.user_date_confirmed),
+    isSensitive: integerToBoolean(row.is_sensitive),
+    excludeFromResurfacing: integerToBoolean(row.exclude_from_resurfacing),
+    showLessLikeThis: integerToBoolean(row.show_less_like_this),
     ...(row.deleted_at ? { deletedAt: row.deleted_at } : {})
   };
 }

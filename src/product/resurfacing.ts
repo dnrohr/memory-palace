@@ -11,8 +11,9 @@ export type ResurfacingPrompt = {
 
 export function buildResurfacingPrompts(archive: MemoryArchive): ResurfacingPrompt[] {
   const activeMemories = archive.memories.filter((memory) => !memory.deletedAt);
+  const resurfacingMemories = activeMemories.filter((memory) => !memory.isSensitive && !memory.excludeFromResurfacing);
   const prompts: ResurfacingPrompt[] = [];
-  const firstMemory = activeMemories[0];
+  const firstMemory = resurfacingMemories[0];
 
   if (firstMemory) {
     prompts.push({
@@ -23,7 +24,7 @@ export function buildResurfacingPrompts(archive: MemoryArchive): ResurfacingProm
     });
   }
 
-  for (const memory of activeMemories.filter((item) => tagsForMemoryArchive(archive, item.id).length === 0).slice(0, 3)) {
+  for (const memory of resurfacingMemories.filter((item) => tagsForMemoryArchive(archive, item.id).length === 0).slice(0, 3)) {
     prompts.push({
       id: `unfinished:${memory.id}`,
       kind: "unfinished_memory",
@@ -32,7 +33,7 @@ export function buildResurfacingPrompts(archive: MemoryArchive): ResurfacingProm
     });
   }
 
-  const tag = mostUsedTag(archive);
+  const tag = mostUsedTag(archive, new Set(resurfacingMemories.map((memory) => memory.id)));
   if (tag) {
     prompts.push({
       id: `tag:${tag.id}`,
@@ -45,13 +46,12 @@ export function buildResurfacingPrompts(archive: MemoryArchive): ResurfacingProm
   return prompts;
 }
 
-function mostUsedTag(archive: MemoryArchive): { id: string; name: string } | undefined {
+function mostUsedTag(archive: MemoryArchive, memoryIds: Set<string>): { id: string; name: string } | undefined {
   const counts = new Map<string, number>();
-  for (const link of archive.memoryTags.filter((item) => !item.rejected)) {
+  for (const link of archive.memoryTags.filter((item) => !item.rejected && memoryIds.has(item.memoryId))) {
     counts.set(link.tagId, (counts.get(link.tagId) ?? 0) + 1);
   }
 
   const [tagId] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
   return tagId ? archive.tags.find((tag) => tag.id === tagId) : undefined;
 }
-

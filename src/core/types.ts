@@ -61,6 +61,9 @@ export type Memory = {
   dateConfidence?: number;
   dateExplanation?: string;
   userDateConfirmed: boolean;
+  isSensitive?: boolean;
+  excludeFromResurfacing?: boolean;
+  showLessLikeThis?: boolean;
   deletedAt?: string;
 };
 

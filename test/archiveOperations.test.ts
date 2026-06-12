@@ -16,6 +16,7 @@ import {
   summarizeArchive,
   splitMemory,
   tagsForMemoryArchive,
+  updateMemorySafety,
   updateTagType
 } from "../src/core/archiveOperations";
 
@@ -194,6 +195,24 @@ describe("archive operations", () => {
     expect(memory?.rawText).toContain("Patrick slept in the old house.");
     expect(memory?.rawText).toContain("Addendum (2026-06-12): I later remembered the window was blue.");
     expect(memory?.updatedAt).toBe("2026-06-12T00:00:00.000Z");
+  });
+
+  it("updates memory safety controls and keeps show-less memories out of resurfacing", () => {
+    const next = updateMemorySafety(
+      archive,
+      "mem-1",
+      { isSensitive: true, excludeFromResurfacing: false, showLessLikeThis: true },
+      "2026-06-12T00:00:00.000Z"
+    );
+
+    expect(next.memories.find((memory) => memory.id === "mem-1")).toEqual(
+      expect.objectContaining({
+        isSensitive: true,
+        excludeFromResurfacing: true,
+        showLessLikeThis: true,
+        updatedAt: "2026-06-12T00:00:00.000Z"
+      })
+    );
   });
 
   it("splits a memory into two editable memories with copied tags and stale embeddings removed", () => {

@@ -29,7 +29,8 @@ describe("storage migrations", () => {
       "0001_initial_schema",
       "0002_embedding_input_hash",
       "0003_life_chapter_decisions",
-      "0004_life_chapter_merge_split"
+      "0004_life_chapter_merge_split",
+      "0005_memory_safety_controls"
     ]);
     await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual([]);
   });
