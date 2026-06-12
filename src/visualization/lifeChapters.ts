@@ -8,6 +8,7 @@ export type LifeChapterCandidate = {
   memoryIds: string[];
   basis: "timeline" | "tag_cluster" | "life_period";
   editable: true;
+  accepted?: boolean;
 };
 
 export function buildLifeChapterCandidates(archive: MemoryArchive): LifeChapterCandidate[] {
@@ -69,11 +70,26 @@ export function renameLifeChapterCandidate(
 ): MemoryArchive {
   const trimmed = name.trim();
   if (!trimmed) return archive;
+  const existing = (archive.lifeChapterDecisions ?? []).find((decision) => decision.candidateId === candidateId);
 
   return upsertChapterDecision(archive, {
     candidateId,
-    action: "renamed",
+    action: existing?.action === "accepted" ? "accepted" : "renamed",
     name: trimmed,
+    updatedAt: now
+  });
+}
+
+export function acceptLifeChapterCandidate(
+  archive: MemoryArchive,
+  candidateId: string,
+  name?: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  return upsertChapterDecision(archive, {
+    candidateId,
+    action: "accepted",
+    ...(name?.trim() ? { name: name.trim() } : {}),
     updatedAt: now
   });
 }
@@ -163,8 +179,12 @@ function applyChapterDecisions(chapters: LifeChapterCandidate[], archive: Memory
     })
     .map((chapter) => {
       const decision = decisions.get(chapter.id);
+      if (decision?.action === "accepted") {
+        return { ...chapter, accepted: true, ...(decision.name ? { name: decision.name } : {}) };
+      }
       return decision?.action === "renamed" && decision.name ? { ...chapter, name: decision.name } : chapter;
-    });
+    })
+    .sort((left, right) => Number(Boolean(right.accepted)) - Number(Boolean(left.accepted)));
 }
 
 function upsertChapterDecision(archive: MemoryArchive, decision: NonNullable<MemoryArchive["lifeChapterDecisions"]>[number]): MemoryArchive {

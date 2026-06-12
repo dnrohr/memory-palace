@@ -120,7 +120,7 @@ export type LifePeriod = {
 
 export type LifeChapterDecision = {
   candidateId: string;
-  action: "renamed" | "rejected" | "merged" | "split";
+  action: "accepted" | "renamed" | "rejected" | "merged" | "split";
   name?: string;
   targetCandidateId?: string;
   memoryIds?: string[];

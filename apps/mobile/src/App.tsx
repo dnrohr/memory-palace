@@ -68,6 +68,7 @@ import {
 import { buildTagClusters } from "../../../src/visualization/clusters";
 import { buildGraphNeighborhood, buildTagGraphData } from "../../../src/visualization/graph";
 import {
+  acceptLifeChapterCandidate,
   buildLifeChapterCandidates,
   mergeLifeChapterCandidate,
   rejectLifeChapterCandidate,
@@ -1521,6 +1522,7 @@ function TimelineView(props: {
               {...(index > 0 && chapters[index - 1] ? { previousChapter: chapters[index - 1] } : {})}
               memoriesById={memoriesById}
               onSelect={props.onSelect}
+              onAccept={() => props.onArchiveChange(acceptLifeChapterCandidate(props.archive, chapter.id, chapter.name))}
               onRename={(name) => props.onArchiveChange(renameLifeChapterCandidate(props.archive, chapter.id, name))}
               onReject={() => props.onArchiveChange(rejectLifeChapterCandidate(props.archive, chapter.id))}
               onMergeInto={(targetId) => props.onArchiveChange(mergeLifeChapterCandidate(props.archive, chapter.id, targetId))}
@@ -1547,6 +1549,7 @@ function ChapterCandidateCard(props: {
   previousChapter?: LifeChapterCandidate;
   memoriesById: Map<string, Memory>;
   onSelect: (id: string) => void;
+  onAccept: () => Promise<void>;
   onRename: (name: string) => Promise<void>;
   onReject: () => Promise<void>;
   onMergeInto: (targetId: string) => Promise<void>;
@@ -1568,10 +1571,11 @@ function ChapterCandidateCard(props: {
     <View style={styles.chapterCard}>
       <View style={styles.constellationHeader}>
         <View style={styles.detailTitleBlock}>
-          <Text style={styles.sectionEyebrow}>Possible chapter</Text>
+          <Text style={styles.sectionEyebrow}>{props.chapter.accepted ? "Accepted chapter" : "Possible chapter"}</Text>
           <Text style={styles.memoryTitle}>{props.chapter.name}</Text>
           <View style={styles.constellationStats}>
             <Text style={styles.timelineBadge}>{formatChapterBasis(props.chapter.basis)}</Text>
+            {props.chapter.accepted ? <Text style={styles.timelineBadge}>user-confirmed</Text> : null}
             <Text style={styles.metadata}>
               {props.chapter.memoryIds.length} {props.chapter.memoryIds.length === 1 ? "memory" : "memories"}
             </Text>
@@ -1611,6 +1615,11 @@ function ChapterCandidateCard(props: {
           style={styles.tagInput}
         />
         <View style={styles.actionRow}>
+          {props.chapter.accepted ? (
+            <Text style={styles.metadata}>This chapter is part of your chosen structure.</Text>
+          ) : (
+            <PrimaryButton label="Accept" onPress={props.onAccept} icon={<Save size={18} />} />
+          )}
           <SecondaryButton label="Rename" onPress={() => props.onRename(draftName)} icon={<Save size={18} />} />
           {props.previousChapter ? (
             <SecondaryButton
