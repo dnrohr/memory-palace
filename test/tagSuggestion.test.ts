@@ -25,4 +25,10 @@ describe("rules tag suggestion", () => {
     expect(names).not.toContain("Maya");
     expect(names).toContain("old house");
   });
+
+  it("suggests broader everyday memory themes", () => {
+    const names = suggestTags("My sister had surgery after we moved schools before the wedding.").map((suggestion) => suggestion.name);
+
+    expect(names).toEqual(expect.arrayContaining(["family", "health", "moving", "school", "wedding"]));
+  });
 });

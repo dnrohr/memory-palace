@@ -9,10 +9,16 @@ const TERM_TAGS: Array<{ pattern: RegExp; name: string; type: TagType; confidenc
   { pattern: /\bold house\b/i, name: "old house", type: "place", confidence: 0.8 },
   { pattern: /\bapartment\b/i, name: "apartment", type: "place", confidence: 0.76 },
   { pattern: /\bcollege\b/i, name: "college", type: "life_period", confidence: 0.78 },
+  { pattern: /\bschools?\b|\bclassroom\b|\bteacher\b/i, name: "school", type: "life_period", confidence: 0.74 },
   { pattern: /\broommate\b/i, name: "roommate", type: "theme", confidence: 0.7 },
   { pattern: /\bjob\b|\bwork\b|\bworked\b/i, name: "work", type: "activity", confidence: 0.72 },
   { pattern: /\bvacation\b|\btrip\b/i, name: "travel", type: "activity", confidence: 0.74 },
-  { pattern: /\bgrief\b|\bdied\b|\blost\b/i, name: "grief", type: "emotion", confidence: 0.76 }
+  { pattern: /\bbirthday\b|\bparty\b/i, name: "celebration", type: "activity", confidence: 0.73 },
+  { pattern: /\bwedding\b|\bmarried\b|\bmarriage\b/i, name: "wedding", type: "activity", confidence: 0.78 },
+  { pattern: /\bmoved\b|\bmoving\b|\bmove\b/i, name: "moving", type: "activity", confidence: 0.73 },
+  { pattern: /\bhospital\b|\bsurgery\b|\bdoctor\b/i, name: "health", type: "theme", confidence: 0.72 },
+  { pattern: /\bmother\b|\bfather\b|\bmom\b|\bdad\b|\bsister\b|\bbrother\b|\bfamily\b/i, name: "family", type: "theme", confidence: 0.75 },
+  { pattern: /\bgrief\b|\bdied\b|\blost\b|\bfuneral\b/i, name: "grief", type: "emotion", confidence: 0.76 }
 ];
 
 const COMMON_CAPITALIZED_EXCLUSIONS = new Set([

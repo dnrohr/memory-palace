@@ -2,6 +2,7 @@ import type { DateCandidate, UserProfile } from "../../core/types";
 import type { IDateExtractionEngine, MemoryProcessingInput } from "../contracts";
 
 const YEAR_PATTERN = /\b(19\d{2}|20\d{2})\b/g;
+const MONTH_YEAR_PATTERN = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(19\d{2}|20\d{2})\b/gi;
 const DECADE_PATTERN = /\b((?:19|20)\d0)s\b/g;
 const AGE_PATTERN = /\b(?:when I was|at age|age)\s+(\d{1,2})\b/gi;
 const GRADE_PATTERN = /\b(\d{1,2})(?:st|nd|rd|th)\s+grade\b/gi;
@@ -14,6 +15,21 @@ export class RulesDateExtractionEngine implements IDateExtractionEngine {
 
 export function extractDateCandidates(text: string, userProfile?: UserProfile): DateCandidate[] {
   const candidates: DateCandidate[] = [];
+
+  for (const match of text.matchAll(MONTH_YEAR_PATTERN)) {
+    const monthName = match[1];
+    const year = match[2];
+    if (!monthName || !year) continue;
+    const month = monthNumber(monthName);
+    candidates.push({
+      label: `${monthName} ${year}`,
+      startDate: `${year}-${month}-01`,
+      endDate: `${year}-${month}-${lastDayOfMonth(Number(year), Number(month))}`,
+      precision: "month",
+      confidence: 0.93,
+      sourceText: match[0]
+    });
+  }
 
   for (const match of text.matchAll(YEAR_PATTERN)) {
     const year = match[1];
@@ -81,6 +97,28 @@ export function extractDateCandidates(text: string, userProfile?: UserProfile): 
   }
 
   return dedupeDateCandidates(candidates);
+}
+
+function monthNumber(value: string): string {
+  const index = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december"
+  ].indexOf(value.toLocaleLowerCase());
+  return String(index + 1).padStart(2, "0");
+}
+
+function lastDayOfMonth(year: number, month: number): string {
+  return String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0");
 }
 
 function ordinalSuffix(value: number): string {

@@ -15,6 +15,22 @@ describe("rules date extraction", () => {
     );
   });
 
+  it("extracts month and year mentions", () => {
+    const candidates = extractDateCandidates("We moved in February 2004.");
+
+    expect(candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: "February 2004",
+          startDate: "2004-02-01",
+          endDate: "2004-02-29",
+          precision: "month",
+          sourceText: "February 2004"
+        })
+      ])
+    );
+  });
+
   it("infers school year range from grade and birth year", () => {
     const candidates = extractDateCandidates("When I was in 4th grade, my dog Patrick died.", { birthYear: 1985 });
 
