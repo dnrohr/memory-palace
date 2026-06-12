@@ -1346,6 +1346,16 @@ function MemoryList(props: {
   }, [props.archive, props.query, props.searchMode, props.selectedDatePrecision, props.selectedTagIds]);
   const activeMemories = props.archive.memories.filter((memory) => !memory.deletedAt);
   const unknownDateCount = activeMemories.filter((memory) => memory.datePrecision === "unknown").length;
+  const selectedTagNames = props.archive.tags
+    .filter((tag) => props.selectedTagIds.includes(tag.id))
+    .map((tag) => tag.name);
+  const hasActiveSearch = Boolean(props.query.trim() || props.selectedTagIds.length > 0 || props.selectedDatePrecision);
+  const searchContext = describeSearchContext({
+    query: props.query,
+    searchMode: props.searchMode,
+    selectedDatePrecision: props.selectedDatePrecision,
+    selectedTagNames
+  });
 
   async function saveFastCapture() {
     const text = fastCaptureText.trim();
@@ -1407,6 +1417,7 @@ function MemoryList(props: {
         ))}
         {props.semanticSearchPending ? <Text style={styles.metadata}>Searching local index</Text> : null}
       </View>
+      {searchContext ? <Text style={styles.metadata}>{searchContext}</Text> : null}
       <View style={styles.pathGrid}>
         <PathCard
           label="Timeline"
@@ -1468,19 +1479,21 @@ function MemoryList(props: {
             </Pressable>
           ))}
         </View>
-        {props.query || props.selectedTagIds.length > 0 || props.selectedDatePrecision ? (
+        {hasActiveSearch ? (
           <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} />
         ) : null}
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.panelTitle}>{props.query || props.selectedTagIds.length > 0 || props.selectedDatePrecision ? "Matching memories" : "Recently added"}</Text>
+        <Text style={styles.panelTitle}>{resultSectionTitle(props.searchMode, hasActiveSearch)}</Text>
         <Text style={styles.metadata}>{props.memories.length} {props.memories.length === 1 ? "memory" : "memories"}</Text>
       </View>
 
       {props.memories.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>{props.query ? "No matching memories" : "No memories yet"}</Text>
+          {hasActiveSearch ? <Text style={styles.metadata}>Try fewer tags, a broader date, or the other search mode.</Text> : null}
+          {hasActiveSearch ? <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} /> : null}
           <PrimaryButton label="New memory" onPress={props.onNew} icon={<Plus size={18} />} />
         </View>
       ) : (
@@ -1502,6 +1515,31 @@ function MemoryList(props: {
       )}
     </ScrollView>
   );
+}
+
+function describeSearchContext(input: {
+  query: string;
+  searchMode: SearchMode;
+  selectedDatePrecision: DatePrecision | undefined;
+  selectedTagNames: string[];
+}): string | undefined {
+  const pieces: string[] = [];
+  if (input.query.trim()) {
+    pieces.push(input.searchMode === "semantic" ? `near "${input.query.trim()}"` : `"${input.query.trim()}"`);
+  }
+  if (input.selectedTagNames.length > 0) {
+    pieces.push(`tagged ${input.selectedTagNames.join(", ")}`);
+  }
+  if (input.selectedDatePrecision) {
+    pieces.push(`${input.selectedDatePrecision} dates`);
+  }
+  if (pieces.length === 0) return undefined;
+  return `Showing memories ${pieces.join(" and ")}.`;
+}
+
+function resultSectionTitle(searchMode: SearchMode, hasActiveSearch: boolean): string {
+  if (!hasActiveSearch) return "Recently added";
+  return searchMode === "semantic" ? "Nearby memories" : "Matching memories";
 }
 
 function HighlightedText(props: { text: string; query: string }) {

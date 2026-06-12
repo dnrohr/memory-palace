@@ -19,7 +19,6 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 - Milestone 10: add startup unlock, archive-storage migration, and key lifecycle UI around the archive-at-rest adapter.
 - Milestone 11: add opt-in backup/sync provider adapters that keep cloud behavior explicit and disabled by default.
-- Milestone 2: continue search polish around labels, result grouping, empty states, and keyboard ergonomics.
 
 ### Needs Model or Provider Selection
 
@@ -56,6 +55,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added persistent app settings for encryption options, structured extraction mode, and embedding maintenance mode as a foundation for startup unlock and key lifecycle work.
 - Ran a local web smoke check on `http://localhost:8081`: Explore and Settings rendered without console errors, and the Settings encryption copy reflects the archive adapter plus pending storage migration.
 - Added a top-level remaining-work register to make roadmap status easier to scan by local implementation work, provider/model choices, and device QA.
+- Polished search results with an active-search summary, clearer keyword/nearby section headings, and empty-state guidance with a direct clear-filters action.
+- Ran local web search QA on `http://localhost:8081`: keyword search and empty-result states rendered the new summary/guidance without console errors.
 
 ### 2026-06-11
 
@@ -133,7 +134,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | Milestone | Status | Done | Remaining |
 | --- | --- | --- | --- |
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking, richer settings, storage diagnostics. | Device-level QA. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, timeline v1, native SQLite FTS rebuild/query integration. | Search polish and device-level QA. |
+| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, native SQLite FTS rebuild/query integration. | Device-level search and keyboard QA. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, native speech permissions config, editable manual fallback on recognition errors, and AppState interruption/background handling. | Device-level speech QA. |
 | 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
 | 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
