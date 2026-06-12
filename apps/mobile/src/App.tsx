@@ -115,6 +115,7 @@ export default function App() {
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [postSaveMemoryId, setPostSaveMemoryId] = useState<string | undefined>();
   const [query, setQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
   const [semanticMemories, setSemanticMemories] = useState<Memory[]>([]);
@@ -310,6 +311,7 @@ export default function App() {
               const memory = createMemory(text);
               await persist(upsertMemory(archive, memory));
               setSelectedId(memory.id);
+              setPostSaveMemoryId(memory.id);
               setMode("detail");
             }}
           />
@@ -331,6 +333,7 @@ export default function App() {
               );
               await persist(withTags);
               setSelectedId(memory.id);
+              if (!selectedMemory) setPostSaveMemoryId(memory.id);
               setMode("detail");
             }}
           />
@@ -340,11 +343,18 @@ export default function App() {
           <MemoryDetail
             archive={archive}
             memory={selectedMemory}
+            postSaveActive={postSaveMemoryId === selectedMemory.id}
+            postSaveItems={buildReviewInbox(archive)
+              .filter((item) => item.memoryId === selectedMemory.id && item.type !== "untagged_memory")
+              .slice(0, 4)}
             onEdit={() => setMode("editor")}
             onSelect={(id) => {
+              setPostSaveMemoryId(undefined);
               setSelectedId(id);
               setMode("detail");
             }}
+            onAcceptPostSave={async (item) => persist(acceptReviewItem(archive, item))}
+            onDismissPostSave={() => setPostSaveMemoryId(undefined)}
             onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
             onSplit={async (splitIndex) => persist(splitMemory(archive, selectedMemory.id, splitIndex))}
             onMergeRelated={async (sourceMemoryId) => persist(mergeMemories(archive, selectedMemory.id, sourceMemoryId))}
@@ -369,6 +379,7 @@ export default function App() {
               const nextArchive = upsertMemory(archive, memory);
               await persist(nextArchive);
               setSelectedId(memory.id);
+              setPostSaveMemoryId(memory.id);
               setMode("detail");
             }}
           />
@@ -1749,9 +1760,13 @@ function MemoryEditor(props: {
 function MemoryDetail(props: {
   archive: MemoryArchive;
   memory: Memory;
+  postSaveActive: boolean;
+  postSaveItems: ReviewInboxItem[];
   onEdit: () => void;
   onDelete: () => Promise<void>;
   onSelect: (id: string) => void;
+  onAcceptPostSave: (item: ReviewInboxItem) => Promise<void>;
+  onDismissPostSave: () => void;
   onAddendum: (text: string) => Promise<void>;
   onSplit: (splitIndex: number) => Promise<void>;
   onMergeRelated: (sourceMemoryId: string) => Promise<void>;
@@ -1776,6 +1791,13 @@ function MemoryDetail(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {props.postSaveActive ? (
+        <PostSaveSuggestionSheet
+          items={props.postSaveItems}
+          onAccept={props.onAcceptPostSave}
+          onLater={props.onDismissPostSave}
+        />
+      ) : null}
       <View style={styles.detailHeader}>
         <Text style={styles.detailTitle}>{props.memory.title}</Text>
         <View style={styles.headerActions}>
@@ -1861,6 +1883,36 @@ function MemoryDetail(props: {
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+function PostSaveSuggestionSheet(props: {
+  items: ReviewInboxItem[];
+  onAccept: (item: ReviewInboxItem) => Promise<void>;
+  onLater: () => void;
+}) {
+  return (
+    <View style={styles.postSaveSheet}>
+      <Text style={styles.panelTitle}>Saved privately</Text>
+      {props.items.length > 0 ? (
+        <>
+          <Text style={styles.memoryPreview}>I found a few possible details.</Text>
+          {props.items.map((item) => (
+            <View key={item.id} style={styles.postSaveItem}>
+              <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
+              <Text style={styles.memoryTitle}>{item.label}</Text>
+              {"explanation" in item && item.explanation ? (
+                <Text style={styles.metadata}>{item.explanation}</Text>
+              ) : null}
+              <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
+            </View>
+          ))}
+        </>
+      ) : (
+        <Text style={styles.memoryPreview}>No possible details need review right now.</Text>
+      )}
+      <SecondaryButton label={props.items.length > 0 ? "Later" : "Close"} onPress={props.onLater} icon={<X size={18} />} />
+    </View>
   );
 }
 
@@ -2559,6 +2611,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 10
+  },
+  postSaveSheet: {
+    borderWidth: 1,
+    borderColor: "#cfd8c8",
+    backgroundColor: "#f4f8f0",
+    borderRadius: 8,
+    padding: 16,
+    gap: 12
+  },
+  postSaveItem: {
+    borderTopWidth: 1,
+    borderTopColor: "#dce6d5",
+    paddingTop: 10,
+    gap: 8
   },
   promptPanel: {
     borderWidth: 1,
