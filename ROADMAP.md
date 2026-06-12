@@ -24,6 +24,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added a post-save suggestion sheet on newly saved memories so possible tags and dates are offered only after the memory is safely stored.
 - Expanded the Explore home with continue-from language, an unknown-dates path card, and a clearer recently added/matching memories section.
 - Polished memory cards and detail screens with date-certainty labels and `Nearby because` connection explanations.
+- Reorganized Settings into privacy, storage, local processing, security, export/import, and cleanup sections.
 
 ### 2026-06-11
 
@@ -111,7 +112,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI. | Production encryption adapter. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
-| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, post-save suggestion sheet, memory card/detail date-certainty labels, `Nearby because` connection explanations, and calmer search/review wording. | Richer correction/private-note fields, emotional-safety controls, responsive layout polish, Settings information architecture polish, microcopy polish, and editing polish. |
+| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, post-save suggestion sheet, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, and calmer search/review wording. | Richer correction/private-note fields, emotional-safety controls, responsive layout polish, microcopy polish, and editing polish. |
 
 ## Design North Star
 
@@ -236,7 +237,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Reorganize Settings around privacy, local processing, audio retention, app lock, encryption, export/import, storage, logs, and diagnostics.
-2. Add emotional-safety controls for sensitive memories and resurfacing exclusions.
-3. Add native speech-to-text adapter behind `ITranscriptionEngine` plus interruption/background handling.
-4. Add production local embedding/model adapters when target models are selected.
+1. Add emotional-safety controls for sensitive memories and resurfacing exclusions.
+2. Add native speech-to-text adapter behind `ITranscriptionEngine` plus interruption/background handling.
+3. Add production local embedding/model adapters when target models are selected.

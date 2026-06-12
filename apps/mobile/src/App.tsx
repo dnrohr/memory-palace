@@ -2010,6 +2010,18 @@ function Settings(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <SettingsSectionHeader title="Privacy" description="Memory text stays local unless you explicitly export it." />
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Local state</Text>
+        <Text style={styles.metadata}>Data storage: this device.</Text>
+        <Text style={styles.metadata}>Cloud sync: off.</Text>
+        <Text style={styles.metadata}>Cloud AI: off.</Text>
+        <Text style={styles.metadata}>Local suggestions: {props.structuredExtractionMode === "rules" ? "on" : "off"}.</Text>
+        <Text style={styles.metadata}>Nearby search: local embedding index.</Text>
+        <Text style={styles.metadata}>Audio retention: optional per recording.</Text>
+      </View>
+
+      <SettingsSectionHeader title="Storage" description="Counts and estimates for the local archive." />
       <View style={styles.statsGrid}>
         <Stat label="Memories" value={String(summary.activeMemoryCount)} />
         <Stat label="Deleted" value={String(summary.deletedMemoryCount)} />
@@ -2022,6 +2034,8 @@ function Settings(props: {
         <Stat label="Local bytes" value={formatBytes(audit.estimatedTotalLocalBytes)} />
         <Stat label="Schema" value={props.archive.schemaVersion} />
       </View>
+
+      <SettingsSectionHeader title="Local Processing" description="Rules, nearby search, and diagnostics that run on this device." />
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Data audit</Text>
         <Text style={styles.metadata}>Local modes: {audit.localProcessingModes.join(", ")}</Text>
@@ -2072,6 +2086,8 @@ function Settings(props: {
           ))}
         </View>
       </View>
+
+      <SettingsSectionHeader title="Security" description="App lock and encryption controls." />
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>App lock</Text>
         <Text style={styles.metadata}>Mode: {props.appLockSettings.mode}</Text>
@@ -2155,12 +2171,17 @@ function Settings(props: {
         </View>
         <SecondaryButton label="Save encryption options" onPress={() => props.onSaveEncryptionSettings(encryptionDraft)} icon={<Save size={18} />} />
       </View>
-      <View style={styles.actionRow}>
-        <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
-        <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
-        <SecondaryButton label="Markdown bundle" onPress={shareMarkdownBundle} icon={<Download size={18} />} />
-        <SecondaryButton label="SQLite SQL" onPress={shareSqlite} icon={<Download size={18} />} />
-        <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
+
+      <SettingsSectionHeader title="Export and Import" description="Portable archive files you control." />
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Export archive</Text>
+        <View style={styles.actionRow}>
+          <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
+          <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
+          <SecondaryButton label="Markdown bundle" onPress={shareMarkdownBundle} icon={<Download size={18} />} />
+          <SecondaryButton label="SQLite SQL" onPress={shareSqlite} icon={<Download size={18} />} />
+          <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
+        </View>
       </View>
       {portabilityError ? <Text style={styles.errorText}>{portabilityError}</Text> : null}
       {importPreview ? (
@@ -2229,6 +2250,7 @@ function Settings(props: {
           </View>
         </View>
       ) : null}
+      <SettingsSectionHeader title="Storage Cleanup" description="Deleted memories and retained artifacts." />
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Deleted memories</Text>
         {deletedMemories.length === 0 ? <Text style={styles.metadata}>No deleted memories</Text> : null}
@@ -2260,6 +2282,15 @@ function Stat(props: { label: string; value: string }) {
     <View style={styles.stat}>
       <Text style={styles.statValue}>{props.value}</Text>
       <Text style={styles.statLabel}>{props.label}</Text>
+    </View>
+  );
+}
+
+function SettingsSectionHeader(props: { title: string; description: string }) {
+  return (
+    <View style={styles.settingsSectionHeader}>
+      <Text style={styles.settingsSectionTitle}>{props.title}</Text>
+      <Text style={styles.metadata}>{props.description}</Text>
     </View>
   );
 }
@@ -2977,6 +3008,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
+  },
+  settingsSectionHeader: {
+    marginTop: 8,
+    gap: 3
+  },
+  settingsSectionTitle: {
+    color: "#252925",
+    fontSize: 20,
+    fontWeight: "800"
   },
   stat: {
     minWidth: 120,
