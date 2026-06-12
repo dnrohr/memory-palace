@@ -23,7 +23,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 ### Needs Model or Provider Selection
 
 - Milestone 6: select the production local structured-extraction model/runtime and run device QA.
-- Milestone 7: wire a production local embedding model adapter once the target embedding model/runtime is chosen.
+- Milestone 7: select the production local embedding model/runtime and run device QA.
 - Milestone 11: wire real cloud AI or cloud sync adapters only after explicit provider targets and consent boundaries are selected.
 
 ### Needs Device QA
@@ -61,6 +61,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Wired an encrypted local backup action into Settings with an explicit passphrase field, local-only copy, and no stored passphrase.
 - Ran local web backup QA on `http://localhost:8081`: the encrypted backup panel rendered and completed a dummy-passphrase backup sync without console errors.
 - Added a JSON-speaking local structured-extraction model adapter with prompt construction, fenced JSON parsing, result validation, and tests against a fake local model runtime.
+- Added a local embedding model adapter with single/batch runtime wrapping, vector normalization, dimension checks, and tests against a fake local embedding runtime.
 
 ### 2026-06-11
 
@@ -143,7 +144,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
 | 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Production local model/runtime selection and device QA. |
-| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model. |
+| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model/runtime selection and device QA. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, persisted encryption/local-processing preferences, Web Crypto AES-GCM encrypted export provider, and portable archive-at-rest encryption adapter. | Startup unlock, native/web storage integration for archive-at-rest encryption, key lifecycle, and migration UI. |

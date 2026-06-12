@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HashEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
+import { HashEmbeddingEngine, LocalModelEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
 import {
   buildStructuredExtractionPrompt,
   JsonLocalModelStructuredExtractionEngine,
@@ -34,6 +34,46 @@ describe("optional AI adapter seams", () => {
 
     expect(vector.values).toHaveLength(16);
     expect(vector.modelId).toBe("hash-embedding");
+  });
+
+  it("wraps a local embedding model runtime", async () => {
+    const engine = new LocalModelEmbeddingEngine({
+      id: "fixture",
+      displayName: "Fixture embedding model",
+      version: "1.0.0",
+      dimension: 3,
+      async embed(text) {
+        return text.includes("dog") ? [3, 4, 0] : [0, 0, 2];
+      },
+      async embedBatch(texts) {
+        return texts.map((text) => (text.includes("dog") ? [3, 4, 0] : [0, 0, 2]));
+      }
+    });
+
+    const vector = await engine.embedText("dog window");
+    const batch = await engine.embedBatch(["dog", "window"]);
+
+    expect(vector).toEqual({
+      values: [0.6, 0.8, 0],
+      modelId: "local-model-embedding-fixture",
+      modelVersion: "1.0.0"
+    });
+    expect(batch).toHaveLength(2);
+    expect(batch[1]?.values).toEqual([0, 0, 1]);
+  });
+
+  it("rejects local embedding model vectors with the wrong dimension", async () => {
+    const engine = new LocalModelEmbeddingEngine({
+      id: "bad-fixture",
+      displayName: "Bad embedding model",
+      version: "1.0.0",
+      dimension: 3,
+      async embed() {
+        return [1, 2];
+      }
+    });
+
+    await expect(engine.embedText("memory")).rejects.toThrow("expected 3");
   });
 
   it("provides a local rules-backed structured extraction engine", async () => {
