@@ -1436,7 +1436,10 @@ function MemoryList(props: {
           const preview = result?.snippet ?? memory.cleanedText ?? memory.rawText;
           return (
             <Pressable key={memory.id} style={styles.memoryCard} onPress={() => props.onSelect(memory.id)}>
-              <Text style={styles.memoryTitle}>{memory.title}</Text>
+              <View style={styles.memoryCardHeader}>
+                <Text style={styles.memoryTitle}>{memory.title}</Text>
+                <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(memory)}</Text>
+              </View>
               <HighlightedText text={preview} query={props.searchMode === "keyword" ? props.query : ""} />
               {result?.matchedTags.length ? <Text style={styles.metadata}>Matched tags: {result.matchedTags.join(", ")}</Text> : null}
               <TagRow labels={tagsForMemory(props.archive, memory.id).map((tag) => tag.name)} />
@@ -1835,9 +1838,10 @@ function MemoryDetail(props: {
       <Text style={styles.memoryBody}>{memoryText}</Text>
       <TagRow labels={tagsForMemory(props.archive, props.memory.id).map((tag) => tag.name)} />
       <Text style={styles.metadata}>Created {new Date(props.memory.createdAt).toLocaleString()}</Text>
-      <Text style={styles.metadata}>
-        Memory date: {formatMemoryDate(props.memory)} ({props.memory.datePrecision})
-      </Text>
+      <View style={styles.dateSummary}>
+        <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>
+        <Text style={styles.metadata}>{formatMemoryDate(props.memory)}</Text>
+      </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Addendum</Text>
         <TextInput
@@ -1880,7 +1884,7 @@ function MemoryDetail(props: {
       </View>
       {relatedMemories.length > 0 ? (
         <View style={styles.relatedPanel}>
-          <Text style={styles.panelTitle}>Related memories</Text>
+          <Text style={styles.panelTitle}>Nearby memories</Text>
           {relatedMemories.map((result) => (
             <View key={result.memory.id} style={styles.relatedItem}>
               <Pressable onPress={() => props.onSelect(result.memory.id)}>
@@ -1888,7 +1892,7 @@ function MemoryDetail(props: {
                 <Text style={styles.memoryPreview} numberOfLines={2}>
                   {result.memory.cleanedText || result.memory.rawText}
                 </Text>
-                <Text style={styles.metadata}>{formatRelatedReasons(result)}</Text>
+                <Text style={styles.metadata}>Nearby because: {formatRelatedReasons(result)}</Text>
               </Pressable>
               <SecondaryButton label="Merge into this" onPress={() => props.onMergeRelated(result.memory.id)} icon={<Plus size={18} />} />
             </View>
@@ -2333,6 +2337,14 @@ function formatMemoryDate(memory: Memory): string {
   return memory.approximateStartDate ?? memory.approximateEndDate ?? "unknown";
 }
 
+function formatDateCertaintyLabel(memory: Memory): string {
+  if (!memory.approximateStartDate && !memory.approximateEndDate) return "unknown date";
+  if (memory.approximateStartDate && memory.approximateEndDate) {
+    return memory.userDateConfirmed ? "confirmed range" : "possible range";
+  }
+  return memory.userDateConfirmed ? "confirmed date" : "possible date";
+}
+
 function formatTimelineBadge(certainty: "confirmed" | "inferred" | "unknown", span: "point" | "range" | "unknown"): string {
   if (certainty === "unknown") return "unknown";
   if (span === "range") return certainty === "confirmed" ? "confirmed range" : "inferred range";
@@ -2529,6 +2541,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 8
+  },
+  memoryCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10
   },
   memoryTitle: {
     color: "#252925",
@@ -2778,6 +2796,12 @@ const styles = StyleSheet.create({
   },
   detailHeader: {
     gap: 12
+  },
+  dateSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8
   },
   detailTitle: {
     color: "#252925",
