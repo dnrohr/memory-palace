@@ -31,6 +31,13 @@ export interface IStructuredExtractionEngine {
   extract(input: StructuredExtractionInput): Promise<StructuredExtractionResult>;
 }
 
+export interface ILocalStructuredExtractionModel {
+  id: string;
+  displayName: string;
+  version: string;
+  complete(prompt: string): Promise<string>;
+}
+
 export class NoStructuredExtractionEngine implements IStructuredExtractionEngine {
   id = "none";
   displayName = "No structured extraction";
@@ -68,6 +75,55 @@ export class RulesStructuredExtractionEngine implements IStructuredExtractionEng
   }
 }
 
+export class JsonLocalModelStructuredExtractionEngine implements IStructuredExtractionEngine {
+  id: string;
+  displayName: string;
+  runsLocally = true;
+
+  constructor(private readonly model: ILocalStructuredExtractionModel) {
+    this.id = `local-model-structured-${model.id}`;
+    this.displayName = model.displayName;
+  }
+
+  async extract(input: StructuredExtractionInput): Promise<StructuredExtractionResult> {
+    const raw = await this.model.complete(buildStructuredExtractionPrompt(input));
+    const parsed = parseModelJson(raw);
+    const result: StructuredExtractionResult = {
+      ...(typeof parsed.title === "string" && parsed.title.trim() ? { title: parsed.title.trim() } : {}),
+      dates: Array.isArray(parsed.dates) ? (parsed.dates as StructuredExtractionResult["dates"]) : [],
+      tags: Array.isArray(parsed.tags) ? (parsed.tags as StructuredExtractionResult["tags"]) : [],
+      emotionalTone: Array.isArray(parsed.emotionalTone) ? (parsed.emotionalTone as StructuredExtractionResult["emotionalTone"]) : [],
+      engineId: this.id,
+      engineVersion: this.model.version,
+      schemaVersion: "structured-extraction.v1",
+      promptVersion: "local-model-json.v1"
+    };
+    const validation = validateStructuredExtractionResult(result);
+    if (!validation.valid) {
+      throw new Error(`Local structured extraction returned invalid output: ${validation.warnings.join(" ")}`);
+    }
+    return result;
+  }
+}
+
+export function buildStructuredExtractionPrompt(input: StructuredExtractionInput): string {
+  const knownPeople = input.context?.people?.map((person) => person.displayName).join(", ") || "none";
+  const knownPets = input.context?.pets?.map((pet) => pet.name).join(", ") || "none";
+  const knownPlaces = input.context?.places?.map((place) => place.name).join(", ") || "none";
+
+  return [
+    "Extract provisional memory metadata as strict JSON.",
+    "Return only JSON with keys: title, dates, tags, emotionalTone.",
+    "Dates must include label, precision, confidence, source, and explanation when available.",
+    "Tags and emotionalTone must include name, type, confidence, source, and explanation when available.",
+    "Suggestions are provisional and must not rewrite the memory.",
+    `Known people: ${knownPeople}`,
+    `Known pets: ${knownPets}`,
+    `Known places: ${knownPlaces}`,
+    `Memory: ${input.text}`
+  ].join("\n");
+}
+
 export function validateStructuredExtractionResult(result: StructuredExtractionResult): StructuredExtractionValidation {
   const warnings: string[] = [];
 
@@ -92,6 +148,19 @@ export function validateStructuredExtractionResult(result: StructuredExtractionR
     valid: warnings.length === 0,
     warnings
   };
+}
+
+function parseModelJson(raw: string): Partial<StructuredExtractionResult> {
+  const trimmed = raw.trim();
+  const withoutFence = trimmed
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "");
+  const parsed = JSON.parse(withoutFence) as Partial<StructuredExtractionResult>;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Local structured extraction returned non-object JSON.");
+  }
+  return parsed;
 }
 
 function suggestTitle(text: string): string | undefined {

@@ -22,7 +22,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Model or Provider Selection
 
-- Milestone 6: wire a production local structured-extraction model adapter once the target local model/runtime is chosen.
+- Milestone 6: select the production local structured-extraction model/runtime and run device QA.
 - Milestone 7: wire a production local embedding model adapter once the target embedding model/runtime is chosen.
 - Milestone 11: wire real cloud AI or cloud sync adapters only after explicit provider targets and consent boundaries are selected.
 
@@ -60,6 +60,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added an opt-in encrypted backup/sync provider that syncs through the archive-at-rest adapter, pushes initial encrypted backups, pulls clean remote archives, and reports merge conflicts without enabling cloud behavior by default.
 - Wired an encrypted local backup action into Settings with an explicit passphrase field, local-only copy, and no stored passphrase.
 - Ran local web backup QA on `http://localhost:8081`: the encrypted backup panel rendered and completed a dummy-passphrase backup sync without console errors.
+- Added a JSON-speaking local structured-extraction model adapter with prompt construction, fenced JSON parsing, result validation, and tests against a fake local model runtime.
 
 ### 2026-06-11
 
@@ -141,7 +142,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, native speech permissions config, editable manual fallback on recognition errors, and AppState interruption/background handling. | Device-level speech QA. |
 | 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
 | 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
-| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Local model adapter. |
+| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Production local model/runtime selection and device QA. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |

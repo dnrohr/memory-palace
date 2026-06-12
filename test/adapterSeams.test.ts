@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { HashEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
 import {
+  buildStructuredExtractionPrompt,
+  JsonLocalModelStructuredExtractionEngine,
   NoStructuredExtractionEngine,
   RulesStructuredExtractionEngine,
   validateStructuredExtractionResult
@@ -47,6 +49,70 @@ describe("optional AI adapter seams", () => {
     expect(result.emotionalTone).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: "grief" }), expect.objectContaining({ name: "joy" })])
     );
+  });
+
+  it("wraps a JSON-speaking local structured extraction model", async () => {
+    let prompt = "";
+    const engine = new JsonLocalModelStructuredExtractionEngine({
+      id: "fixture",
+      displayName: "Fixture local model",
+      version: "1.0.0",
+      async complete(input) {
+        prompt = input;
+        return `\`\`\`json
+{
+  "title": "Patrick in the window",
+  "dates": [{ "label": "2004", "precision": "year", "confidence": 0.8, "source": "model" }],
+  "tags": [{ "name": "Patrick", "type": "pet", "confidence": 0.9, "source": "model" }],
+  "emotionalTone": []
+}
+\`\`\``;
+      }
+    });
+
+    const result = await engine.extract({ text: "In 2004 Patrick slept in the window." });
+
+    expect(prompt).toContain("Return only JSON");
+    expect(result).toEqual(
+      expect.objectContaining({
+        title: "Patrick in the window",
+        engineId: "local-model-structured-fixture",
+        engineVersion: "1.0.0",
+        promptVersion: "local-model-json.v1"
+      })
+    );
+    expect(validateStructuredExtractionResult(result)).toEqual({ valid: true, warnings: [] });
+  });
+
+  it("rejects invalid local model structured extraction output", async () => {
+    const engine = new JsonLocalModelStructuredExtractionEngine({
+      id: "bad-fixture",
+      displayName: "Bad fixture",
+      version: "1.0.0",
+      async complete() {
+        return JSON.stringify({
+          dates: [],
+          tags: [{ name: "too much", type: "theme", confidence: 2, source: "model" }],
+          emotionalTone: []
+        });
+      }
+    });
+
+    await expect(engine.extract({ text: "A memory." })).rejects.toThrow("invalid output");
+  });
+
+  it("builds local structured extraction prompts with known context", () => {
+    expect(
+      buildStructuredExtractionPrompt({
+        text: "Patrick slept in the old house.",
+        context: {
+          people: [],
+          pets: [{ id: "pet-1", name: "Patrick" }],
+          places: [{ id: "place-1", name: "old house", type: "house", privacyLevel: "vague" }],
+          lifePeriods: []
+        }
+      })
+    ).toContain("Known pets: Patrick");
   });
 
   it("validates structured extraction result confidence ranges", () => {
