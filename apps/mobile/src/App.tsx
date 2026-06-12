@@ -1237,28 +1237,41 @@ function ReviewInboxView(props: {
   onReject: (item: ReviewInboxItem) => Promise<void>;
   onSelect: (id: string) => void;
 }) {
+  const [deferredItemIds, setDeferredItemIds] = useState<string[]>([]);
   const items = buildReviewInbox(props.archive);
+  const visibleItems = items.filter((item) => !deferredItemIds.includes(item.id));
+  const deferredCount = items.length - visibleItems.length;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.reviewIntro}>
         <Text style={styles.sectionEyebrow}>Review when you want</Text>
         <Text style={styles.capturePrompt}>
-          {items.length === 0
+          {visibleItems.length === 0
             ? "No possible details are waiting."
-            : `${items.length} ${items.length === 1 ? "memory has" : "memories have"} possible details`}
+            : `${visibleItems.length} ${visibleItems.length === 1 ? "memory has" : "memories have"} possible details`}
         </Text>
         <Text style={styles.captureNote}>
-          Suggestions are optional. Accept what feels right, edit the memory, or leave them for later.
+          Suggestions are optional. Accept what feels right, edit the memory, dismiss a wrong detail, or leave it for later.
         </Text>
+        {deferredCount > 0 ? (
+          <Text style={styles.metadata}>
+            {deferredCount} {deferredCount === 1 ? "suggestion is" : "suggestions are"} tucked away until you come back.
+          </Text>
+        ) : null}
       </View>
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Nothing waiting</Text>
-          <Text style={styles.metadata}>Capture and explore stay open either way.</Text>
+          <Text style={styles.metadata}>
+            {deferredCount > 0 ? "Deferred details will return next time you open the app." : "Capture and explore stay open either way."}
+          </Text>
+          {deferredCount > 0 ? (
+            <SecondaryButton label="Bring them back" onPress={() => setDeferredItemIds([])} icon={<RotateCcw size={18} />} />
+          ) : null}
         </View>
       ) : (
-        items.map((item) => {
+        visibleItems.map((item) => {
           const memory = props.archive.memories.find((candidate) => candidate.id === item.memoryId);
           return (
             <Pressable key={item.id} style={styles.reviewItem} onPress={() => props.onSelect(item.memoryId)}>
@@ -1288,6 +1301,11 @@ function ReviewInboxView(props: {
                   <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
                 ) : null}
                 <SecondaryButton label="Edit" onPress={() => props.onSelect(item.memoryId)} icon={<Edit3 size={18} />} />
+                <SecondaryButton
+                  label="Later"
+                  onPress={() => setDeferredItemIds((current) => [...current, item.id])}
+                  icon={<RotateCcw size={18} />}
+                />
                 {item.type === "tag_suggestion" ? (
                   <SecondaryButton label="Dismiss" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
                 ) : null}
