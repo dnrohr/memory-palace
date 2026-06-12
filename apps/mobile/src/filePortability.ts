@@ -45,3 +45,13 @@ export function combineMarkdownArtifacts(artifacts: ExportArtifact[]): ExportArt
     content: artifacts.map((artifact) => `<!-- ${artifact.fileName} -->\n\n${artifact.content}`).join("\n\n---\n\n")
   };
 }
+
+export function combineBundleArtifacts(artifacts: ExportArtifact[]): ExportArtifact {
+  return {
+    fileName: `memory-palace-markdown-bundle-${new Date().toISOString().slice(0, 10)}.txt`,
+    mediaType: "text/plain",
+    content: artifacts
+      .map((artifact) => `===== ${artifact.fileName} =====\nContent-Type: ${artifact.mediaType}\n\n${artifact.content}`)
+      .join("\n\n")
+  };
+}

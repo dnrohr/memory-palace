@@ -32,6 +32,7 @@ import {
 } from "../../../src/core/archiveOperations";
 import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
+import { MarkdownBundleExportProvider } from "../../../src/export/markdownBundle";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { SqliteExportProvider } from "../../../src/export/sqliteExport";
 import {
@@ -85,7 +86,7 @@ import {
   type AudioCaptureDraft,
   type AudioCaptureSession
 } from "./audioCapture";
-import { combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
+import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
@@ -1783,6 +1784,11 @@ function Settings(props: {
     await shareExportArtifact(combineMarkdownArtifacts(artifacts));
   }
 
+  async function shareMarkdownBundle() {
+    const artifacts = await new MarkdownBundleExportProvider().exportArchive(props.archive);
+    await shareExportArtifact(combineBundleArtifacts(artifacts));
+  }
+
   async function shareSqlite() {
     const [artifact] = await new SqliteExportProvider().exportArchive(props.archive);
     if (artifact) await shareExportArtifact(artifact);
@@ -1959,6 +1965,7 @@ function Settings(props: {
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
         <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
+        <SecondaryButton label="Markdown bundle" onPress={shareMarkdownBundle} icon={<Download size={18} />} />
         <SecondaryButton label="SQLite SQL" onPress={shareSqlite} icon={<Download size={18} />} />
         <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
       </View>

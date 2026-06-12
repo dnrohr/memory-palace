@@ -6,10 +6,12 @@ import type { IImportProvider, ImportArtifact, ImportPreview } from "./contracts
 export class MarkdownImportProvider implements IImportProvider {
   async previewImport(artifacts: ImportArtifact[]): Promise<ImportPreview> {
     const markdownFiles = artifacts.filter((artifact) => artifact.fileName.endsWith(".md"));
+    const manifest = parseBundleManifest(artifacts.find((artifact) => artifact.fileName.endsWith("memory-palace-markdown-manifest.json")));
     const now = new Date().toISOString();
     const tagsByName = new Map<string, Tag>();
     const memories: Memory[] = [];
     const memoryTags: MemoryArchive["memoryTags"] = [];
+    const warnings: string[] = [];
 
     for (const artifact of markdownFiles) {
       const parsed = parseMarkdownMemory(artifact, now);
@@ -55,12 +57,45 @@ export class MarkdownImportProvider implements IImportProvider {
       processingRuns: []
     };
 
+    const ignoredArtifacts = artifacts.filter(
+      (artifact) => !artifact.fileName.endsWith(".md") && !artifact.fileName.endsWith("memory-palace-markdown-manifest.json")
+    );
+    if (ignoredArtifacts.length > 0) warnings.push("Ignored non-Markdown artifacts.");
+    if (manifest) {
+      const providedMarkdownNames = new Set(markdownFiles.map((artifact) => artifact.fileName));
+      const missingFiles = manifest.files.filter((fileName) => !providedMarkdownNames.has(fileName));
+      if (missingFiles.length > 0) warnings.push(`Bundle manifest references ${missingFiles.length} missing Markdown file(s).`);
+      if (manifest.memoryCount !== markdownFiles.length) warnings.push("Bundle manifest memory count differs from imported Markdown file count.");
+    }
+
     return {
       archive,
       memoryCount: archive.memories.length,
       tagCount: archive.tags.length,
-      warnings: markdownFiles.length === artifacts.length ? [] : ["Ignored non-Markdown artifacts."]
+      warnings
     };
+  }
+}
+
+type MarkdownBundleManifest = {
+  format: "memory-palace.markdown-bundle.v1";
+  memoryCount: number;
+  files: string[];
+};
+
+function parseBundleManifest(artifact: ImportArtifact | undefined): MarkdownBundleManifest | undefined {
+  if (!artifact) return undefined;
+  try {
+    const parsed = JSON.parse(artifact.content) as MarkdownBundleManifest;
+    if (parsed.format !== "memory-palace.markdown-bundle.v1") return undefined;
+    if (typeof parsed.memoryCount !== "number") return undefined;
+    return {
+      format: parsed.format,
+      memoryCount: parsed.memoryCount,
+      files: parsed.files ?? []
+    };
+  } catch {
+    return undefined;
   }
 }
 

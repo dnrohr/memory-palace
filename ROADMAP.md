@@ -84,6 +84,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added embedding maintenance controls for automatic rebuilds or manual regeneration.
 - Added life-context relationship edges inferred from co-occurrence plus graph neighborhood traversal and Explore UI.
 - Added persisted life chapter merge and split actions with Explore controls.
+- Added folder-style Markdown bundle export/import support with a manifest and Settings export action.
 
 ## Milestone Status
 
@@ -97,7 +98,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Local model adapter. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
-| 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | Folder-style Markdown bundle import/export. |
+| 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI. | Production encryption adapter. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode, memory split/merge flows. | Richer correction/private-note fields and editing polish. |

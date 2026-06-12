@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
+import { MarkdownBundleExportProvider } from "../src/export/markdownBundle";
 import { MarkdownExportProvider } from "../src/export/markdownExport";
 import { JsonImportProvider } from "../src/import/jsonImport";
 import { MarkdownImportProvider } from "../src/import/markdownImport";
@@ -77,5 +78,15 @@ describe("import providers", () => {
       })
     );
     expect(preview.archive.tags[0]).toEqual(expect.objectContaining({ name: "Patrick" }));
+  });
+
+  it("imports folder-style Markdown bundles without manifest warnings", async () => {
+    const artifacts = await new MarkdownBundleExportProvider().exportArchive(archive, "2026-06-12T00:00:00.000Z");
+    const preview = await new MarkdownImportProvider().previewImport(artifacts);
+
+    expect(preview.memoryCount).toBe(1);
+    expect(preview.tagCount).toBe(1);
+    expect(preview.warnings).toEqual([]);
+    expect(preview.archive.memories[0]).toEqual(expect.objectContaining({ id: "mem-1" }));
   });
 });

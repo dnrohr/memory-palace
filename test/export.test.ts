@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import { JsonExportProvider } from "../src/export/jsonExport";
+import { MarkdownBundleExportProvider } from "../src/export/markdownBundle";
 import { MarkdownExportProvider } from "../src/export/markdownExport";
 import { SqliteExportProvider } from "../src/export/sqliteExport";
 
@@ -89,6 +90,26 @@ describe("export providers", () => {
     expect(artifact?.content).toContain('  - "Patrick"');
     expect(artifact?.content).toContain('  - "old house"');
     expect(artifact?.content).toContain("My dog Patrick loved the old house.");
+  });
+
+  it("exports a folder-style Markdown bundle manifest", async () => {
+    const artifacts = await new MarkdownBundleExportProvider().exportArchive(archive, "2026-06-12T00:00:00.000Z");
+    const manifest = artifacts[0];
+
+    expect(manifest).toEqual(
+      expect.objectContaining({
+        fileName: "memory-palace-markdown-manifest.json",
+        mediaType: "application/json"
+      })
+    );
+    expect(JSON.parse(manifest?.content ?? "")).toEqual({
+      format: "memory-palace.markdown-bundle.v1",
+      createdAt: "2026-06-12T00:00:00.000Z",
+      schemaVersion: "0.1.0",
+      memoryCount: 1,
+      files: ["memories/1994/patrick-at-the-old-house.md"]
+    });
+    expect(artifacts[1]?.fileName).toBe("memories/1994/patrick-at-the-old-house.md");
   });
 
   it("exports a portable SQLite SQL dump", async () => {
