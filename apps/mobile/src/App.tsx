@@ -21,6 +21,7 @@ import type { EncryptionKeySource, EncryptionScope, EncryptionSettings } from ".
 import { WebCryptoExportEncryptionProvider } from "../../../src/security/encryption";
 import { EncryptedArchiveAtRestAdapter } from "../../../src/security/archiveAtRest";
 import { EncryptedBackupSyncProvider } from "../../../src/sync/encryptedBackupSync";
+import { WebDAVSyncProvider } from "../../../src/sync/webDavSync";
 import {
   buildTimelineBuckets,
   appendMemoryAddendum,
@@ -2271,6 +2272,11 @@ function Settings(props: {
   const [exportPassphrase, setExportPassphrase] = useState("");
   const [backupPassphrase, setBackupPassphrase] = useState("");
   const [backupStatus, setBackupStatus] = useState<string | undefined>();
+  const [webDavUrl, setWebDavUrl] = useState("");
+  const [webDavUsername, setWebDavUsername] = useState("");
+  const [webDavPassword, setWebDavPassword] = useState("");
+  const [webDavPassphrase, setWebDavPassphrase] = useState("");
+  const [webDavStatus, setWebDavStatus] = useState<string | undefined>();
   const encryptionProvider = useMemo(() => new WebCryptoExportEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
@@ -2337,6 +2343,45 @@ function Settings(props: {
       setBackupPassphrase("");
     } catch (error) {
       setPortabilityError(error instanceof Error ? error.message : "Encrypted backup sync failed.");
+    }
+  }
+
+  async function syncWebDav() {
+    setPortabilityError(undefined);
+    setWebDavStatus(undefined);
+    if (!webDavUrl.trim() || !webDavPassphrase.trim()) {
+      setPortabilityError("WebDAV URL and sync passphrase are required.");
+      return;
+    }
+
+    try {
+      const provider = new WebCryptoExportEncryptionProvider();
+      await provider.saveSettings({
+        scope: "archive",
+        keySource: "user_passphrase",
+        requireUnlockForExport: true
+      });
+      const sync = new WebDAVSyncProvider({
+        async getLocalArchive() {
+          return props.archive;
+        },
+        saveLocalArchive: props.onArchiveChange,
+        encryptionProvider: provider,
+        url: webDavUrl.trim(),
+        username: webDavUsername,
+        password: webDavPassword,
+        passphrase: webDavPassphrase
+      });
+      const result = await sync.sync();
+      if (result.conflicts.length > 0) {
+        setPortabilityError(result.conflicts.map((conflict) => conflict.summary).join(" "));
+        return;
+      }
+      setWebDavStatus(`WebDAV sync complete. Pushed ${result.pushedCount}, pulled ${result.pulledCount}.`);
+      setWebDavPassword("");
+      setWebDavPassphrase("");
+    } catch (error) {
+      setPortabilityError(error instanceof Error ? error.message : "WebDAV sync failed.");
     }
   }
 
@@ -2568,6 +2613,53 @@ function Settings(props: {
         />
         <SecondaryButton label="Sync encrypted backup" onPress={syncEncryptedBackup} disabled={!backupPassphrase.trim()} icon={<Lock size={18} />} />
         {backupStatus ? <Text style={styles.metadata}>{backupStatus}</Text> : null}
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>WebDAV encrypted sync</Text>
+        <Text style={styles.metadata}>
+          Sends an encrypted archive record to a WebDAV URL you control. URL, credentials, and passphrase are used for this sync and are not stored.
+        </Text>
+        <TextInput
+          value={webDavUrl}
+          onChangeText={setWebDavUrl}
+          placeholder="https://server.example/path/memory-palace.json"
+          placeholderTextColor="#7b8178"
+          autoCapitalize="none"
+          style={styles.tagInput}
+        />
+        <View style={styles.dateInputs}>
+          <TextInput
+            value={webDavUsername}
+            onChangeText={setWebDavUsername}
+            placeholder="Username"
+            placeholderTextColor="#7b8178"
+            autoCapitalize="none"
+            style={styles.dateInput}
+          />
+          <TextInput
+            value={webDavPassword}
+            onChangeText={setWebDavPassword}
+            placeholder="Password"
+            placeholderTextColor="#7b8178"
+            secureTextEntry
+            style={styles.dateInput}
+          />
+        </View>
+        <TextInput
+          value={webDavPassphrase}
+          onChangeText={setWebDavPassphrase}
+          placeholder="Sync encryption passphrase"
+          placeholderTextColor="#7b8178"
+          secureTextEntry
+          style={styles.tagInput}
+        />
+        <SecondaryButton
+          label="Sync WebDAV"
+          onPress={syncWebDav}
+          disabled={!webDavUrl.trim() || !webDavPassphrase.trim()}
+          icon={<Lock size={18} />}
+        />
+        {webDavStatus ? <Text style={styles.metadata}>{webDavStatus}</Text> : null}
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Export archive</Text>
