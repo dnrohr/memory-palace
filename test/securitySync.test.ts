@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NoAppLockProvider } from "../src/security/appLock";
-import { NoEncryptionProvider } from "../src/security/encryption";
+import { NoEncryptionProvider, WebCryptoExportEncryptionProvider } from "../src/security/encryption";
 import { NoSyncProvider } from "../src/sync/contracts";
 
 describe("security and sync seams", () => {
@@ -57,5 +57,39 @@ describe("security and sync seams", () => {
       requireUnlockForExport: true
     });
     await expect(provider.getStatus()).resolves.toEqual(expect.objectContaining({ active: false }));
+  });
+
+  it("encrypts and decrypts export text with a passphrase provider", async () => {
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "exports",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+
+    await expect(provider.getStatus()).resolves.toEqual(
+      expect.objectContaining({
+        providerId: "web-crypto-export",
+        available: true,
+        active: true
+      })
+    );
+
+    const envelope = await provider.encryptText("private archive", "correct horse battery staple", {
+      fileName: "memory-palace-export.json",
+      mediaType: "application/json"
+    });
+
+    expect(envelope).toEqual(
+      expect.objectContaining({
+        format: "memory-palace.encrypted.v1",
+        algorithm: "AES-GCM",
+        kdf: "PBKDF2-SHA-256",
+        fileName: "memory-palace-export.json"
+      })
+    );
+    expect(envelope.ciphertext).not.toEqual([...new TextEncoder().encode("private archive")]);
+    await expect(provider.decryptText(envelope, "correct horse battery staple")).resolves.toBe("private archive");
+    await expect(provider.decryptText(envelope, "wrong passphrase")).rejects.toThrow();
   });
 });

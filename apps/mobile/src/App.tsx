@@ -15,7 +15,9 @@ import {
 } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
+import type { ExportArtifact } from "../../../src/export/contracts";
 import type { EncryptionKeySource, EncryptionScope, EncryptionSettings } from "../../../src/security/encryption";
+import { WebCryptoExportEncryptionProvider } from "../../../src/security/encryption";
 import {
   buildTimelineBuckets,
   appendMemoryAddendum,
@@ -2036,25 +2038,59 @@ function Settings(props: {
   const [memoryIdResolution, setMemoryIdResolution] = useState<NonNullable<ArchiveMergeOptions["memoryIdConflict"]>>("skip");
   const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
   const [encryptionDraft, setEncryptionDraft] = useState<EncryptionSettings>(props.encryptionSettings);
+  const [exportPassphrase, setExportPassphrase] = useState("");
+  const encryptionProvider = useMemo(() => new WebCryptoExportEncryptionProvider(), []);
+  const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
+  const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
+
+  async function sharePossiblyEncrypted(artifact: ExportArtifact) {
+    try {
+      if (!encryptedExportsEnabled) {
+        await shareExportArtifact(artifact);
+        return;
+      }
+
+      if (props.encryptionSettings.keySource !== "user_passphrase") {
+        setPortabilityError("Encrypted export requires a user passphrase key source.");
+        return;
+      }
+
+      const envelope = await encryptionProvider.encryptText(artifact.content, exportPassphrase, {
+        fileName: artifact.fileName,
+        mediaType: artifact.mediaType
+      });
+      await shareExportArtifact({
+        fileName: `${artifact.fileName}.encrypted.json`,
+        mediaType: "application/json",
+        content: JSON.stringify(envelope, null, 2)
+      });
+    } catch (error) {
+      setPortabilityError(error instanceof Error ? error.message : "Encrypted export failed.");
+    }
+  }
 
   async function shareJson() {
+    setPortabilityError(undefined);
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
-    if (artifact) await shareExportArtifact(artifact);
+    if (artifact) await sharePossiblyEncrypted(artifact);
   }
 
   async function shareMarkdown() {
+    setPortabilityError(undefined);
     const artifacts = await new MarkdownExportProvider().exportArchive(props.archive);
-    await shareExportArtifact(combineMarkdownArtifacts(artifacts));
+    await sharePossiblyEncrypted(combineMarkdownArtifacts(artifacts));
   }
 
   async function shareMarkdownBundle() {
+    setPortabilityError(undefined);
     const artifacts = await new MarkdownBundleExportProvider().exportArchive(props.archive);
-    await shareExportArtifact(combineBundleArtifacts(artifacts));
+    await sharePossiblyEncrypted(combineBundleArtifacts(artifacts));
   }
 
   async function shareSqlite() {
+    setPortabilityError(undefined);
     const [artifact] = await new SqliteExportProvider().exportArchive(props.archive);
-    if (artifact) await shareExportArtifact(artifact);
+    if (artifact) await sharePossiblyEncrypted(artifact);
   }
 
   async function previewImport() {
@@ -2196,8 +2232,11 @@ function Settings(props: {
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Encryption</Text>
-        <Text style={styles.metadata}>Provider: none installed</Text>
-        <Text style={styles.metadata}>Status: preferences saved only; archive data is not encrypted by Memory Palace yet.</Text>
+        <Text style={styles.metadata}>Provider: Web Crypto encrypted exports</Text>
+        <Text style={styles.metadata}>
+          Status: encrypted exports are available when scope is exports or archive and key source is user passphrase. Archive-at-rest
+          encryption still requires a storage adapter.
+        </Text>
         <View style={styles.filterSection}>
           <Text style={styles.metadata}>Scope</Text>
           <View style={styles.tags}>
@@ -2245,11 +2284,26 @@ function Settings(props: {
       <SettingsSectionHeader title="Export and Import" description="Portable archive files you control." />
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Export archive</Text>
+        {encryptedExportsEnabled ? (
+          <>
+            <Text style={styles.metadata}>Encrypted exports are on. The passphrase is used only for this export and is not stored.</Text>
+            <TextInput
+              value={exportPassphrase}
+              onChangeText={setExportPassphrase}
+              placeholder="Export passphrase"
+              placeholderTextColor="#7b8178"
+              secureTextEntry
+              style={styles.tagInput}
+            />
+          </>
+        ) : (
+          <Text style={styles.metadata}>Exports are shared as plain JSON, Markdown, or SQL files.</Text>
+        )}
         <View style={styles.actionRow}>
-          <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />
-          <SecondaryButton label="Markdown" onPress={shareMarkdown} icon={<Download size={18} />} />
-          <SecondaryButton label="Markdown bundle" onPress={shareMarkdownBundle} icon={<Download size={18} />} />
-          <SecondaryButton label="SQLite SQL" onPress={shareSqlite} icon={<Download size={18} />} />
+          <PrimaryButton label="JSON" onPress={shareJson} disabled={exportBlocked} icon={<Download size={18} />} />
+          <SecondaryButton label="Markdown" onPress={shareMarkdown} disabled={exportBlocked} icon={<Download size={18} />} />
+          <SecondaryButton label="Markdown bundle" onPress={shareMarkdownBundle} disabled={exportBlocked} icon={<Download size={18} />} />
+          <SecondaryButton label="SQLite SQL" onPress={shareSqlite} disabled={exportBlocked} icon={<Download size={18} />} />
           <SecondaryButton label="Import" onPress={previewImport} icon={<Download size={18} />} />
         </View>
       </View>

@@ -29,6 +29,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added durable private notes on memories so later context can be stored without changing the original memory text.
 - Added responsive shell polish for wider web/tablet layouts while keeping mobile single-column.
 - Added durable life-context relationship schema/storage and graph support for explicit relationships alongside inferred co-occurrence edges.
+- Added a Web Crypto AES-GCM encrypted export provider with PBKDF2 passphrase keys and Settings export controls.
 
 ### 2026-06-11
 
@@ -114,7 +115,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
-| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI. | Production encryption adapter. |
+| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, and Web Crypto AES-GCM encrypted export provider. | Archive-at-rest encryption adapter. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | Done | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, post-save suggestion sheet, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish. | None. |
 
@@ -242,7 +243,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 ## Next Implementation Priorities
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine` plus interruption/background handling.
-2. Add production encryption adapter.
+2. Add archive-at-rest encryption adapter.
 3. Add production local embedding/model adapters when target models are selected.
 4. Add opt-in sync/backup provider adapters when provider targets are selected.
 5. Run device-level QA across mobile, tablet, and web.
