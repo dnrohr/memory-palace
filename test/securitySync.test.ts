@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import {
   EncryptedArchiveAtRestAdapter,
@@ -9,6 +9,7 @@ import { NoAppLockProvider } from "../src/security/appLock";
 import { NoEncryptionProvider, WebCryptoExportEncryptionProvider } from "../src/security/encryption";
 import { NoSyncProvider } from "../src/sync/contracts";
 import { EncryptedBackupSyncProvider } from "../src/sync/encryptedBackupSync";
+import { WebDAVSyncProvider } from "../src/sync/webDavSync";
 
 const archiveFixture: MemoryArchive = {
   exportedAt: "2026-06-12T00:00:00.000Z",
@@ -40,6 +41,10 @@ const archiveFixture: MemoryArchive = {
 };
 
 describe("security and sync seams", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("keeps app lock disabled by default but supports lock state", async () => {
     const provider = new NoAppLockProvider();
 
@@ -289,7 +294,98 @@ describe("security and sync seams", () => {
       })
     );
   });
+
+  it("pushes an encrypted archive to WebDAV with explicit credentials", async () => {
+    let remoteBody: string | undefined;
+    let authorizationHeader: string | undefined;
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        authorizationHeader = init?.headers ? (init.headers as Record<string, string>).Authorization : undefined;
+        if (init?.method === "GET") {
+          return remoteBody
+            ? response(200, remoteBody)
+            : response(404, "");
+        }
+        if (init?.method === "PUT") {
+          remoteBody = String(init.body);
+          return response(200, "");
+        }
+        return response(405, "");
+      })
+    );
+
+    const sync = new WebDAVSyncProvider({
+      async getLocalArchive() {
+        return archiveFixture;
+      },
+      async saveLocalArchive() {
+        throw new Error("Initial WebDAV backup should not overwrite local archive.");
+      },
+      encryptionProvider: provider,
+      url: "https://example.test/memory-palace.json",
+      username: "user",
+      password: "pass",
+      passphrase: "correct horse battery staple",
+      now: () => "2026-06-12T00:00:00.000Z"
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pushedCount: 1,
+        pulledCount: 0,
+        conflicts: []
+      })
+    );
+    expect(authorizationHeader).toBe("Basic dXNlcjpwYXNz");
+    expect(remoteBody).toContain("memory-palace.archive.encrypted.v1");
+    expect(remoteBody).not.toContain("A private memory");
+  });
+
+  it("keeps WebDAV sync disabled without an explicit sync passphrase", async () => {
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => response(404, "")));
+
+    const sync = new WebDAVSyncProvider({
+      async getLocalArchive() {
+        return archiveFixture;
+      },
+      async saveLocalArchive() {
+        return undefined;
+      },
+      encryptionProvider: provider,
+      url: "https://example.test/memory-palace.json"
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pushedCount: 0,
+        pulledCount: 0,
+        conflicts: [expect.objectContaining({ id: "webdav-sync-passphrase-missing" })]
+      })
+    );
+  });
 });
+
+function response(status: number, body: string): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status === 404 ? "Not Found" : status === 405 ? "Method Not Allowed" : "OK",
+    text: async () => body
+  } as Response;
+}
 
 class InMemoryArchiveAtRestRecordStore implements IArchiveAtRestRecordStore {
   constructor(public record?: ArchiveAtRestRecord) {}
