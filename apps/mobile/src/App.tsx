@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
+import type { EncryptionKeySource, EncryptionScope, EncryptionSettings } from "../../../src/security/encryption";
 import {
   buildTimelineBuckets,
   appendMemoryAddendum,
@@ -91,6 +92,11 @@ export default function App() {
     mode: "disabled",
     autoLockTimeoutMs: 0,
     hidePreviewsInSwitcher: false
+  });
+  const [encryptionSettings, setEncryptionSettings] = useState<EncryptionSettings>({
+    scope: "disabled",
+    keySource: "none",
+    requireUnlockForExport: false
   });
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
@@ -408,6 +414,7 @@ export default function App() {
           <Settings
             archive={archive}
             appLockSettings={appLockSettings}
+            encryptionSettings={encryptionSettings}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
@@ -440,6 +447,7 @@ export default function App() {
               await appLockProvider.lock();
               setIsAppLocked(await appLockProvider.isLocked());
             }}
+            onSaveEncryptionSettings={async (settings) => setEncryptionSettings(settings)}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -1633,6 +1641,7 @@ function MemoryDetail(props: {
 function Settings(props: {
   archive: MemoryArchive;
   appLockSettings: AppLockSettings;
+  encryptionSettings: EncryptionSettings;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
@@ -1641,6 +1650,7 @@ function Settings(props: {
   onSavePin: (pin: string) => Promise<void>;
   onDisableAppLock: () => Promise<void>;
   onLockNow: () => Promise<void>;
+  onSaveEncryptionSettings: (settings: EncryptionSettings) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
@@ -1655,6 +1665,7 @@ function Settings(props: {
     useState<NonNullable<ArchiveMergeOptions["duplicateMemory"]>>("skip");
   const [memoryIdResolution, setMemoryIdResolution] = useState<NonNullable<ArchiveMergeOptions["memoryIdConflict"]>>("skip");
   const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
+  const [encryptionDraft, setEncryptionDraft] = useState<EncryptionSettings>(props.encryptionSettings);
 
   async function shareJson() {
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
@@ -1758,6 +1769,53 @@ function Settings(props: {
             </>
           )}
         </View>
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Encryption</Text>
+        <Text style={styles.metadata}>Provider: none installed</Text>
+        <Text style={styles.metadata}>Status: preferences saved only; archive data is not encrypted by Memory Palace yet.</Text>
+        <View style={styles.filterSection}>
+          <Text style={styles.metadata}>Scope</Text>
+          <View style={styles.tags}>
+            {(["disabled", "exports", "archive"] as EncryptionScope[]).map((scope) => (
+              <FilterChip
+                key={scope}
+                label={scope}
+                selected={encryptionDraft.scope === scope}
+                onPress={() =>
+                  setEncryptionDraft((current) => ({
+                    ...current,
+                    scope,
+                    keySource: scope === "disabled" ? "none" : current.keySource === "none" ? "user_passphrase" : current.keySource
+                  }))
+                }
+              />
+            ))}
+          </View>
+        </View>
+        <View style={styles.filterSection}>
+          <Text style={styles.metadata}>Key source</Text>
+          <View style={styles.tags}>
+            {(["none", "device_secure_store", "user_passphrase"] as EncryptionKeySource[]).map((keySource) => (
+              <FilterChip
+                key={keySource}
+                label={keySource.replace(/_/g, " ")}
+                selected={encryptionDraft.keySource === keySource}
+                onPress={() => setEncryptionDraft((current) => ({ ...current, keySource }))}
+              />
+            ))}
+          </View>
+        </View>
+        <View style={styles.tags}>
+          <FilterChip
+            label="require unlock for export"
+            selected={encryptionDraft.requireUnlockForExport}
+            onPress={() =>
+              setEncryptionDraft((current) => ({ ...current, requireUnlockForExport: !current.requireUnlockForExport }))
+            }
+          />
+        </View>
+        <SecondaryButton label="Save encryption options" onPress={() => props.onSaveEncryptionSettings(encryptionDraft)} icon={<Save size={18} />} />
       </View>
       <View style={styles.actionRow}>
         <PrimaryButton label="JSON" onPress={shareJson} icon={<Download size={18} />} />

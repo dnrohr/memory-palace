@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NoAppLockProvider } from "../src/security/appLock";
+import { NoEncryptionProvider } from "../src/security/encryption";
 import { NoSyncProvider } from "../src/sync/contracts";
 
 describe("security and sync seams", () => {
@@ -32,5 +33,29 @@ describe("security and sync seams", () => {
       conflicts: []
     });
   });
-});
 
+  it("exposes encryption preferences while disabled without a provider", async () => {
+    const provider = new NoEncryptionProvider();
+
+    await expect(provider.getStatus()).resolves.toEqual(
+      expect.objectContaining({
+        providerId: "none",
+        available: false,
+        active: false
+      })
+    );
+
+    await provider.saveSettings({
+      scope: "exports",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+
+    await expect(provider.getSettings()).resolves.toEqual({
+      scope: "exports",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    await expect(provider.getStatus()).resolves.toEqual(expect.objectContaining({ active: false }));
+  });
+});
