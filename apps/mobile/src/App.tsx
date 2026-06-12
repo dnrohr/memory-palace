@@ -55,7 +55,7 @@ import {
   clearRetainedAudioReferences
 } from "../../../src/security/dataAudit";
 import { buildTagClusters } from "../../../src/visualization/clusters";
-import { buildTagGraphData } from "../../../src/visualization/graph";
+import { buildGraphNeighborhood, buildTagGraphData } from "../../../src/visualization/graph";
 import {
   buildLifeChapterCandidates,
   rejectLifeChapterCandidate,
@@ -899,6 +899,7 @@ function TimelineView(props: {
   const [spanFilter, setSpanFilter] = useState<TimelineSpanFilter>("all");
   const [fromYear, setFromYear] = useState("");
   const [toYear, setToYear] = useState("");
+  const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string | undefined>();
   const allBuckets = buildTimelineBuckets(props.memories);
   const timelineFilter: TimelineBucketFilter = {};
   const parsedFromYear = parseOptionalYear(fromYear);
@@ -909,6 +910,8 @@ function TimelineView(props: {
   if (parsedToYear !== undefined) timelineFilter.toYear = parsedToYear;
   const buckets = filterTimelineBuckets(allBuckets, timelineFilter);
   const graph = buildTagGraphData(props.archive);
+  const selectedGraphNode = selectedGraphNodeId ?? graph.nodes.find((node) => node.kind !== "memory")?.id;
+  const graphNeighborhood = selectedGraphNode ? buildGraphNeighborhood(graph, selectedGraphNode, 1) : undefined;
   const clusters = buildTagClusters(props.archive);
   const chapters = buildLifeChapterCandidates(props.archive);
   const memoriesById = new Map(props.archive.memories.map((memory) => [memory.id, memory]));
@@ -1016,11 +1019,24 @@ function TimelineView(props: {
             {graph.nodes.length} nodes · {graph.edges.length} links
           </Text>
           {graph.nodes.slice(0, 20).map((node) => (
-            <View key={node.id} style={styles.graphRow}>
+            <Pressable key={node.id} style={styles.graphRow} onPress={() => setSelectedGraphNodeId(node.id)}>
               <Text style={styles.memoryTitle}>{node.label}</Text>
               <Text style={styles.timelineBadge}>{node.kind}</Text>
-            </View>
+            </Pressable>
           ))}
+          {graphNeighborhood ? (
+            <View style={styles.relatedPanel}>
+              <Text style={styles.panelTitle}>{graphNeighborhood.center.label} neighborhood</Text>
+              <Text style={styles.metadata}>
+                {graphNeighborhood.nodes.length} nodes · {graphNeighborhood.edges.length} links
+              </Text>
+              {graphNeighborhood.edges.slice(0, 8).map((edge) => (
+                <Text key={`${edge.source}-${edge.target}-${edge.kind}`} style={styles.metadata}>
+                  {formatGraphEdge(edge)}
+                </Text>
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -2102,6 +2118,11 @@ function formatTimelineBadge(certainty: "confirmed" | "inferred" | "unknown", sp
   if (certainty === "unknown") return "unknown";
   if (span === "range") return certainty === "confirmed" ? "confirmed range" : "inferred range";
   return certainty;
+}
+
+function formatGraphEdge(edge: ReturnType<typeof buildTagGraphData>["edges"][number]): string {
+  const kind = edge.kind.replace("_", " ");
+  return `${kind}: ${edge.source} -> ${edge.target}${edge.label ? ` (${edge.label})` : ""}`;
 }
 
 function formatRelatedReasons(result: RelatedMemoryResult): string {

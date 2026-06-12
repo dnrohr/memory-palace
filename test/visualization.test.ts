@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import { buildTagClusters } from "../src/visualization/clusters";
-import { buildTagGraphData } from "../src/visualization/graph";
+import { buildGraphNeighborhood, buildTagGraphData } from "../src/visualization/graph";
 
 const archive: MemoryArchive = {
   exportedAt: "2026-06-11T00:00:00.000Z",
@@ -96,9 +96,27 @@ describe("visualization data", () => {
     expect(graph.edges).toEqual(
       expect.arrayContaining([
         { source: "memory:mem-1", target: "person:person-1", kind: "memory_context" },
-        { source: "memory:mem-1", target: "place:place-1", kind: "memory_context" }
+        { source: "memory:mem-1", target: "place:place-1", kind: "memory_context" },
+        {
+          source: "person:person-1",
+          target: "place:place-1",
+          kind: "context_relation",
+          weight: 1,
+          label: "1 shared memory"
+        }
       ])
     );
+  });
+
+  it("builds graph neighborhoods from connected memories and context", () => {
+    const graph = buildTagGraphData(archive);
+    const neighborhood = buildGraphNeighborhood(graph, "person:person-1", 1);
+
+    expect(neighborhood?.center).toEqual({ id: "person:person-1", label: "Maya", kind: "person" });
+    expect(neighborhood?.nodes.map((node) => node.id)).toEqual(
+      expect.arrayContaining(["person:person-1", "memory:mem-1", "place:place-1"])
+    );
+    expect(neighborhood?.edges.map((edge) => edge.kind)).toEqual(expect.arrayContaining(["memory_context", "context_relation"]));
   });
 
   it("builds shared-tag clusters", () => {

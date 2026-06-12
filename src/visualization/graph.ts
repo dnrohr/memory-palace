@@ -11,7 +11,9 @@ export type GraphNode = {
 export type GraphEdge = {
   source: string;
   target: string;
-  kind: "memory_tag" | "memory_context";
+  kind: "memory_tag" | "memory_context" | "context_relation";
+  weight?: number;
+  label?: string;
 };
 
 export type TagGraphData = {
@@ -19,9 +21,16 @@ export type TagGraphData = {
   edges: GraphEdge[];
 };
 
+export type GraphNeighborhood = {
+  center: GraphNode;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+};
+
 export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
   const nodes = new Map<string, GraphNode>();
   const edges: GraphEdge[] = [];
+  const contextCoOccurrences = new Map<string, { source: string; target: string; weight: number }>();
 
   for (const memory of archive.memories.filter((item) => !item.deletedAt)) {
     nodes.set(`memory:${memory.id}`, {
@@ -43,7 +52,8 @@ export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
       });
     }
 
-    for (const match of findLifeContextMatches(memory.cleanedText ?? memory.rawText, archive)) {
+    const contextMatches = findLifeContextMatches(memory.cleanedText ?? memory.rawText, archive);
+    for (const match of contextMatches) {
       nodes.set(`${match.kind}:${match.id}`, {
         id: `${match.kind}:${match.id}`,
         label: match.name,
@@ -55,7 +65,76 @@ export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
         kind: "memory_context"
       });
     }
+
+    for (let i = 0; i < contextMatches.length; i += 1) {
+      for (let j = i + 1; j < contextMatches.length; j += 1) {
+        const left = contextMatches[i];
+        const right = contextMatches[j];
+        if (!left || !right) continue;
+        const pair = [`${left.kind}:${left.id}`, `${right.kind}:${right.id}`].sort();
+        const key = pair.join(">");
+        const existing = contextCoOccurrences.get(key);
+        contextCoOccurrences.set(key, {
+          source: pair[0]!,
+          target: pair[1]!,
+          weight: (existing?.weight ?? 0) + 1
+        });
+      }
+    }
+  }
+
+  for (const edge of contextCoOccurrences.values()) {
+    edges.push({
+      source: edge.source,
+      target: edge.target,
+      kind: "context_relation",
+      weight: edge.weight,
+      label: `${edge.weight} shared ${edge.weight === 1 ? "memory" : "memories"}`
+    });
   }
 
   return { nodes: [...nodes.values()], edges };
+}
+
+export function buildGraphNeighborhood(graph: TagGraphData, centerNodeId: string, maxDepth = 1): GraphNeighborhood | undefined {
+  const center = graph.nodes.find((node) => node.id === centerNodeId);
+  if (!center) return undefined;
+
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const visited = new Set([centerNodeId]);
+  let frontier = new Set([centerNodeId]);
+  const edges: GraphEdge[] = [];
+
+  for (let depth = 0; depth < maxDepth; depth += 1) {
+    const nextFrontier = new Set<string>();
+    for (const edge of graph.edges) {
+      const touchesSource = frontier.has(edge.source);
+      const touchesTarget = frontier.has(edge.target);
+      if (!touchesSource && !touchesTarget) continue;
+      edges.push(edge);
+      const neighborId = touchesSource ? edge.target : edge.source;
+      if (!visited.has(neighborId)) {
+        visited.add(neighborId);
+        nextFrontier.add(neighborId);
+      }
+    }
+    frontier = nextFrontier;
+    if (frontier.size === 0) break;
+  }
+
+  return {
+    center,
+    nodes: [...visited].map((id) => nodesById.get(id)).filter((node): node is GraphNode => Boolean(node)),
+    edges: dedupeEdges(edges)
+  };
+}
+
+function dedupeEdges(edges: GraphEdge[]): GraphEdge[] {
+  const seen = new Set<string>();
+  return edges.filter((edge) => {
+    const key = `${edge.source}>${edge.target}>${edge.kind}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
