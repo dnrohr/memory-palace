@@ -2705,12 +2705,15 @@ function Settings(props: {
       <SettingsSectionHeader title="Privacy" description="Memory text stays local unless you explicitly export it." />
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Local state</Text>
-        <Text style={styles.metadata}>Data storage: this device.</Text>
-        <Text style={styles.metadata}>Cloud sync: off.</Text>
-        <Text style={styles.metadata}>Cloud AI: off.</Text>
-        <Text style={styles.metadata}>Local suggestions: {props.structuredExtractionMode === "rules" ? "on" : "off"}.</Text>
-        <Text style={styles.metadata}>Nearby search: local embedding index.</Text>
-        <Text style={styles.metadata}>Audio retention: optional per recording.</Text>
+        <Text style={styles.metadata}>A quick map of what can leave this device.</Text>
+        <View style={styles.trustGrid}>
+          <TrustItem label="Storage" value="this device" />
+          <TrustItem label="Cloud sync" value="off" />
+          <TrustItem label="Cloud AI" value="off" />
+          <TrustItem label="Suggestions" value={props.structuredExtractionMode === "rules" ? "local rules" : "off"} />
+          <TrustItem label="Nearby search" value="local index" />
+          <TrustItem label="Audio" value="optional" />
+        </View>
       </View>
 
       <SettingsSectionHeader title="Storage" description="Counts and estimates for the local archive." />
@@ -2728,26 +2731,6 @@ function Settings(props: {
       </View>
 
       <SettingsSectionHeader title="Local Processing" description="Rules, nearby search, and diagnostics that run on this device." />
-      <View style={styles.filterPanel}>
-        <Text style={styles.panelTitle}>Data audit</Text>
-        <Text style={styles.metadata}>Local modes: {audit.localProcessingModes.join(", ")}</Text>
-        <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
-        <Text style={styles.metadata}>Deleted-memory audio references: {audit.deletedRetainedAudioCount}</Text>
-        <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
-        <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
-        <Text style={styles.metadata}>Stale embedding vectors: {audit.staleEmbeddingCount}</Text>
-        <Text style={styles.metadata}>
-          Estimated storage: text {formatBytes(audit.estimatedTextBytes)}, embeddings {formatBytes(audit.estimatedEmbeddingBytes)},
-          processing {formatBytes(audit.estimatedProcessingBytes)}
-        </Text>
-        <Text style={styles.metadata}>Stale embedding queue: {staleEmbeddingCount}</Text>
-        <View style={styles.actionRow}>
-          <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
-          <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
-          <SecondaryButton label="Clear deleted artifacts" onPress={props.onClearDeletedArtifacts} icon={<Trash2 size={18} />} />
-          <SecondaryButton label="Regenerate embeddings" onPress={props.onRegenerateEmbeddings} icon={<Search size={18} />} />
-        </View>
-      </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Structured extraction</Text>
         <Text style={styles.metadata}>Mode: {props.structuredExtractionMode === "rules" ? "local rules" : "off"}</Text>
@@ -2776,6 +2759,27 @@ function Settings(props: {
               onPress={() => void props.onEmbeddingMaintenanceModeChange(mode)}
             />
           ))}
+        </View>
+      </View>
+      <View style={styles.diagnosticsPanel}>
+        <Text style={styles.sectionEyebrow}>Advanced diagnostics</Text>
+        <Text style={styles.panelTitle}>Data audit</Text>
+        <Text style={styles.metadata}>Local modes: {audit.localProcessingModes.join(", ")}</Text>
+        <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
+        <Text style={styles.metadata}>Deleted-memory audio references: {audit.deletedRetainedAudioCount}</Text>
+        <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
+        <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
+        <Text style={styles.metadata}>Stale embedding vectors: {audit.staleEmbeddingCount}</Text>
+        <Text style={styles.metadata}>
+          Estimated storage: text {formatBytes(audit.estimatedTextBytes)}, embeddings {formatBytes(audit.estimatedEmbeddingBytes)},
+          processing {formatBytes(audit.estimatedProcessingBytes)}
+        </Text>
+        <Text style={styles.metadata}>Stale embedding queue: {staleEmbeddingCount}</Text>
+        <View style={styles.actionRow}>
+          <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Clear deleted artifacts" onPress={props.onClearDeletedArtifacts} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Regenerate embeddings" onPress={props.onRegenerateEmbeddings} icon={<Search size={18} />} />
         </View>
       </View>
 
@@ -3055,6 +3059,15 @@ function Stat(props: { label: string; value: string }) {
     <View style={styles.stat}>
       <Text style={styles.statValue}>{props.value}</Text>
       <Text style={styles.statLabel}>{props.label}</Text>
+    </View>
+  );
+}
+
+function TrustItem(props: { label: string; value: string }) {
+  return (
+    <View style={styles.trustItem}>
+      <Text style={styles.sectionEyebrow}>{props.label}</Text>
+      <Text style={styles.trustValue}>{props.value}</Text>
     </View>
   );
 }
@@ -3644,6 +3657,14 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 10
   },
+  diagnosticsPanel: {
+    borderWidth: 1,
+    borderColor: "#cfd5ca",
+    backgroundColor: "#f2f5ef",
+    borderRadius: 8,
+    padding: 14,
+    gap: 10
+  },
   filterSection: {
     gap: 8
   },
@@ -3934,6 +3955,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
+  },
+  trustGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  trustItem: {
+    minWidth: 132,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e2ddcf",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 12,
+    gap: 5
+  },
+  trustValue: {
+    color: "#252925",
+    fontSize: 15,
+    fontWeight: "800"
   },
   settingsSectionHeader: {
     marginTop: 8,

@@ -79,6 +79,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web Themes QA on `http://localhost:8081`: normal and mobile-width theme shelves rendered related tags, connected memories, and management controls without horizontal overflow or console errors.
 - Polished the Review inbox into a quiet optional-maintenance surface with a `Review when you want` summary, possible-detail cards, source context, explanation copy, and explicit edit actions.
 - Ran local web Review QA on `http://localhost:8081`: normal and mobile-width Review rendered optional-review language and actions without horizontal overflow, console errors, or chore-list wording.
+- Polished Settings trust surfaces with compact local-state cards and moved data-audit controls into a visually separated advanced diagnostics panel.
+- Ran local web Settings QA on `http://localhost:8081`: normal and mobile-width Settings rendered trust cards and separated diagnostics without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -263,6 +265,7 @@ Done:
 - Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, and deleted-artifact cleanup for audio references and stale embeddings.
 - App-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, and persisted encryption/local-processing preferences.
 - Web Crypto AES-GCM encrypted export provider, portable archive-at-rest encryption adapter, startup unlock for encrypted archive records, encrypted save path after archive unlock, and plaintext primary-storage cleanup after encrypted saves.
+- Compact Settings trust cards and visually separated advanced diagnostics.
 
 Remaining:
 - Device QA for app lock, encrypted exports, encrypted backup, and archive-at-rest unlock/migration paths.
@@ -285,7 +288,7 @@ Status: Done
 Done:
 - Review inbox data/UI, quiet optional-review surface, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
-- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:
 - None.
