@@ -1,5 +1,5 @@
 import type { MemoryArchive } from "../core/archive";
-import { mergeArchive, previewArchiveMerge, type ArchiveMergePreview } from "../core/archiveOperations";
+import { mergeArchive, previewArchiveMerge, type ArchiveMergeOptions, type ArchiveMergePreview } from "../core/archiveOperations";
 import type { ImportArtifact, ImportPreview } from "./contracts";
 import { JsonImportProvider } from "./jsonImport";
 import { MarkdownImportProvider } from "./markdownImport";
@@ -23,7 +23,8 @@ export async function previewArchiveImport(
   };
 }
 
-export function applyArchiveImport(current: MemoryArchive, preview: ImportPreview): MemoryArchive {
-  return mergeArchive(current, preview.archive);
+export function applyArchiveImport(current: MemoryArchive, preview: ImportPreview, options: ArchiveMergeOptions = {}): MemoryArchive {
+  return mergeArchive(current, preview.archive, options);
 }
 
+export type { ArchiveMergeOptions };

@@ -71,6 +71,12 @@ export type ArchiveMergeConflict =
       incomingType: TagType;
     };
 
+export type ArchiveMergeOptions = {
+  duplicateMemory?: "skip" | "import_copy";
+  memoryIdConflict?: "skip" | "replace" | "keep_both";
+  tagTypeConflict?: "keep_existing" | "use_incoming";
+};
+
 export function filterMemories(archive: MemoryArchive, filter: MemoryFilter = {}): Memory[] {
   const normalizedText = normalize(filter.text ?? "");
   const tagIds = new Set(filter.tagIds ?? []);
@@ -324,8 +330,12 @@ export function previewArchiveMerge(current: MemoryArchive, incoming: MemoryArch
   };
 }
 
-export function mergeArchive(current: MemoryArchive, incoming: MemoryArchive): MemoryArchive {
-  const currentMemoryKeys = new Set(current.memories.map(memoryDeduplicationKey));
+export function mergeArchive(current: MemoryArchive, incoming: MemoryArchive, options: ArchiveMergeOptions = {}): MemoryArchive {
+  const duplicateMemoryResolution = options.duplicateMemory ?? "skip";
+  const memoryIdResolution = options.memoryIdConflict ?? "skip";
+  const tagTypeResolution = options.tagTypeConflict ?? "keep_existing";
+  const currentMemoryKeys = new Map(current.memories.map((memory) => [memoryDeduplicationKey(memory), memory.id]));
+  const currentMemoryIds = new Set(current.memories.map((memory) => memory.id));
   const currentTagByName = new Map(current.tags.map((tag) => [tag.normalizedName, tag]));
   const tagIdRemap = new Map<string, string>();
   const nextTags = [...current.tags];
@@ -333,6 +343,12 @@ export function mergeArchive(current: MemoryArchive, incoming: MemoryArchive): M
   for (const tag of incoming.tags) {
     const existing = currentTagByName.get(tag.normalizedName);
     if (existing) {
+      if (existing.type !== tag.type && tagTypeResolution === "use_incoming") {
+        const nextTag = { ...existing, type: tag.type, updatedAt: tag.updatedAt };
+        const index = nextTags.findIndex((item) => item.id === existing.id);
+        if (index >= 0) nextTags[index] = nextTag;
+        currentTagByName.set(tag.normalizedName, nextTag);
+      }
       tagIdRemap.set(tag.id, existing.id);
     } else {
       currentTagByName.set(tag.normalizedName, tag);
@@ -341,25 +357,49 @@ export function mergeArchive(current: MemoryArchive, incoming: MemoryArchive): M
     }
   }
 
-  const incomingMemories = incoming.memories.filter((memory) => !currentMemoryKeys.has(memoryDeduplicationKey(memory)));
-  const incomingMemoryIds = new Set(incomingMemories.map((memory) => memory.id));
-  const existingLinks = new Set(current.memoryTags.map((link) => `${link.memoryId}:${link.tagId}`));
-  const nextLinks = [...current.memoryTags];
+  const usedMemoryIds = new Set(currentMemoryIds);
+  const incomingMemoryIdRemap = new Map<string, string>();
+  const acceptedMemories: Memory[] = [];
+  let nextCurrentMemories = [...current.memories];
+  let nextLinks = [...current.memoryTags];
+
+  for (const memory of incoming.memories) {
+    const duplicateExistingId = currentMemoryKeys.get(memoryDeduplicationKey(memory));
+    if (duplicateExistingId && duplicateMemoryResolution === "skip") continue;
+
+    const hasIdConflict = usedMemoryIds.has(memory.id);
+    if (hasIdConflict && memoryIdResolution === "skip") continue;
+
+    let nextMemory = memory;
+    if (hasIdConflict && memoryIdResolution === "replace") {
+      nextCurrentMemories = nextCurrentMemories.filter((item) => item.id !== memory.id);
+      nextLinks = nextLinks.filter((link) => link.memoryId !== memory.id);
+    } else if (hasIdConflict) {
+      nextMemory = { ...memory, id: uniqueImportedMemoryId(memory.id, usedMemoryIds) };
+    }
+
+    usedMemoryIds.add(nextMemory.id);
+    incomingMemoryIdRemap.set(memory.id, nextMemory.id);
+    acceptedMemories.push(nextMemory);
+  }
+
+  const existingLinks = new Set(nextLinks.map((link) => `${link.memoryId}:${link.tagId}`));
 
   for (const link of incoming.memoryTags) {
-    if (!incomingMemoryIds.has(link.memoryId)) continue;
+    const memoryId = incomingMemoryIdRemap.get(link.memoryId);
+    if (!memoryId) continue;
     const tagId = tagIdRemap.get(link.tagId);
     if (!tagId) continue;
-    const key = `${link.memoryId}:${tagId}`;
+    const key = `${memoryId}:${tagId}`;
     if (existingLinks.has(key)) continue;
     existingLinks.add(key);
-    nextLinks.push({ ...link, tagId });
+    nextLinks.push({ ...link, memoryId, tagId });
   }
 
   return {
     ...current,
     exportedAt: new Date().toISOString(),
-    memories: [...incomingMemories, ...current.memories],
+    memories: [...acceptedMemories, ...nextCurrentMemories],
     tags: nextTags,
     memoryTags: nextLinks,
     people: mergeById(current.people, incoming.people),
@@ -425,6 +465,16 @@ function compareTimelineKeys(a: string, b: string): number {
 
 function memoryDeduplicationKey(memory: Memory): string {
   return normalize([memory.rawText, memory.approximateStartDate ?? "", memory.title ?? ""].join("|"));
+}
+
+function uniqueImportedMemoryId(baseId: string, usedIds: Set<string>): string {
+  let index = 1;
+  let candidate = `${baseId}-imported`;
+  while (usedIds.has(candidate)) {
+    index += 1;
+    candidate = `${baseId}-imported-${index}`;
+  }
+  return candidate;
 }
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {

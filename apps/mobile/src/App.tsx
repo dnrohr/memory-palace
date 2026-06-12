@@ -31,7 +31,12 @@ import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { SqliteExportProvider } from "../../../src/export/sqliteExport";
-import { applyArchiveImport, previewArchiveImport, type ArchiveImportWorkflowPreview } from "../../../src/import/importWorkflow";
+import {
+  applyArchiveImport,
+  previewArchiveImport,
+  type ArchiveImportWorkflowPreview,
+  type ArchiveMergeOptions
+} from "../../../src/import/importWorkflow";
 import { createLifeContextId, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
@@ -397,7 +402,7 @@ export default function App() {
           <Settings
             archive={archive}
             appLockSettings={appLockSettings}
-            onImport={async (preview) => persist(applyArchiveImport(archive, preview))}
+            onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
             onRegenerateEmbeddings={async () => persist(archive)}
@@ -1591,7 +1596,7 @@ function MemoryDetail(props: {
 function Settings(props: {
   archive: MemoryArchive;
   appLockSettings: AppLockSettings;
-  onImport: (preview: ArchiveImportWorkflowPreview) => Promise<void>;
+  onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
   onRegenerateEmbeddings: () => Promise<void>;
@@ -1609,6 +1614,10 @@ function Settings(props: {
   const [importPreview, setImportPreview] = useState<ArchiveImportWorkflowPreview | undefined>();
   const [portabilityError, setPortabilityError] = useState<string | undefined>();
   const [pinDraft, setPinDraft] = useState("");
+  const [duplicateMemoryResolution, setDuplicateMemoryResolution] =
+    useState<NonNullable<ArchiveMergeOptions["duplicateMemory"]>>("skip");
+  const [memoryIdResolution, setMemoryIdResolution] = useState<NonNullable<ArchiveMergeOptions["memoryIdConflict"]>>("skip");
+  const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
 
   async function shareJson() {
     const [artifact] = await new JsonExportProvider().exportArchive(props.archive);
@@ -1638,7 +1647,11 @@ function Settings(props: {
 
   async function applyImport() {
     if (!importPreview) return;
-    await props.onImport(importPreview);
+    await props.onImport(importPreview, {
+      duplicateMemory: duplicateMemoryResolution,
+      memoryIdConflict: memoryIdResolution,
+      tagTypeConflict: tagTypeResolution
+    });
     setImportPreview(undefined);
   }
 
@@ -1733,6 +1746,49 @@ function Settings(props: {
               {formatImportConflict(conflict)}
             </Text>
           ))}
+          <View style={styles.filterSection}>
+            <Text style={styles.metadata}>Duplicate memories</Text>
+            <View style={styles.tags}>
+              <FilterChip
+                label="skip"
+                selected={duplicateMemoryResolution === "skip"}
+                onPress={() => setDuplicateMemoryResolution("skip")}
+              />
+              <FilterChip
+                label="import copy"
+                selected={duplicateMemoryResolution === "import_copy"}
+                onPress={() => setDuplicateMemoryResolution("import_copy")}
+              />
+            </View>
+          </View>
+          <View style={styles.filterSection}>
+            <Text style={styles.metadata}>Same ID memories</Text>
+            <View style={styles.tags}>
+              {(["skip", "replace", "keep_both"] as NonNullable<ArchiveMergeOptions["memoryIdConflict"]>[]).map((resolution) => (
+                <FilterChip
+                  key={resolution}
+                  label={resolution.replace("_", " ")}
+                  selected={memoryIdResolution === resolution}
+                  onPress={() => setMemoryIdResolution(resolution)}
+                />
+              ))}
+            </View>
+          </View>
+          <View style={styles.filterSection}>
+            <Text style={styles.metadata}>Tag type conflicts</Text>
+            <View style={styles.tags}>
+              <FilterChip
+                label="keep existing"
+                selected={tagTypeResolution === "keep_existing"}
+                onPress={() => setTagTypeResolution("keep_existing")}
+              />
+              <FilterChip
+                label="use incoming"
+                selected={tagTypeResolution === "use_incoming"}
+                onPress={() => setTagTypeResolution("use_incoming")}
+              />
+            </View>
+          </View>
           <View style={styles.actionRow}>
             <SecondaryButton label="Cancel" onPress={() => setImportPreview(undefined)} icon={<X size={18} />} />
             <PrimaryButton label="Apply import" onPress={applyImport} icon={<Save size={18} />} />

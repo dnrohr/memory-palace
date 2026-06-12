@@ -287,4 +287,45 @@ describe("archive operations", () => {
     expect(merged.memories.filter((memory) => memory.rawText === archive.memories[0]?.rawText)).toHaveLength(1);
     expect(merged.tags.map((tag) => tag.normalizedName)).toContain("imported");
   });
+
+  it("applies selected merge resolutions for import conflicts", () => {
+    const incoming: MemoryArchive = {
+      ...archive,
+      memories: [
+        { ...archive.memories[0]!, id: "mem-copy" },
+        {
+          ...archive.memories[0]!,
+          rawText: "Replacement text.",
+          title: "Replacement",
+          updatedAt: "2026-06-12T00:00:00.000Z"
+        }
+      ],
+      tags: [{ ...archive.tags[0]!, id: "tag-copy", type: "theme" }],
+      memoryTags: [
+        {
+          memoryId: "mem-copy",
+          tagId: "tag-copy",
+          source: "imported",
+          userConfirmed: true,
+          rejected: false,
+          createdAt: "2026-06-12T00:00:00.000Z"
+        }
+      ]
+    };
+
+    const replaced = mergeArchive(archive, incoming, {
+      duplicateMemory: "skip",
+      memoryIdConflict: "replace",
+      tagTypeConflict: "use_incoming"
+    });
+    expect(replaced.memories.find((memory) => memory.id === "mem-1")?.rawText).toBe("Replacement text.");
+    expect(replaced.memories.some((memory) => memory.id === "mem-copy")).toBe(false);
+    expect(replaced.tags.find((tag) => tag.normalizedName === "patrick")?.type).toBe("theme");
+
+    const keptBoth = mergeArchive(archive, incoming, {
+      duplicateMemory: "import_copy",
+      memoryIdConflict: "keep_both"
+    });
+    expect(keptBoth.memories.map((memory) => memory.id)).toEqual(expect.arrayContaining(["mem-copy", "mem-1-imported", "mem-1"]));
+  });
 });
