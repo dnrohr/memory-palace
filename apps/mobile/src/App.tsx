@@ -1320,47 +1320,65 @@ function ReviewInboxView(props: {
         visibleItems.map((item) => {
           const memory = props.archive.memories.find((candidate) => candidate.id === item.memoryId);
           return (
-            <Pressable key={item.id} style={styles.reviewItem} onPress={() => props.onSelect(item.memoryId)}>
-              <View style={styles.constellationHeader}>
-                <View style={styles.detailTitleBlock}>
-                  <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
-                  <Text style={styles.memoryTitle}>{item.label}</Text>
-                </View>
-                <Text style={styles.timelineBadge}>{Math.round(item.confidence * 100)}%</Text>
-              </View>
-              {memory ? (
-                <Text style={styles.memoryPreview} numberOfLines={2}>
-                  {memory.cleanedText || memory.rawText}
-                </Text>
-              ) : null}
-              {"sourceText" in item && item.sourceText ? (
-                <View style={styles.reviewDetail}>
-                  <Text style={styles.sectionEyebrow}>From the memory</Text>
-                  <Text style={styles.metadata}>{item.sourceText}</Text>
-                </View>
-              ) : null}
-              {"explanation" in item && item.explanation ? (
-                <ConnectionReason label="Why it is here" reason={item.explanation} />
-              ) : null}
-              <View style={styles.actionRow}>
-                {item.type !== "untagged_memory" ? (
-                  <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
-                ) : null}
-                <SecondaryButton label="Edit" onPress={() => props.onSelect(item.memoryId)} icon={<Edit3 size={18} />} />
-                <SecondaryButton
-                  label="Later"
-                  onPress={() => setDeferredItemIds((current) => [...current, item.id])}
-                  icon={<RotateCcw size={18} />}
-                />
-                {item.type === "tag_suggestion" ? (
-                  <SecondaryButton label="Dismiss" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
-                ) : null}
-              </View>
-            </Pressable>
+            <ReviewCard
+              key={item.id}
+              item={item}
+              memory={memory}
+              onOpen={() => props.onSelect(item.memoryId)}
+              onAccept={() => void props.onAccept(item)}
+              onLater={() => setDeferredItemIds((current) => [...current, item.id])}
+              onReject={() => void props.onReject(item)}
+            />
           );
         })
       )}
     </ScrollView>
+  );
+}
+
+function ReviewCard(props: {
+  item: ReviewInboxItem;
+  memory: Memory | undefined;
+  onOpen: () => void;
+  onAccept: () => void;
+  onLater: () => void;
+  onReject: () => void;
+}) {
+  const sourceText = "sourceText" in props.item ? props.item.sourceText : undefined;
+  const explanation = "explanation" in props.item ? props.item.explanation : undefined;
+
+  return (
+    <Pressable style={styles.reviewItem} onPress={props.onOpen}>
+      <View style={styles.constellationHeader}>
+        <View style={styles.detailTitleBlock}>
+          <Text style={styles.reviewType}>{reviewTypeLabel(props.item.type)}</Text>
+          <Text style={styles.memoryTitle}>{props.item.label}</Text>
+        </View>
+        <Text style={styles.timelineBadge}>{Math.round(props.item.confidence * 100)}%</Text>
+      </View>
+      {props.memory ? (
+        <Text style={styles.memoryPreview} numberOfLines={2}>
+          {props.memory.cleanedText || props.memory.rawText}
+        </Text>
+      ) : null}
+      {sourceText ? (
+        <View style={styles.reviewDetail}>
+          <Text style={styles.sectionEyebrow}>From the memory</Text>
+          <Text style={styles.metadata}>{sourceText}</Text>
+        </View>
+      ) : null}
+      {explanation ? <ConnectionReason label="Why it is here" reason={explanation} /> : null}
+      <View style={styles.actionRow}>
+        {props.item.type !== "untagged_memory" ? (
+          <PrimaryButton label="Accept" onPress={props.onAccept} icon={<Save size={18} />} />
+        ) : null}
+        <SecondaryButton label="Edit" onPress={props.onOpen} icon={<Edit3 size={18} />} />
+        <SecondaryButton label="Later" onPress={props.onLater} icon={<RotateCcw size={18} />} />
+        {props.item.type === "tag_suggestion" ? (
+          <SecondaryButton label="Dismiss" onPress={props.onReject} icon={<X size={18} />} />
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 
