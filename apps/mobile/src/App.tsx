@@ -40,6 +40,7 @@ import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownBundleExportProvider } from "../../../src/export/markdownBundle";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { SqliteExportProvider } from "../../../src/export/sqliteExport";
+import { ExpoSpeechRecognitionTranscriptionEngine } from "../../../src/transcription/expoSpeechRecognition";
 import {
   applyArchiveImport,
   previewArchiveImport,
@@ -628,10 +629,11 @@ function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: 
 }
 
 function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise<void> }) {
+  const transcriptionEngine = useMemo(() => new ExpoSpeechRecognitionTranscriptionEngine(), []);
   const [session, setSession] = useState<AudioCaptureSession | undefined>();
   const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
   const [error, setError] = useState<string | undefined>();
-  const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "draft_ready">("idle");
+  const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "transcribing" | "draft_ready">("idle");
 
   async function start() {
     setError(undefined);
@@ -660,11 +662,14 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     try {
       const artifact = await stopAudioCapture(session);
       setSession(undefined);
-      setDraft({
-        artifact,
-        transcript: "",
-        retainAudio: false
-      });
+      setStatus("transcribing");
+      let transcript = "";
+      try {
+        transcript = (await transcriptionEngine.transcribe(artifact)).text;
+      } catch (error) {
+        setError(formatAudioCaptureError(error, "Recording saved. Type or paste the transcript to continue."));
+      }
+      setDraft({ artifact, transcript, retainAudio: false });
       setStatus("draft_ready");
     } catch (error) {
       setError(formatAudioCaptureError(error, "Recording could not be saved."));
@@ -726,7 +731,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   );
 }
 
-function voiceCaptureStatusLabel(status: "idle" | "requesting_permission" | "recording" | "stopping" | "draft_ready"): string {
+function voiceCaptureStatusLabel(status: "idle" | "requesting_permission" | "recording" | "stopping" | "transcribing" | "draft_ready"): string {
   switch (status) {
     case "requesting_permission":
       return "requesting microphone access";
@@ -734,6 +739,8 @@ function voiceCaptureStatusLabel(status: "idle" | "requesting_permission" | "rec
       return "recording";
     case "stopping":
       return "saving audio";
+    case "transcribing":
+      return "listening back locally";
     case "draft_ready":
       return "draft ready";
     case "idle":

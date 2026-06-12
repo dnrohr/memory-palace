@@ -22,7 +22,18 @@
       "output": "single"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Memory Palace to use the microphone for voice memories.",
+          "speechRecognitionPermission": "Allow Memory Palace to transcribe voice memories.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.as"
+          ]
+        }
+      ]
     ]
   }
 }
