@@ -13,6 +13,26 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | Phase 3: Exploration and Durability | 8-10 | In progress |
 | Phase 4: Optional Expansion | 11-12 | In progress |
 
+## Remaining Work At A Glance
+
+### Ready to Continue Locally
+
+- Milestone 10: add startup unlock, archive-storage migration, and key lifecycle UI around the archive-at-rest adapter.
+- Milestone 11: add opt-in backup/sync provider adapters that keep cloud behavior explicit and disabled by default.
+- Milestone 2: continue search polish around labels, result grouping, empty states, and keyboard ergonomics.
+
+### Needs Model or Provider Selection
+
+- Milestone 6: wire a production local structured-extraction model adapter once the target local model/runtime is chosen.
+- Milestone 7: wire a production local embedding model adapter once the target embedding model/runtime is chosen.
+- Milestone 11: wire real cloud AI or cloud sync adapters only after explicit provider targets and consent boundaries are selected.
+
+### Needs Device QA
+
+- Milestone 1: mobile/tablet/web smoke QA on real target devices.
+- Milestone 2: device-level search and keyboard QA.
+- Milestone 3: iOS, Android, and web speech-recognition QA, including permission prompts, background interruption, and transcription fallback.
+
 ## Implementation Log
 
 ### 2026-06-12
@@ -35,6 +55,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added a portable archive-at-rest encryption adapter that writes encrypted archive blobs, decrypts them behind a passphrase provider, and can read plaintext records for migration.
 - Added persistent app settings for encryption options, structured extraction mode, and embedding maintenance mode as a foundation for startup unlock and key lifecycle work.
 - Ran a local web smoke check on `http://localhost:8081`: Explore and Settings rendered without console errors, and the Settings encryption copy reflects the archive adapter plus pending storage migration.
+- Added a top-level remaining-work register to make roadmap status easier to scan by local implementation work, provider/model choices, and device QA.
 
 ### 2026-06-11
 
