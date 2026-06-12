@@ -18,6 +18,7 @@ import {
   buildTimelineBuckets,
   appendMemoryAddendum,
   deleteTag,
+  filterTimelineBuckets,
   filterMemories,
   mergeTags,
   permanentlyDeleteMemory,
@@ -26,6 +27,7 @@ import {
   summarizeArchive,
   updateTagType
 } from "../../../src/core/archiveOperations";
+import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
 import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { SqliteExportProvider } from "../../../src/export/sqliteExport";
@@ -74,6 +76,8 @@ import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
 type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
+type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
+type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
 
 export default function App() {
   const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
@@ -846,7 +850,19 @@ function TimelineView(props: {
   onSelect: (id: string) => void;
 }) {
   const [tab, setTab] = useState<ExploreTab>("timeline");
-  const buckets = buildTimelineBuckets(props.memories);
+  const [certaintyFilter, setCertaintyFilter] = useState<TimelineCertaintyFilter>("all");
+  const [spanFilter, setSpanFilter] = useState<TimelineSpanFilter>("all");
+  const [fromYear, setFromYear] = useState("");
+  const [toYear, setToYear] = useState("");
+  const allBuckets = buildTimelineBuckets(props.memories);
+  const timelineFilter: TimelineBucketFilter = {};
+  const parsedFromYear = parseOptionalYear(fromYear);
+  const parsedToYear = parseOptionalYear(toYear);
+  if (certaintyFilter !== "all") timelineFilter.certainties = [certaintyFilter];
+  if (spanFilter !== "all") timelineFilter.spans = [spanFilter];
+  if (parsedFromYear !== undefined) timelineFilter.fromYear = parsedFromYear;
+  if (parsedToYear !== undefined) timelineFilter.toYear = parsedToYear;
+  const buckets = filterTimelineBuckets(allBuckets, timelineFilter);
   const graph = buildTagGraphData(props.archive);
   const clusters = buildTagClusters(props.archive);
   const chapters = buildLifeChapterCandidates(props.archive);
@@ -865,6 +881,53 @@ function TimelineView(props: {
           </Pressable>
         ))}
       </View>
+
+      {tab === "timeline" ? (
+        <View style={styles.filterPanel}>
+          <Text style={styles.panelTitle}>Timeline filters</Text>
+          <View style={styles.filterSection}>
+            <Text style={styles.metadata}>Date source</Text>
+            <View style={styles.tags}>
+              {(["all", "confirmed", "inferred", "unknown"] as TimelineCertaintyFilter[]).map((filter) => (
+                <FilterChip
+                  key={filter}
+                  label={filter}
+                  selected={certaintyFilter === filter}
+                  onPress={() => setCertaintyFilter(filter)}
+                />
+              ))}
+            </View>
+          </View>
+          <View style={styles.filterSection}>
+            <Text style={styles.metadata}>Date shape</Text>
+            <View style={styles.tags}>
+              {(["all", "point", "range", "unknown"] as TimelineSpanFilter[]).map((filter) => (
+                <FilterChip key={filter} label={filter} selected={spanFilter === filter} onPress={() => setSpanFilter(filter)} />
+              ))}
+            </View>
+          </View>
+          <View style={styles.dateInputs}>
+            <TextInput
+              value={fromYear}
+              onChangeText={setFromYear}
+              placeholder="From year"
+              keyboardType="number-pad"
+              style={styles.dateInput}
+            />
+            <TextInput
+              value={toYear}
+              onChangeText={setToYear}
+              placeholder="To year"
+              keyboardType="number-pad"
+              style={styles.dateInput}
+            />
+          </View>
+          <Text style={styles.metadata}>
+            Showing {buckets.reduce((count, bucket) => count + bucket.entries.length, 0)} of{" "}
+            {allBuckets.reduce((count, bucket) => count + bucket.entries.length, 0)} timeline entries
+          </Text>
+        </View>
+      ) : null}
 
       {tab === "timeline" && buckets.length === 0 ? (
         <View style={styles.emptyState}>
@@ -964,6 +1027,14 @@ function TimelineView(props: {
   );
 }
 
+function FilterChip(props: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={props.onPress} style={[styles.tag, props.selected ? styles.tagSelected : null]}>
+      <Text style={[styles.tagLabel, props.selected ? styles.tagLabelSelected : null]}>{props.label}</Text>
+    </Pressable>
+  );
+}
+
 function ChapterCandidateCard(props: {
   chapter: LifeChapterCandidate;
   memoriesById: Map<string, Memory>;
@@ -1017,6 +1088,12 @@ function reviewTypeLabel(type: string): string {
     default:
       return "Review";
   }
+}
+
+function parseOptionalYear(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!/^\d{4}$/.test(trimmed)) return undefined;
+  return Number(trimmed);
 }
 
 function MemoryList(props: {
@@ -2031,6 +2108,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     gap: 10
+  },
+  filterSection: {
+    gap: 8
   },
   panelHeader: {
     flexDirection: "row",

@@ -4,6 +4,7 @@ import {
   buildTimelineBuckets,
   appendMemoryAddendum,
   deleteTag,
+  filterTimelineBuckets,
   filterMemories,
   permanentlyDeleteMemory,
   mergeArchive,
@@ -185,6 +186,36 @@ describe("archive operations", () => {
         span: "unknown"
       })
     );
+  });
+
+  it("filters timeline buckets by certainty, span, and year range", () => {
+    const memories = [
+      ...archive.memories,
+      {
+        id: "mem-3",
+        rawText: "A range memory.",
+        title: "Range",
+        createdAt: "2026-06-11T00:00:00.000Z",
+        updatedAt: "2026-06-11T00:00:00.000Z",
+        sourceType: "typed" as const,
+        isAudioRetained: false,
+        approximateStartDate: "2001-01-01",
+        approximateEndDate: "2002-01-01",
+        datePrecision: "year" as const,
+        userDateConfirmed: false
+      }
+    ];
+    const buckets = buildTimelineBuckets(memories);
+
+    expect(filterTimelineBuckets(buckets, { certainties: ["confirmed"] }).flatMap((bucket) => bucket.memories.map((memory) => memory.id))).toEqual([
+      "mem-1"
+    ]);
+    expect(filterTimelineBuckets(buckets, { spans: ["range"] }).flatMap((bucket) => bucket.memories.map((memory) => memory.id))).toEqual([
+      "mem-3"
+    ]);
+    expect(filterTimelineBuckets(buckets, { fromYear: 2000, toYear: 2020 }).flatMap((bucket) => bucket.memories.map((memory) => memory.id))).toEqual([
+      "mem-3"
+    ]);
   });
 
   it("summarizes archive audit data", () => {

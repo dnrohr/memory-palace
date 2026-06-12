@@ -24,6 +24,13 @@ export type TimelineEntry = {
   span: "point" | "range" | "unknown";
 };
 
+export type TimelineBucketFilter = {
+  certainties?: TimelineEntry["certainty"][];
+  spans?: TimelineEntry["span"][];
+  fromYear?: number;
+  toYear?: number;
+};
+
 export type ArchiveAuditSummary = {
   activeMemoryCount: number;
   deletedMemoryCount: number;
@@ -219,6 +226,32 @@ export function buildTimelineBuckets(memories: Memory[]): TimelineBucket[] {
   }
 
   return [...bucketMap.values()].sort((a, b) => compareTimelineKeys(a.key, b.key));
+}
+
+export function filterTimelineBuckets(buckets: TimelineBucket[], filter: TimelineBucketFilter): TimelineBucket[] {
+  const certainties = new Set(filter.certainties ?? []);
+  const spans = new Set(filter.spans ?? []);
+
+  return buckets
+    .map((bucket) => {
+      const entries = bucket.entries.filter((entry) => {
+        if (certainties.size > 0 && !certainties.has(entry.certainty)) return false;
+        if (spans.size > 0 && !spans.has(entry.span)) return false;
+        if (bucket.key !== "unknown") {
+          const year = Number(bucket.key);
+          if (filter.fromYear !== undefined && year < filter.fromYear) return false;
+          if (filter.toYear !== undefined && year > filter.toYear) return false;
+        }
+        return true;
+      });
+
+      return {
+        ...bucket,
+        entries,
+        memories: entries.map((entry) => entry.memory)
+      };
+    })
+    .filter((bucket) => bucket.entries.length > 0);
 }
 
 export function summarizeArchive(archive: MemoryArchive): ArchiveAuditSummary {

@@ -71,6 +71,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added keyword search snippets with highlighted query matches and matched-tag labels in the memory list.
 - Added richer storage diagnostics for estimated text, embedding, processing-output, and total local bytes.
 - Added life-context graph nodes and memory edges for matched people, pets, places, and life periods.
+- Added timeline filters for confirmed, inferred, unknown, point, range, and year-window views.
 
 ## Milestone Status
 
@@ -83,7 +84,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes and memory-context edges. | Relationship edges, inference rules, and richer graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata. | Local model adapter and UI controls. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control. | Production local embedding model and richer background scheduling controls. |
-| 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject actions, related memories. | Cluster/chapter merge/split actions and richer timeline filtering. |
+| 8. Timeline and Memory Visualization | In progress | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject actions, related memories. | Cluster/chapter merge/split actions. |
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior. | User-selectable conflict resolution and folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock. | Deletion guarantees for model files/audio files and encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
