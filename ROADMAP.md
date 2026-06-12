@@ -77,6 +77,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web context QA on `http://localhost:8081`: empty entity states, populated pet constellation cards, and mobile-width navigation rendered without horizontal overflow or console errors.
 - Polished the Themes path into readable theme shelves backed by tag data, with related-tag context, connected memory previews, and tag-management controls moved below the browsing surface.
 - Ran local web Themes QA on `http://localhost:8081`: normal and mobile-width theme shelves rendered related tags, connected memories, and management controls without horizontal overflow or console errors.
+- Polished the Review inbox into a quiet optional-maintenance surface with a `Review when you want` summary, possible-detail cards, source context, explanation copy, and explicit edit actions.
+- Ran local web Review QA on `http://localhost:8081`: normal and mobile-width Review rendered optional-review language and actions without horizontal overflow, console errors, or chore-list wording.
 
 ### 2026-06-11
 
@@ -193,7 +195,7 @@ Status: Done
 
 Done:
 - Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, and review UI with source/explanation provenance.
-- Accept/reject actions and rejected-tag feedback for future suggestions.
+- Accept/reject actions, optional-review summary/cards, edit affordances, and rejected-tag feedback for future suggestions.
 
 Remaining:
 - None.
@@ -281,7 +283,7 @@ Remaining:
 Status: Done
 
 Done:
-- Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
+- Review inbox data/UI, quiet optional-review surface, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
 - Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 

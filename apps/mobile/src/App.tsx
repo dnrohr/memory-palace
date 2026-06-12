@@ -1204,33 +1204,53 @@ function ReviewInboxView(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.reviewIntro}>
+        <Text style={styles.sectionEyebrow}>Review when you want</Text>
+        <Text style={styles.capturePrompt}>
+          {items.length === 0
+            ? "No possible details are waiting."
+            : `${items.length} ${items.length === 1 ? "memory has" : "memories have"} possible details`}
+        </Text>
+        <Text style={styles.captureNote}>
+          Suggestions are optional. Accept what feels right, edit the memory, or leave them for later.
+        </Text>
+      </View>
       {items.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Nothing to review</Text>
+          <Text style={styles.emptyTitle}>Nothing waiting</Text>
+          <Text style={styles.metadata}>Capture and explore stay open either way.</Text>
         </View>
       ) : (
         items.map((item) => {
           const memory = props.archive.memories.find((candidate) => candidate.id === item.memoryId);
           return (
             <Pressable key={item.id} style={styles.reviewItem} onPress={() => props.onSelect(item.memoryId)}>
-              <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
-              <Text style={styles.memoryTitle}>{item.label}</Text>
+              <View style={styles.constellationHeader}>
+                <View style={styles.detailTitleBlock}>
+                  <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
+                  <Text style={styles.memoryTitle}>{item.label}</Text>
+                </View>
+                <Text style={styles.timelineBadge}>{Math.round(item.confidence * 100)}%</Text>
+              </View>
               {memory ? (
                 <Text style={styles.memoryPreview} numberOfLines={2}>
                   {memory.cleanedText || memory.rawText}
                 </Text>
               ) : null}
-              <Text style={styles.metadata}>Confidence {Math.round(item.confidence * 100)}%</Text>
               {"sourceText" in item && item.sourceText ? (
-                <Text style={styles.metadata}>Source: {item.sourceText}</Text>
+                <View style={styles.reviewDetail}>
+                  <Text style={styles.sectionEyebrow}>From the memory</Text>
+                  <Text style={styles.metadata}>{item.sourceText}</Text>
+                </View>
               ) : null}
               {"explanation" in item && item.explanation ? (
-                <Text style={styles.metadata}>{item.explanation}</Text>
+                <Text style={styles.connectionReason}>Why it is here: {item.explanation}</Text>
               ) : null}
               <View style={styles.actionRow}>
                 {item.type !== "untagged_memory" ? (
                   <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
                 ) : null}
+                <SecondaryButton label="Edit" onPress={() => props.onSelect(item.memoryId)} icon={<Edit3 size={18} />} />
                 {item.type === "tag_suggestion" ? (
                   <SecondaryButton label="Dismiss" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
                 ) : null}
@@ -3821,13 +3841,27 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10
   },
+  reviewIntro: {
+    borderWidth: 1,
+    borderColor: "#d4dccb",
+    backgroundColor: "#f7faf3",
+    borderRadius: 8,
+    padding: 16,
+    gap: 10
+  },
   reviewItem: {
     borderWidth: 1,
-    borderColor: "#d8d4c8",
+    borderColor: "#d6d9c8",
     backgroundColor: "#fffdf8",
     borderRadius: 8,
-    padding: 14,
-    gap: 8
+    padding: 16,
+    gap: 10
+  },
+  reviewDetail: {
+    borderLeftWidth: 3,
+    borderLeftColor: "#d4dccb",
+    paddingLeft: 10,
+    gap: 4
   },
   reviewType: {
     color: "#5d6b58",
