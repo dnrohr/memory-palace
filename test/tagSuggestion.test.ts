@@ -16,4 +16,13 @@ describe("rules tag suggestion", () => {
       );
     }
   });
+
+  it("suppresses rejected tag names when generating suggestions", () => {
+    const suggestions = suggestTags("Maya took the dog to the old house.", { rejectedNames: ["dog", "maya"] });
+    const names = suggestions.map((suggestion) => suggestion.name);
+
+    expect(names).not.toContain("dog");
+    expect(names).not.toContain("Maya");
+    expect(names).toContain("old house");
+  });
 });

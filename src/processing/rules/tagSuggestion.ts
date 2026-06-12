@@ -29,14 +29,19 @@ const COMMON_CAPITALIZED_EXCLUSIONS = new Set([
   "Our"
 ]);
 
+export type TagSuggestionOptions = {
+  rejectedNames?: string[];
+};
+
 export class RulesTagSuggestionEngine implements ITagSuggestionEngine {
   async suggestTags(input: MemoryProcessingInput): Promise<TagSuggestion[]> {
     return suggestTags(input.rawText);
   }
 }
 
-export function suggestTags(text: string): TagSuggestion[] {
+export function suggestTags(text: string, options: TagSuggestionOptions = {}): TagSuggestion[] {
   const suggestions: TagSuggestion[] = [];
+  const rejectedNames = new Set((options.rejectedNames ?? []).map(normalizeSuggestionName));
 
   for (const term of TERM_TAGS) {
     if (term.pattern.test(text)) {
@@ -60,7 +65,7 @@ export function suggestTags(text: string): TagSuggestion[] {
     });
   }
 
-  return dedupeSuggestions(suggestions);
+  return dedupeSuggestions(suggestions).filter((suggestion) => !rejectedNames.has(normalizeSuggestionName(suggestion.name)));
 }
 
 function extractCapitalizedNames(text: string): string[] {
@@ -89,4 +94,8 @@ function dedupeSuggestions(suggestions: TagSuggestion[]): TagSuggestion[] {
   }
 
   return [...byName.values()].sort((a, b) => b.confidence - a.confidence || a.name.localeCompare(b.name));
+}
+
+function normalizeSuggestionName(value: string): string {
+  return value.trim().toLocaleLowerCase();
 }

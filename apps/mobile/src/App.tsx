@@ -1404,7 +1404,13 @@ function MemoryEditor(props: {
   }
 
   function generateSuggestions() {
-    const nextTagSuggestions = suggestTags(text);
+    const rejectedTagNames = props.memory
+      ? props.archive.memoryTags
+          .filter((link) => link.memoryId === props.memory?.id && link.rejected)
+          .map((link) => props.archive.tags.find((tag) => tag.id === link.tagId)?.normalizedName)
+          .filter((name): name is string => Boolean(name))
+      : [];
+    const nextTagSuggestions = suggestTags(text, { rejectedNames: rejectedTagNames });
     const nextDateSuggestions = extractDateCandidates(text);
     setTagSuggestions(nextTagSuggestions);
     setDateSuggestions(nextDateSuggestions);
