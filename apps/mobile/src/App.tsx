@@ -1471,6 +1471,7 @@ function MemoryList(props: {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.capturePanel}>
+        <Text style={styles.captureEyebrow}>Private notebook</Text>
         <Text style={styles.capturePrompt}>What came back?</Text>
         <TextInput
           value={fastCaptureText}
@@ -1481,7 +1482,7 @@ function MemoryList(props: {
           textAlignVertical="top"
           style={styles.fastCaptureInput}
         />
-        <Text style={styles.metadata}>Dates and tags can wait.</Text>
+        <Text style={styles.captureNote}>A fragment is enough. Dates and tags can wait.</Text>
         <View style={styles.actionRow}>
           <PrimaryButton label="Save memory" onPress={saveFastCapture} disabled={!fastCaptureText.trim()} icon={<Save size={18} />} />
           <SecondaryButton label="Open capture" onPress={props.onNew} icon={<Plus size={18} />} />
@@ -1522,36 +1523,47 @@ function MemoryList(props: {
         {props.semanticSearchPending ? <Text style={styles.metadata}>Searching local index</Text> : null}
       </View>
       {searchContext ? <Text style={styles.metadata}>{searchContext}</Text> : null}
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionEyebrow}>Ways in</Text>
+          <Text style={styles.panelTitle}>Move through the archive</Text>
+        </View>
+      </View>
       <View style={styles.pathGrid}>
         <PathCard
           label="Timeline"
           detail="By approximate date"
           icon={<CalendarDays size={20} color="#5f655d" />}
           onPress={props.onTimeline}
+          tone="sage"
         />
         <PathCard
           label="People & pets"
           detail="Known companions"
           icon={<Users size={20} color="#5f655d" />}
           onPress={props.onContext}
+          tone="clay"
         />
         <PathCard
           label="Places"
           detail="Homes and rooms"
           icon={<MapPin size={20} color="#5f655d" />}
           onPress={props.onContext}
+          tone="blue"
         />
         <PathCard
           label="Themes"
           detail={`${props.archive.tags.length} tags`}
           icon={<Tags size={20} color="#5f655d" />}
           onPress={props.onTags}
+          tone="paper"
         />
         <PathCard
           label="Unknown dates"
           detail={`${unknownDateCount} memories`}
           icon={<CalendarDays size={20} color="#5f655d" />}
           onPress={() => props.onSelectDatePrecision("unknown")}
+          tone="stone"
         />
       </View>
       <View style={styles.filterPanel}>
@@ -1676,16 +1688,46 @@ function HighlightedText(props: { text: string; query: string }) {
   );
 }
 
-function PathCard(props: { label: string; detail: string; icon: ReactNode; onPress: () => void }) {
+function PathCard(props: { label: string; detail: string; icon: ReactNode; onPress: () => void; tone: "sage" | "clay" | "blue" | "paper" | "stone" }) {
   return (
-    <Pressable onPress={props.onPress} style={styles.pathCard}>
-      <View style={styles.pathIcon}>{props.icon}</View>
+    <Pressable onPress={props.onPress} style={[styles.pathCard, pathToneStyle(props.tone)]}>
+      <View style={[styles.pathIcon, pathIconToneStyle(props.tone)]}>{props.icon}</View>
       <View style={styles.pathText}>
         <Text style={styles.memoryTitle}>{props.label}</Text>
         <Text style={styles.metadata}>{props.detail}</Text>
       </View>
     </Pressable>
   );
+}
+
+function pathToneStyle(tone: "sage" | "clay" | "blue" | "paper" | "stone") {
+  switch (tone) {
+    case "sage":
+      return styles.pathCardSage;
+    case "clay":
+      return styles.pathCardClay;
+    case "blue":
+      return styles.pathCardBlue;
+    case "stone":
+      return styles.pathCardStone;
+    case "paper":
+      return styles.pathCardPaper;
+  }
+}
+
+function pathIconToneStyle(tone: "sage" | "clay" | "blue" | "paper" | "stone") {
+  switch (tone) {
+    case "sage":
+      return styles.pathIconSage;
+    case "clay":
+      return styles.pathIconClay;
+    case "blue":
+      return styles.pathIconBlue;
+    case "stone":
+      return styles.pathIconStone;
+    case "paper":
+      return styles.pathIconPaper;
+  }
 }
 
 function TagManagement(props: {
@@ -2794,7 +2836,7 @@ function formatBytes(bytes: number): string {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f8f6f1"
+    backgroundColor: "#f6f2ea"
   },
   shell: {
     flex: 1,
@@ -2826,7 +2868,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#dedbd1",
+    borderBottomColor: "#ddd5c6",
+    backgroundColor: "#f8f5ee",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -2835,8 +2878,8 @@ const styles = StyleSheet.create({
   bottomNav: {
     minHeight: 74,
     borderTopWidth: 1,
-    borderTopColor: "#dedbd1",
-    backgroundColor: "#f8f6f1",
+    borderTopColor: "#ddd5c6",
+    backgroundColor: "#f8f5ee",
     paddingHorizontal: 18,
     paddingVertical: 10,
     flexDirection: "row",
@@ -2853,7 +2896,7 @@ const styles = StyleSheet.create({
     gap: 3
   },
   navButtonActive: {
-    backgroundColor: "#ece8dd"
+    backgroundColor: "#ebe4d5"
   },
   navLabel: {
     color: "#697067",
@@ -2867,7 +2910,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#38543c",
+    backgroundColor: "#334f39",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#252925",
@@ -2893,20 +2936,36 @@ const styles = StyleSheet.create({
   content: {
     padding: 18,
     paddingBottom: 28,
-    gap: 14
+    gap: 16
   },
   capturePanel: {
     borderWidth: 1,
-    borderColor: "#d8d4c8",
-    backgroundColor: "#fffdf8",
+    borderColor: "#d4c7b4",
+    backgroundColor: "#fffaf1",
     borderRadius: 8,
-    padding: 16,
-    gap: 10
+    padding: 18,
+    gap: 12,
+    shadowColor: "#4a3d2f",
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 }
+  },
+  captureEyebrow: {
+    color: "#7b604f",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase"
   },
   capturePrompt: {
     color: "#252925",
-    fontSize: 22,
-    fontWeight: "800"
+    fontSize: 24,
+    fontWeight: "800",
+    lineHeight: 30
+  },
+  captureNote: {
+    color: "#6c6257",
+    fontSize: 14,
+    lineHeight: 21
   },
   searchRow: {
     minHeight: 48,
@@ -3003,9 +3062,9 @@ const styles = StyleSheet.create({
     outlineStyle: "none" as never
   },
   fastCaptureInput: {
-    minHeight: 72,
+    minHeight: 96,
     borderWidth: 1,
-    borderColor: "#d1cdbf",
+    borderColor: "#dacbb8",
     backgroundColor: "#fffdf8",
     borderRadius: 8,
     padding: 12,
@@ -3083,20 +3142,53 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: "#d8d4c8",
-    backgroundColor: "#fffdf8",
     borderRadius: 8,
-    padding: 14,
+    padding: 15,
     flexDirection: "row",
     alignItems: "center",
     gap: 10
+  },
+  pathCardSage: {
+    backgroundColor: "#f2f7ed",
+    borderColor: "#cbd9c1"
+  },
+  pathCardClay: {
+    backgroundColor: "#fbf1ea",
+    borderColor: "#e4cdbd"
+  },
+  pathCardBlue: {
+    backgroundColor: "#eef4f5",
+    borderColor: "#c8d8dc"
+  },
+  pathCardPaper: {
+    backgroundColor: "#fffdf8",
+    borderColor: "#d8d4c8"
+  },
+  pathCardStone: {
+    backgroundColor: "#f1f0eb",
+    borderColor: "#d7d4cb"
   },
   pathIcon: {
     width: 38,
     height: 38,
     borderRadius: 8,
-    backgroundColor: "#ece8dd",
     alignItems: "center",
     justifyContent: "center"
+  },
+  pathIconSage: {
+    backgroundColor: "#dce8d4"
+  },
+  pathIconClay: {
+    backgroundColor: "#efd8ca"
+  },
+  pathIconBlue: {
+    backgroundColor: "#d8e5e8"
+  },
+  pathIconPaper: {
+    backgroundColor: "#ece8dd"
+  },
+  pathIconStone: {
+    backgroundColor: "#e2dfd5"
   },
   pathText: {
     flex: 1,
@@ -3152,6 +3244,12 @@ const styles = StyleSheet.create({
     color: "#30352f",
     fontSize: 15,
     fontWeight: "800"
+  },
+  sectionEyebrow: {
+    color: "#7b8178",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase"
   },
   segmentRow: {
     flexDirection: "row",
