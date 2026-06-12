@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View
 } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
@@ -100,6 +101,7 @@ type StructuredExtractionMode = "none" | "rules";
 type EmbeddingMaintenanceMode = "automatic" | "manual";
 
 export default function App() {
+  const { width } = useWindowDimensions();
   const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
   const [appLockSettings, setAppLockSettings] = useState<AppLockSettings>({
@@ -256,7 +258,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.shell}>
+      <View style={[styles.shell, width >= 900 ? styles.shellWide : null]}>
         <Header
           mode={mode}
           onSettings={() => setMode("settings")}
@@ -2500,6 +2502,9 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 960,
     alignSelf: "center"
+  },
+  shellWide: {
+    maxWidth: 1120
   },
   loading: {
     flex: 1,
