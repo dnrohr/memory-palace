@@ -37,6 +37,7 @@ import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../s
 import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
 import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
+import { searchArchive } from "../../../src/search/searchService";
 import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
 import { buildTagClusters } from "../../../src/visualization/clusters";
 import { buildTagGraphData } from "../../../src/visualization/graph";
@@ -1036,6 +1037,17 @@ function MemoryList(props: {
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
+  const searchResultsByMemoryId = useMemo(() => {
+    if (!props.query.trim() || props.searchMode !== "keyword") return new Map();
+    return new Map(
+      searchArchive(props.archive, {
+        text: props.query,
+        tagIds: props.selectedTagIds,
+        datePrecisions: props.selectedDatePrecision ? [props.selectedDatePrecision] : []
+      }).map((result) => [result.memory.id, result])
+    );
+  }, [props.archive, props.query, props.searchMode, props.selectedDatePrecision, props.selectedTagIds]);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       {props.prompts.length > 0 ? (
@@ -1112,17 +1124,50 @@ function MemoryList(props: {
           <PrimaryButton label="New memory" onPress={props.onNew} icon={<Plus size={18} />} />
         </View>
       ) : (
-        props.memories.map((memory) => (
-          <Pressable key={memory.id} style={styles.memoryCard} onPress={() => props.onSelect(memory.id)}>
-            <Text style={styles.memoryTitle}>{memory.title}</Text>
-            <Text style={styles.memoryPreview} numberOfLines={3}>
-              {memory.cleanedText || memory.rawText}
-            </Text>
-            <TagRow labels={tagsForMemory(props.archive, memory.id).map((tag) => tag.name)} />
-          </Pressable>
-        ))
+        props.memories.map((memory) => {
+          const result = searchResultsByMemoryId.get(memory.id);
+          const preview = result?.snippet ?? memory.cleanedText ?? memory.rawText;
+          return (
+            <Pressable key={memory.id} style={styles.memoryCard} onPress={() => props.onSelect(memory.id)}>
+              <Text style={styles.memoryTitle}>{memory.title}</Text>
+              <HighlightedText text={preview} query={props.searchMode === "keyword" ? props.query : ""} />
+              {result?.matchedTags.length ? <Text style={styles.metadata}>Matched tags: {result.matchedTags.join(", ")}</Text> : null}
+              <TagRow labels={tagsForMemory(props.archive, memory.id).map((tag) => tag.name)} />
+            </Pressable>
+          );
+        })
       )}
     </ScrollView>
+  );
+}
+
+function HighlightedText(props: { text: string; query: string }) {
+  const query = props.query.trim();
+  if (!query) {
+    return (
+      <Text style={styles.memoryPreview} numberOfLines={3}>
+        {props.text}
+      </Text>
+    );
+  }
+
+  const lowerText = props.text.toLocaleLowerCase();
+  const lowerQuery = query.toLocaleLowerCase();
+  const index = lowerText.indexOf(lowerQuery);
+  if (index < 0) {
+    return (
+      <Text style={styles.memoryPreview} numberOfLines={3}>
+        {props.text}
+      </Text>
+    );
+  }
+
+  return (
+    <Text style={styles.memoryPreview} numberOfLines={3}>
+      {props.text.slice(0, index)}
+      <Text style={styles.highlightText}>{props.text.slice(index, index + query.length)}</Text>
+      {props.text.slice(index + query.length)}
+    </Text>
   );
 }
 
@@ -1858,6 +1903,11 @@ const styles = StyleSheet.create({
     color: "#50564e",
     fontSize: 15,
     lineHeight: 22
+  },
+  highlightText: {
+    color: "#1f2c1f",
+    backgroundColor: "#dce9bd",
+    fontWeight: "800"
   },
   titleInput: {
     minHeight: 52,
