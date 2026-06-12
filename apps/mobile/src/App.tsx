@@ -84,6 +84,7 @@ type SearchMode = "keyword" | "semantic";
 type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
 type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
+type StructuredExtractionMode = "none" | "rules";
 
 export default function App() {
   const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
@@ -98,6 +99,7 @@ export default function App() {
     keySource: "none",
     requireUnlockForExport: false
   });
+  const [structuredExtractionMode, setStructuredExtractionMode] = useState<StructuredExtractionMode>("rules");
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -310,6 +312,7 @@ export default function App() {
         {mode === "editor" ? (
           <MemoryEditor
             archive={archive}
+            structuredExtractionMode={structuredExtractionMode}
             {...(selectedMemory ? { memory: selectedMemory } : {})}
             onCancel={() => setMode(selectedMemory ? "detail" : "list")}
             onSave={async (memory, tagText) => {
@@ -415,6 +418,7 @@ export default function App() {
             archive={archive}
             appLockSettings={appLockSettings}
             encryptionSettings={encryptionSettings}
+            structuredExtractionMode={structuredExtractionMode}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
@@ -448,6 +452,7 @@ export default function App() {
               setIsAppLocked(await appLockProvider.isLocked());
             }}
             onSaveEncryptionSettings={async (settings) => setEncryptionSettings(settings)}
+            onStructuredExtractionModeChange={async (mode) => setStructuredExtractionMode(mode)}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -1404,6 +1409,7 @@ function TagManagement(props: {
 
 function MemoryEditor(props: {
   archive: MemoryArchive;
+  structuredExtractionMode: StructuredExtractionMode;
   memory?: Memory;
   onCancel: () => void;
   onSave: (memory: Memory, tagText: string) => Promise<void>;
@@ -1443,6 +1449,12 @@ function MemoryEditor(props: {
   }
 
   function generateSuggestions() {
+    if (props.structuredExtractionMode === "none") {
+      setTagSuggestions([]);
+      setDateSuggestions([]);
+      return;
+    }
+
     const rejectedTagNames = props.memory
       ? props.archive.memoryTags
           .filter((link) => link.memoryId === props.memory?.id && link.rejected)
@@ -1642,6 +1654,7 @@ function Settings(props: {
   archive: MemoryArchive;
   appLockSettings: AppLockSettings;
   encryptionSettings: EncryptionSettings;
+  structuredExtractionMode: StructuredExtractionMode;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
@@ -1651,6 +1664,7 @@ function Settings(props: {
   onDisableAppLock: () => Promise<void>;
   onLockNow: () => Promise<void>;
   onSaveEncryptionSettings: (settings: EncryptionSettings) => Promise<void>;
+  onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
@@ -1732,6 +1746,22 @@ function Settings(props: {
           <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Regenerate embeddings" onPress={props.onRegenerateEmbeddings} icon={<Search size={18} />} />
+        </View>
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Structured extraction</Text>
+        <Text style={styles.metadata}>Mode: {props.structuredExtractionMode === "rules" ? "local rules" : "off"}</Text>
+        <View style={styles.tags}>
+          <FilterChip
+            label="off"
+            selected={props.structuredExtractionMode === "none"}
+            onPress={() => void props.onStructuredExtractionModeChange("none")}
+          />
+          <FilterChip
+            label="local rules"
+            selected={props.structuredExtractionMode === "rules"}
+            onPress={() => void props.onStructuredExtractionModeChange("rules")}
+          />
         </View>
       </View>
       <View style={styles.filterPanel}>
