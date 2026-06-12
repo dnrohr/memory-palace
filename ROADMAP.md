@@ -17,7 +17,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Ready to Continue Locally
 
-- Milestone 11: add real provider targets and consent surfaces for any cloud sync or cloud AI adapters.
+- None currently. Remaining work depends on device QA or explicit model/provider choices.
 
 ### Needs Model or Provider Selection
 
