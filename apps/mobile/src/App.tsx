@@ -353,13 +353,17 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.shell, width >= 900 ? styles.shellWide : null]}>
-        <Header
-          mode={mode}
-          onSettings={() => setMode("settings")}
-        />
-
+    <AppShell
+      mode={mode}
+      wide={width >= 900}
+      onExplore={() => setMode("list")}
+      onCapture={() => {
+        setSelectedId(undefined);
+        setMode("editor");
+      }}
+      onReview={() => setMode("review")}
+      onSettings={() => setMode("settings")}
+    >
         {mode === "list" ? (
           <MemoryList
             archive={archive}
@@ -615,22 +619,37 @@ export default function App() {
           />
         ) : null}
 
+    </AppShell>
+  );
+}
+
+function AppShell(props: {
+  mode: ViewMode;
+  wide: boolean;
+  children: ReactNode;
+  onExplore: () => void;
+  onCapture: () => void;
+  onReview: () => void;
+  onSettings: () => void;
+}) {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.shell, props.wide ? styles.shellWide : null]}>
+        <ScreenHeader mode={props.mode} onSettings={props.onSettings} />
+        {props.children}
         <BottomNavigation
-          mode={mode}
-          onExplore={() => setMode("list")}
-          onCapture={() => {
-            setSelectedId(undefined);
-            setMode("editor");
-          }}
-          onReview={() => setMode("review")}
-          onSettings={() => setMode("settings")}
+          mode={props.mode}
+          onExplore={props.onExplore}
+          onCapture={props.onCapture}
+          onReview={props.onReview}
+          onSettings={props.onSettings}
         />
       </View>
     </SafeAreaView>
   );
 }
 
-function Header(props: {
+function ScreenHeader(props: {
   mode: ViewMode;
   onSettings: () => void;
 }) {
@@ -662,12 +681,18 @@ function BottomNavigation(props: {
   return (
     <View style={styles.bottomNav}>
       <NavButton label="Explore" active={exploreActive} onPress={props.onExplore} icon={<Search size={20} />} />
-      <Pressable accessibilityLabel="New memory" onPress={props.onCapture} style={styles.captureButton}>
-        <Plus size={26} color="#ffffff" />
-      </Pressable>
+      <CenterCaptureButton onPress={props.onCapture} />
       <NavButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
       <NavButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
     </View>
+  );
+}
+
+function CenterCaptureButton(props: { onPress: () => void }) {
+  return (
+    <Pressable accessibilityLabel="New memory" onPress={props.onPress} style={styles.captureButton}>
+      <Plus size={26} color="#ffffff" />
+    </Pressable>
   );
 }
 
@@ -3341,10 +3366,14 @@ function renderIcon(icon: ReactNode, color: string): ReactNode {
 }
 
 function PathBackButton(props: { onPress: () => void }) {
+  return <BreadcrumbTrail trail={["Explore"]} actionLabel="Back to Explore" onPress={props.onPress} />;
+}
+
+function BreadcrumbTrail(props: { trail: string[]; actionLabel: string; onPress: () => void }) {
   return (
     <Pressable onPress={props.onPress} style={styles.pathBackButton}>
       <ArrowLeft size={18} color={styles.pathBackText.color} />
-      <Text style={styles.pathBackText}>Back to Explore</Text>
+      <Text style={styles.pathBackText}>{props.trail.length > 1 ? props.trail.join(" / ") : props.actionLabel}</Text>
     </Pressable>
   );
 }
