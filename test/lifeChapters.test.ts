@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
 import {
   buildLifeChapterCandidates,
+  mergeLifeChapterCandidate,
   rejectLifeChapterCandidate,
-  renameLifeChapterCandidate
+  renameLifeChapterCandidate,
+  splitLifeChapterCandidate
 } from "../src/visualization/lifeChapters";
 
 const archive: MemoryArchive = {
@@ -110,5 +112,34 @@ describe("life chapter candidates", () => {
     ]);
     expect(chapters.map((chapter) => chapter.id)).not.toContain("cluster:tag:tag-1");
     expect(chapters.find((chapter) => chapter.id === "timeline:2004")?.name).toBe("College launch");
+  });
+
+  it("applies persisted chapter merge and split decisions", () => {
+    const merged = mergeLifeChapterCandidate(archive, "cluster:tag:tag-1", "timeline:2004", "2026-06-12T00:00:00.000Z");
+    const split = splitLifeChapterCandidate(merged, "timeline:2004", ["mem-1"], "One memory", "2026-06-12T00:00:00.000Z");
+    const chapters = buildLifeChapterCandidates(split);
+
+    expect(split.lifeChapterDecisions).toEqual(
+      expect.arrayContaining([
+        {
+          candidateId: "cluster:tag:tag-1",
+          action: "merged",
+          targetCandidateId: "timeline:2004",
+          updatedAt: "2026-06-12T00:00:00.000Z"
+        },
+        {
+          candidateId: "timeline:2004",
+          action: "split",
+          name: "One memory",
+          memoryIds: ["mem-1"],
+          updatedAt: "2026-06-12T00:00:00.000Z"
+        }
+      ])
+    );
+    expect(chapters.map((chapter) => chapter.id)).not.toContain("cluster:tag:tag-1");
+    expect(chapters.find((chapter) => chapter.id === "timeline:2004")?.memoryIds).toEqual(["mem-2"]);
+    expect(chapters.find((chapter) => chapter.id === "split:timeline:2004")).toEqual(
+      expect.objectContaining({ name: "One memory", memoryIds: ["mem-1"] })
+    );
   });
 });

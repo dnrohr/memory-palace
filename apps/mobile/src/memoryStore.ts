@@ -135,9 +135,16 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
     for (const decision of archive.lifeChapterDecisions ?? []) {
       await db.runAsync(
         `INSERT INTO life_chapter_decision (
-          candidate_id, action, name, updated_at
-        ) VALUES (?, ?, ?, ?)`,
-        [decision.candidateId, decision.action, decision.name ?? null, decision.updatedAt]
+          candidate_id, action, name, target_candidate_id, memory_ids_json, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          decision.candidateId,
+          decision.action,
+          decision.name ?? null,
+          decision.targetCandidateId ?? null,
+          decision.memoryIds ? JSON.stringify(decision.memoryIds) : null,
+          decision.updatedAt
+        ]
       );
     }
 
@@ -395,6 +402,8 @@ type LifeChapterDecisionRow = {
   candidate_id: string;
   action: LifeChapterDecision["action"];
   name: string | null;
+  target_candidate_id: string | null;
+  memory_ids_json: string | null;
   updated_at: string;
 };
 
@@ -462,6 +471,8 @@ function rowToLifeChapterDecision(row: LifeChapterDecisionRow): LifeChapterDecis
     candidateId: row.candidate_id,
     action: row.action,
     ...(row.name ? { name: row.name } : {}),
+    ...(row.target_candidate_id ? { targetCandidateId: row.target_candidate_id } : {}),
+    ...(row.memory_ids_json ? { memoryIds: JSON.parse(row.memory_ids_json) as string[] } : {}),
     updatedAt: row.updated_at
   };
 }

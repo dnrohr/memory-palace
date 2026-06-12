@@ -90,11 +90,77 @@ export function rejectLifeChapterCandidate(
   });
 }
 
+export function mergeLifeChapterCandidate(
+  archive: MemoryArchive,
+  sourceCandidateId: string,
+  targetCandidateId: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  if (sourceCandidateId === targetCandidateId) return archive;
+
+  return upsertChapterDecision(archive, {
+    candidateId: sourceCandidateId,
+    action: "merged",
+    targetCandidateId,
+    updatedAt: now
+  });
+}
+
+export function splitLifeChapterCandidate(
+  archive: MemoryArchive,
+  candidateId: string,
+  memoryIds: string[],
+  name: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  const uniqueMemoryIds = [...new Set(memoryIds)].filter(Boolean);
+  const trimmed = name.trim();
+  if (uniqueMemoryIds.length === 0 || !trimmed) return archive;
+
+  return upsertChapterDecision(archive, {
+    candidateId,
+    action: "split",
+    name: trimmed,
+    memoryIds: uniqueMemoryIds,
+    updatedAt: now
+  });
+}
+
 function applyChapterDecisions(chapters: LifeChapterCandidate[], archive: MemoryArchive): LifeChapterCandidate[] {
   const decisions = new Map((archive.lifeChapterDecisions ?? []).map((decision) => [decision.candidateId, decision]));
+  const chaptersById = new Map(chapters.map((chapter) => [chapter.id, { ...chapter, memoryIds: [...chapter.memoryIds] }]));
 
-  return chapters
-    .filter((chapter) => decisions.get(chapter.id)?.action !== "rejected")
+  for (const decision of decisions.values()) {
+    if (decision.action === "merged" && decision.targetCandidateId) {
+      const source = chaptersById.get(decision.candidateId);
+      const target = chaptersById.get(decision.targetCandidateId);
+      if (!source || !target) continue;
+      target.memoryIds = [...new Set([...target.memoryIds, ...source.memoryIds])];
+      chaptersById.set(decision.targetCandidateId, target);
+    }
+  }
+
+  for (const decision of decisions.values()) {
+    if (decision.action !== "split" || !decision.name || !decision.memoryIds?.length) continue;
+    const source = chaptersById.get(decision.candidateId);
+    if (!source) continue;
+    const splitIds = new Set(decision.memoryIds);
+    source.memoryIds = source.memoryIds.filter((memoryId) => !splitIds.has(memoryId));
+    chaptersById.set(source.id, source);
+    chaptersById.set(`split:${decision.candidateId}`, {
+      id: `split:${decision.candidateId}`,
+      name: decision.name,
+      memoryIds: [...splitIds],
+      basis: source.basis,
+      editable: true
+    });
+  }
+
+  return [...chaptersById.values()]
+    .filter((chapter) => {
+      const decision = decisions.get(chapter.id);
+      return decision?.action !== "rejected" && decision?.action !== "merged" && chapter.memoryIds.length > 0;
+    })
     .map((chapter) => {
       const decision = decisions.get(chapter.id);
       return decision?.action === "renamed" && decision.name ? { ...chapter, name: decision.name } : chapter;

@@ -32,6 +32,14 @@ CREATE TABLE IF NOT EXISTS life_chapter_decision (
   updated_at TEXT NOT NULL
 );
 `
+  },
+  {
+    id: "0004_life_chapter_merge_split",
+    version: schemaVersion,
+    sql: `
+ALTER TABLE life_chapter_decision ADD COLUMN target_candidate_id TEXT;
+ALTER TABLE life_chapter_decision ADD COLUMN memory_ids_json TEXT;
+`
   }
 ];
 

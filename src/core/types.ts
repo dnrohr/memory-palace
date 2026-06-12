@@ -116,8 +116,10 @@ export type LifePeriod = {
 
 export type LifeChapterDecision = {
   candidateId: string;
-  action: "renamed" | "rejected";
+  action: "renamed" | "rejected" | "merged" | "split";
   name?: string;
+  targetCandidateId?: string;
+  memoryIds?: string[];
   updatedAt: string;
 };
 

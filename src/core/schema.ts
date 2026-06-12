@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS life_chapter_decision (
   candidate_id TEXT PRIMARY KEY,
   action TEXT NOT NULL,
   name TEXT,
+  target_candidate_id TEXT,
+  memory_ids_json TEXT,
   updated_at TEXT NOT NULL
 );
 

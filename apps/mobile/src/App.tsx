@@ -58,8 +58,10 @@ import { buildTagClusters } from "../../../src/visualization/clusters";
 import { buildGraphNeighborhood, buildTagGraphData } from "../../../src/visualization/graph";
 import {
   buildLifeChapterCandidates,
+  mergeLifeChapterCandidate,
   rejectLifeChapterCandidate,
   renameLifeChapterCandidate,
+  splitLifeChapterCandidate,
   type LifeChapterCandidate
 } from "../../../src/visualization/lifeChapters";
 import {
@@ -1072,14 +1074,17 @@ function TimelineView(props: {
             <Text style={styles.emptyTitle}>No chapter candidates yet</Text>
           </View>
         ) : (
-          chapters.map((chapter) => (
+          chapters.map((chapter, index) => (
             <ChapterCandidateCard
               key={chapter.id}
               chapter={chapter}
+              {...(index > 0 && chapters[index - 1] ? { previousChapter: chapters[index - 1] } : {})}
               memoriesById={memoriesById}
               onSelect={props.onSelect}
               onRename={(name) => props.onArchiveChange(renameLifeChapterCandidate(props.archive, chapter.id, name))}
               onReject={() => props.onArchiveChange(rejectLifeChapterCandidate(props.archive, chapter.id))}
+              onMergeInto={(targetId) => props.onArchiveChange(mergeLifeChapterCandidate(props.archive, chapter.id, targetId))}
+              onSplit={(memoryIds, name) => props.onArchiveChange(splitLifeChapterCandidate(props.archive, chapter.id, memoryIds, name))}
             />
           ))
         )
@@ -1098,12 +1103,16 @@ function FilterChip(props: { label: string; selected: boolean; onPress: () => vo
 
 function ChapterCandidateCard(props: {
   chapter: LifeChapterCandidate;
+  previousChapter?: LifeChapterCandidate;
   memoriesById: Map<string, Memory>;
   onSelect: (id: string) => void;
   onRename: (name: string) => Promise<void>;
   onReject: () => Promise<void>;
+  onMergeInto: (targetId: string) => Promise<void>;
+  onSplit: (memoryIds: string[], name: string) => Promise<void>;
 }) {
   const [draftName, setDraftName] = useState(props.chapter.name);
+  const splitMemoryId = props.chapter.memoryIds[0];
 
   useEffect(() => {
     setDraftName(props.chapter.name);
@@ -1123,6 +1132,20 @@ function ChapterCandidateCard(props: {
       </Text>
       <View style={styles.actionRow}>
         <SecondaryButton label="Rename" onPress={() => props.onRename(draftName)} icon={<Save size={18} />} />
+        {props.previousChapter ? (
+          <SecondaryButton
+            label="Merge into previous"
+            onPress={() => props.onMergeInto(props.previousChapter!.id)}
+            icon={<Plus size={18} />}
+          />
+        ) : null}
+        {splitMemoryId && props.chapter.memoryIds.length > 1 ? (
+          <SecondaryButton
+            label="Split first"
+            onPress={() => props.onSplit([splitMemoryId], `${props.chapter.name} split`)}
+            icon={<Edit3 size={18} />}
+          />
+        ) : null}
         <SecondaryButton label="Reject" onPress={props.onReject} icon={<X size={18} />} />
       </View>
       {props.chapter.memoryIds.slice(0, 5).map((memoryId) => {
