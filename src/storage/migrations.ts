@@ -56,6 +56,25 @@ ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;
     sql: `
 ALTER TABLE memory ADD COLUMN private_notes TEXT;
 `
+  },
+  {
+    id: "0007_life_context_relationships",
+    version: schemaVersion,
+    sql: `
+CREATE TABLE IF NOT EXISTS life_context_relationship (
+  id TEXT PRIMARY KEY,
+  source_kind TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  target_kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relationship_type TEXT NOT NULL,
+  label TEXT,
+  confidence REAL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`
   }
 ];
 

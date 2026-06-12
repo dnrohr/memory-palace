@@ -114,6 +114,20 @@ CREATE TABLE IF NOT EXISTS life_period (
   notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS life_context_relationship (
+  id TEXT PRIMARY KEY,
+  source_kind TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  target_kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relationship_type TEXT NOT NULL,
+  label TEXT,
+  confidence REAL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS life_chapter_decision (
   candidate_id TEXT PRIMARY KEY,
   action TEXT NOT NULL,

@@ -21,6 +21,7 @@ describe("schema", () => {
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS pet");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS place");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS life_period");
+    expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS life_context_relationship");
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS memory_embedding");
     expect(initialSchemaSql).toContain("CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5");
   });

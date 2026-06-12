@@ -28,6 +28,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added emotional-safety controls for marking memories sensitive, excluding them from resurfacing, and showing less like them; resurfacing prompts now skip sensitive or excluded memories.
 - Added durable private notes on memories so later context can be stored without changing the original memory text.
 - Added responsive shell polish for wider web/tablet layouts while keeping mobile single-column.
+- Added durable life-context relationship schema/storage and graph support for explicit relationships alongside inferred co-occurrence edges.
 
 ### 2026-06-11
 
@@ -108,7 +109,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, timeline v1, native SQLite FTS rebuild/query integration. | Search polish and device-level QA. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow. | Native speech-to-text adapter and interruption/background handling. |
 | 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
-| 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, and graph neighborhood traversal UI. | Explicit relationship schema and richer inference rules. |
+| 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Local model adapter. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
@@ -241,8 +242,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 ## Next Implementation Priorities
 
 1. Add native speech-to-text adapter behind `ITranscriptionEngine` plus interruption/background handling.
-2. Add explicit relationship schema and richer life-context inference rules.
-3. Add production encryption adapter.
-4. Add production local embedding/model adapters when target models are selected.
-5. Add opt-in sync/backup provider adapters when provider targets are selected.
-6. Run device-level QA across mobile, tablet, and web.
+2. Add production encryption adapter.
+3. Add production local embedding/model adapters when target models are selected.
+4. Add opt-in sync/backup provider adapters when provider targets are selected.
+5. Run device-level QA across mobile, tablet, and web.

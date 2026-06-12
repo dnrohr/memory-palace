@@ -127,6 +127,22 @@ export type LifeChapterDecision = {
   updatedAt: string;
 };
 
+export type LifeContextKind = "person" | "pet" | "place" | "life_period";
+
+export type LifeContextRelationship = {
+  id: string;
+  sourceKind: LifeContextKind;
+  sourceId: string;
+  targetKind: LifeContextKind;
+  targetId: string;
+  relationshipType: "family" | "friend" | "pet_companion" | "lived_at" | "worked_at" | "attended" | "associated_with" | "custom";
+  label?: string;
+  confidence?: number;
+  source: "explicit" | "inferred";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type MemoryTag = {
   memoryId: string;
   tagId: string;

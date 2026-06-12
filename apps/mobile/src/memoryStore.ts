@@ -5,7 +5,7 @@ import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiv
 import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
-import type { LifeChapterDecision, Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
+import type { LifeChapterDecision, LifeContextRelationship, Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
 
@@ -26,6 +26,9 @@ export async function loadArchive(): Promise<MemoryArchive> {
   const lifeChapterDecisions = (
     await db.getAllAsync<LifeChapterDecisionRow>("SELECT * FROM life_chapter_decision ORDER BY updated_at DESC")
   ).map(rowToLifeChapterDecision);
+  const lifeContextRelationships = (
+    await db.getAllAsync<LifeContextRelationshipRow>("SELECT * FROM life_context_relationship ORDER BY updated_at DESC")
+  ).map(rowToLifeContextRelationship);
 
   return {
     ...createEmptyArchive(),
@@ -33,6 +36,7 @@ export async function loadArchive(): Promise<MemoryArchive> {
     tags,
     memoryTags,
     memoryEmbeddings,
+    lifeContextRelationships,
     lifeChapterDecisions
   };
 }
@@ -47,6 +51,7 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync("DELETE FROM memory_tag");
     await db.runAsync("DELETE FROM memory_embedding");
+    await db.runAsync("DELETE FROM life_context_relationship");
     await db.runAsync("DELETE FROM life_chapter_decision");
     await db.runAsync("DELETE FROM tag");
     await db.runAsync("DELETE FROM memory");
@@ -153,6 +158,28 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
       );
     }
 
+    for (const relationship of archive.lifeContextRelationships ?? []) {
+      await db.runAsync(
+        `INSERT INTO life_context_relationship (
+          id, source_kind, source_id, target_kind, target_id, relationship_type,
+          label, confidence, source, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          relationship.id,
+          relationship.sourceKind,
+          relationship.sourceId,
+          relationship.targetKind,
+          relationship.targetId,
+          relationship.relationshipType,
+          relationship.label ?? null,
+          relationship.confidence ?? null,
+          relationship.source,
+          relationship.createdAt,
+          relationship.updatedAt
+        ]
+      );
+    }
+
     await db.runAsync("INSERT INTO memory_fts(memory_fts) VALUES ('rebuild')");
   });
 }
@@ -185,6 +212,7 @@ export function createEmptyArchive(): MemoryArchive {
     pets: [],
     places: [],
     lifePeriods: [],
+    lifeContextRelationships: [],
     lifeChapterDecisions: [],
     memoryEmbeddings: [],
     processingRuns: []
@@ -323,6 +351,7 @@ async function loadWebArchive(): Promise<MemoryArchive> {
     tags: parsed.tags ?? [],
     memoryTags: parsed.memoryTags ?? [],
     lifeChapterDecisions: parsed.lifeChapterDecisions ?? [],
+    lifeContextRelationships: parsed.lifeContextRelationships ?? [],
     memoryEmbeddings: parsed.memoryEmbeddings ?? [],
     processingRuns: parsed.processingRuns ?? []
   };
@@ -416,6 +445,20 @@ type LifeChapterDecisionRow = {
   updated_at: string;
 };
 
+type LifeContextRelationshipRow = {
+  id: string;
+  source_kind: LifeContextRelationship["sourceKind"];
+  source_id: string;
+  target_kind: LifeContextRelationship["targetKind"];
+  target_id: string;
+  relationship_type: LifeContextRelationship["relationshipType"];
+  label: string | null;
+  confidence: number | null;
+  source: LifeContextRelationship["source"];
+  created_at: string;
+  updated_at: string;
+};
+
 function rowToMemory(row: MemoryRow): Memory {
   return {
     id: row.id,
@@ -486,6 +529,22 @@ function rowToLifeChapterDecision(row: LifeChapterDecisionRow): LifeChapterDecis
     ...(row.name ? { name: row.name } : {}),
     ...(row.target_candidate_id ? { targetCandidateId: row.target_candidate_id } : {}),
     ...(row.memory_ids_json ? { memoryIds: JSON.parse(row.memory_ids_json) as string[] } : {}),
+    updatedAt: row.updated_at
+  };
+}
+
+function rowToLifeContextRelationship(row: LifeContextRelationshipRow): LifeContextRelationship {
+  return {
+    id: row.id,
+    sourceKind: row.source_kind,
+    sourceId: row.source_id,
+    targetKind: row.target_kind,
+    targetId: row.target_id,
+    relationshipType: row.relationship_type,
+    ...(row.label ? { label: row.label } : {}),
+    ...(row.confidence !== null ? { confidence: row.confidence } : {}),
+    source: row.source,
+    createdAt: row.created_at,
     updatedAt: row.updated_at
   };
 }

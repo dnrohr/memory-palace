@@ -1,6 +1,7 @@
 import type {
   LifePeriod,
   LifeChapterDecision,
+  LifeContextRelationship,
   Memory,
   MemoryEmbeddingRecord,
   MemoryTag,
@@ -22,6 +23,7 @@ export type MemoryArchive = {
   pets: Pet[];
   places: Place[];
   lifePeriods: LifePeriod[];
+  lifeContextRelationships?: LifeContextRelationship[];
   lifeChapterDecisions?: LifeChapterDecision[];
   userProfile?: UserProfile;
   memoryEmbeddings?: MemoryEmbeddingRecord[];

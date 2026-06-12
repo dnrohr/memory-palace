@@ -78,6 +78,21 @@ const archive: MemoryArchive = {
     }
   ],
   lifePeriods: [],
+  lifeContextRelationships: [
+    {
+      id: "rel-1",
+      sourceKind: "person",
+      sourceId: "person-1",
+      targetKind: "place",
+      targetId: "place-1",
+      relationshipType: "lived_at",
+      label: "lived at",
+      confidence: 1,
+      source: "explicit",
+      createdAt: "2026-06-11T00:00:00.000Z",
+      updatedAt: "2026-06-11T00:00:00.000Z"
+    }
+  ],
   processingRuns: []
 };
 
@@ -97,6 +112,13 @@ describe("visualization data", () => {
       expect.arrayContaining([
         { source: "memory:mem-1", target: "person:person-1", kind: "memory_context" },
         { source: "memory:mem-1", target: "place:place-1", kind: "memory_context" },
+        {
+          source: "person:person-1",
+          target: "place:place-1",
+          kind: "context_relation",
+          weight: 1,
+          label: "lived at"
+        },
         {
           source: "person:person-1",
           target: "place:place-1",

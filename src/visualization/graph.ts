@@ -1,6 +1,7 @@
 import type { MemoryArchive } from "../core/archive";
 import { tagsForMemoryArchive } from "../core/archiveOperations";
 import { findLifeContextMatches } from "../core/lifeContext";
+import type { LifeContextKind } from "../core/types";
 
 export type GraphNode = {
   id: string;
@@ -31,6 +32,21 @@ export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
   const nodes = new Map<string, GraphNode>();
   const edges: GraphEdge[] = [];
   const contextCoOccurrences = new Map<string, { source: string; target: string; weight: number }>();
+
+  for (const relationship of archive.lifeContextRelationships ?? []) {
+    const source = resolveContextNode(archive, relationship.sourceKind, relationship.sourceId);
+    const target = resolveContextNode(archive, relationship.targetKind, relationship.targetId);
+    if (!source || !target) continue;
+    nodes.set(source.id, source);
+    nodes.set(target.id, target);
+    edges.push({
+      source: source.id,
+      target: target.id,
+      kind: "context_relation",
+      ...(relationship.confidence !== undefined ? { weight: relationship.confidence } : {}),
+      label: relationship.label ?? relationship.relationshipType.replace(/_/g, " ")
+    });
+  }
 
   for (const memory of archive.memories.filter((item) => !item.deletedAt)) {
     nodes.set(`memory:${memory.id}`, {
@@ -94,6 +110,27 @@ export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
   }
 
   return { nodes: [...nodes.values()], edges };
+}
+
+function resolveContextNode(archive: MemoryArchive, kind: LifeContextKind, id: string): GraphNode | undefined {
+  switch (kind) {
+    case "person": {
+      const person = archive.people.find((item) => item.id === id);
+      return person ? { id: `person:${person.id}`, label: person.displayName, kind } : undefined;
+    }
+    case "pet": {
+      const pet = archive.pets.find((item) => item.id === id);
+      return pet ? { id: `pet:${pet.id}`, label: pet.name, kind } : undefined;
+    }
+    case "place": {
+      const place = archive.places.find((item) => item.id === id);
+      return place ? { id: `place:${place.id}`, label: place.name, kind } : undefined;
+    }
+    case "life_period": {
+      const lifePeriod = archive.lifePeriods.find((item) => item.id === id);
+      return lifePeriod ? { id: `life_period:${lifePeriod.id}`, label: lifePeriod.name, kind } : undefined;
+    }
+  }
 }
 
 export function buildGraphNeighborhood(graph: TagGraphData, centerNodeId: string, maxDepth = 1): GraphNeighborhood | undefined {
