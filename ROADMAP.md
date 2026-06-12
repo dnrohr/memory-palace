@@ -81,6 +81,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web Review QA on `http://localhost:8081`: normal and mobile-width Review rendered optional-review language and actions without horizontal overflow, console errors, or chore-list wording.
 - Polished Settings trust surfaces with compact local-state cards and moved data-audit controls into a visually separated advanced diagnostics panel.
 - Ran local web Settings QA on `http://localhost:8081`: normal and mobile-width Settings rendered trust cards and separated diagnostics without horizontal overflow or console errors.
+- Polished the voice capture surface with a private-listening panel, soft waveform/timer treatment, clearer no-audio-retention copy, and gentler transcript-review language.
+- Ran local web voice UI QA on `http://localhost:8081`: normal and mobile-width voice capture rendered the private recording copy, timer, waveform, and start action without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -185,7 +187,7 @@ Status: In progress
 
 Done:
 - Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and typed recording errors.
-- Capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, and native speech permissions config.
+- Capture status/retry states, private-listening voice UI, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, and native speech permissions config.
 - Editable manual fallback on recognition errors and AppState interruption/background handling.
 
 Remaining:
@@ -286,7 +288,7 @@ Remaining:
 Status: Done
 
 Done:
-- Review inbox data/UI, quiet optional-review surface, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
+- Review inbox data/UI, quiet optional-review surface, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
 - Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 

@@ -774,6 +774,8 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "transcribing" | "draft_ready">("idle");
+  const [recordingStartedAt, setRecordingStartedAt] = useState<number | undefined>();
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   async function start() {
     setError(undefined);
@@ -788,6 +790,9 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
 
       setSession(await startAudioCapture());
       setDraft(undefined);
+      const startedAt = Date.now();
+      setRecordingStartedAt(startedAt);
+      setElapsedSeconds(0);
       setStatus("recording");
     } catch (error) {
       setError(formatAudioCaptureError(error, "Recording could not be started."));
@@ -802,6 +807,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     try {
       const artifact = await stopAudioCapture(session);
       setSession(undefined);
+      setRecordingStartedAt(undefined);
       setStatus("transcribing");
       let transcript = "";
       try {
@@ -817,9 +823,18 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     } catch (error) {
       setError(formatAudioCaptureError(error, "Recording could not be saved."));
       setSession(undefined);
+      setRecordingStartedAt(undefined);
       setStatus("idle");
     }
   }
+
+  useEffect(() => {
+    if (!recordingStartedAt || status !== "recording") return undefined;
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [recordingStartedAt, status]);
 
   useEffect(() => {
     if (!session || status !== "recording") return undefined;
@@ -833,8 +848,22 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.filterPanel}>
-        <Text style={styles.panelTitle}>Voice capture</Text>
+      <View style={styles.voicePanel}>
+        <Text style={styles.sectionEyebrow}>Private voice capture</Text>
+        <Text style={styles.capturePrompt}>{status === "recording" ? "Listening" : "Say the fragment"}</Text>
+        <Text style={styles.voiceTimer}>{formatElapsedTime(elapsedSeconds)}</Text>
+        <View style={styles.waveform} accessibilityLabel="soft recording waveform">
+          {[18, 32, 24, 42, 28, 36, 20].map((height, index) => (
+            <View
+              key={`${height}-${index}`}
+              style={[
+                styles.waveformBar,
+                { height: status === "recording" ? height : Math.max(12, Math.round(height * 0.45)) }
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.captureNote}>No audio is kept unless you choose. You can type or edit the transcript before saving.</Text>
         <Text style={styles.metadata}>Status: {voiceCaptureStatusLabel(status)}</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {session ? (
@@ -850,8 +879,9 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
         {error ? <SecondaryButton label="Try again" onPress={start} icon={<RotateCcw size={18} />} /> : null}
       </View>
       {draft ? (
-        <View style={styles.filterPanel}>
-          <Text style={styles.panelTitle}>Draft transcript</Text>
+        <View style={styles.transcriptPanel}>
+          <Text style={styles.sectionEyebrow}>Transcript review</Text>
+          <Text style={styles.panelTitle}>Here is what I heard</Text>
           <TextInput
             value={draft.transcript}
             onChangeText={(transcript) => setDraft({ ...draft, transcript })}
@@ -866,9 +896,10 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
             style={[styles.segment, draft.retainAudio ? styles.segmentActive : null]}
           >
             <Text style={[styles.segmentText, draft.retainAudio ? styles.segmentTextActive : null]}>
-              Retain audio file
+              Optional: keep original audio
             </Text>
           </Pressable>
+          <Text style={styles.captureNote}>Edit only what matters. An imperfect transcript can still be saved.</Text>
           <Text style={styles.metadata}>
             Audio: {draft.artifact.durationMs ? `${Math.round(draft.artifact.durationMs / 1000)}s` : "recorded"}
           </Text>
@@ -899,6 +930,12 @@ function voiceCaptureStatusLabel(status: "idle" | "requesting_permission" | "rec
     case "idle":
       return "ready";
   }
+}
+
+function formatElapsedTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
 }
 
 function formatAudioCaptureError(error: unknown, fallback: string): string {
@@ -3341,6 +3378,42 @@ const styles = StyleSheet.create({
     color: "#6c6257",
     fontSize: 14,
     lineHeight: 21
+  },
+  voicePanel: {
+    minHeight: 320,
+    borderWidth: 1,
+    borderColor: "#d4c7b4",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 20,
+    gap: 14,
+    alignItems: "center"
+  },
+  voiceTimer: {
+    color: "#30352f",
+    fontSize: 32,
+    fontWeight: "800"
+  },
+  waveform: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 8
+  },
+  waveformBar: {
+    width: 8,
+    borderRadius: 8,
+    backgroundColor: "#9fb28f"
+  },
+  transcriptPanel: {
+    borderWidth: 1,
+    borderColor: "#d4c7b4",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 16,
+    gap: 12
   },
   searchRow: {
     minHeight: 48,
