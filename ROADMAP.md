@@ -79,6 +79,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added Settings controls for enabling or disabling the local rules-backed structured extraction mode.
 - Added memory split and merge operations with detail-screen controls, tag preservation, and stale embedding cleanup.
 - Added stronger deleted-artifact cleanup for retained audio references and stale memory embeddings.
+- Added richer review provenance UI for suggested tags and dates, including source text and explanations.
 
 ## Milestone Status
 
@@ -87,7 +88,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking, richer settings, storage diagnostics. | Device-level QA. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, timeline v1, native SQLite FTS rebuild/query integration. | Search polish and device-level QA. |
 | 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow. | Native speech-to-text adapter and interruption/background handling. |
-| 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI, accept/reject actions, rejected-tag feedback for future suggestions. | Richer provenance UI and broader rules. |
+| 4. Rules-Based Metadata Suggestions | In progress | Date/tag suggestion prototypes, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | Broader rules. |
 | 5. Life Context Graph | In progress | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes and memory-context edges. | Relationship edges, inference rules, and richer graph traversal. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Local model adapter. |
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control. | Production local embedding model and richer background scheduling controls. |

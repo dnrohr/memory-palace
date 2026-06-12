@@ -32,8 +32,17 @@ describe("review inbox", () => {
     expect(buildReviewInbox(archive)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "untagged_memory", memoryId: "mem-1" }),
-        expect.objectContaining({ type: "tag_suggestion", label: "Patrick" }),
-        expect.objectContaining({ type: "date_suggestion", label: "2004" })
+        expect.objectContaining({
+          type: "tag_suggestion",
+          label: "Patrick",
+          sourceText: "Patrick",
+          explanation: expect.stringContaining("Patrick")
+        }),
+        expect.objectContaining({
+          type: "date_suggestion",
+          label: "2004",
+          sourceText: "2004"
+        })
       ])
     );
   });

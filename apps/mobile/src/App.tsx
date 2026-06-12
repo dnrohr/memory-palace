@@ -861,6 +861,12 @@ function ReviewInboxView(props: {
                 </Text>
               ) : null}
               <Text style={styles.metadata}>Confidence {Math.round(item.confidence * 100)}%</Text>
+              {"sourceText" in item && item.sourceText ? (
+                <Text style={styles.metadata}>Source: {item.sourceText}</Text>
+              ) : null}
+              {"explanation" in item && item.explanation ? (
+                <Text style={styles.metadata}>{item.explanation}</Text>
+              ) : null}
               <View style={styles.actionRow}>
                 {item.type !== "untagged_memory" ? (
                   <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />

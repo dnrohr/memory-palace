@@ -10,6 +10,8 @@ export type ReviewItem =
       type: "tag_suggestion";
       label: string;
       confidence: number;
+      sourceText?: string;
+      explanation?: string;
     }
   | {
       id: string;
@@ -17,6 +19,8 @@ export type ReviewItem =
       type: "date_suggestion";
       label: string;
       confidence: number;
+      sourceText?: string;
+      explanation?: string;
       startDate?: string;
       endDate?: string;
     }
@@ -57,7 +61,9 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
         memoryId: memory.id,
         type: "tag_suggestion",
         label: suggestion.name,
-        confidence: suggestion.confidence
+        confidence: suggestion.confidence,
+        ...(suggestion.name ? { sourceText: suggestion.name } : {}),
+        ...(suggestion.explanation ? { explanation: suggestion.explanation } : {})
       });
     }
 
@@ -69,6 +75,8 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
           type: "date_suggestion",
           label: candidate.label,
           confidence: candidate.confidence,
+          sourceText: candidate.sourceText,
+          ...(candidate.inferenceExplanation ? { explanation: candidate.inferenceExplanation } : {}),
           ...(candidate.startDate ? { startDate: candidate.startDate } : {}),
           ...(candidate.endDate ? { endDate: candidate.endDate } : {})
         });
