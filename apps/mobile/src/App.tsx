@@ -1069,7 +1069,7 @@ function LifeContextView(props: {
                       <Text style={styles.memoryPreview} numberOfLines={2}>
                         {memory.title ?? memory.rawText}
                       </Text>
-                      <Text style={styles.connectionReason}>Connected by: {entity.name}</Text>
+                      <ConnectionReason label="Connected by" reason={entity.name} />
                     </Pressable>
                   ))
                 ) : (
@@ -1315,7 +1315,7 @@ function ReviewInboxView(props: {
                 </View>
               ) : null}
               {"explanation" in item && item.explanation ? (
-                <Text style={styles.connectionReason}>Why it is here: {item.explanation}</Text>
+                <ConnectionReason label="Why it is here" reason={item.explanation} />
               ) : null}
               <View style={styles.actionRow}>
                 {item.type !== "untagged_memory" ? (
@@ -1611,7 +1611,7 @@ function ChapterCandidateCard(props: {
             <Text style={styles.memoryPreview} numberOfLines={2}>
               {memory.title ?? memory.rawText}
             </Text>
-            <Text style={styles.connectionReason}>Chapter because: {formatChapterBasis(props.chapter.basis)}</Text>
+            <ConnectionReason label="Chapter because" reason={formatChapterBasis(props.chapter.basis)} />
           </Pressable>
         ))}
       </View>
@@ -1915,7 +1915,7 @@ function MemoryList(props: {
             <Pressable key={memory.id} style={styles.memoryCard} onPress={() => props.onSelect(memory.id)}>
               <View style={styles.memoryCardHeader}>
                 <Text style={styles.memoryTitle}>{memory.title}</Text>
-                <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(memory)}</Text>
+                <DateCertaintyLabel memory={memory} />
               </View>
               <HighlightedText text={preview} query={props.searchMode === "keyword" ? props.query : ""} />
               {result?.matchedTags.length ? <Text style={styles.metadata}>Matched tags: {result.matchedTags.join(", ")}</Text> : null}
@@ -2092,7 +2092,7 @@ function TagManagement(props: {
                     <Text style={styles.memoryPreview} numberOfLines={2}>
                       {memory.title ?? memory.rawText}
                     </Text>
-                    <Text style={styles.connectionReason}>Connected by: {shelf.tag.name}</Text>
+                    <ConnectionReason label="Connected by" reason={shelf.tag.name} />
                   </Pressable>
                 ))}
               </View>
@@ -2506,7 +2506,7 @@ function MemoryDetail(props: {
           </View>
         </View>
         <View style={styles.dateSummary}>
-          <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>
+          <DateCertaintyLabel memory={props.memory} />
           <Text style={styles.metadata}>{formatMemoryDate(props.memory)}</Text>
         </View>
         <TagRow labels={tagsForMemory(props.archive, props.memory.id).map((tag) => tag.name)} />
@@ -2625,7 +2625,7 @@ function MemoryDetail(props: {
                 <Text style={styles.memoryPreview} numberOfLines={2}>
                   {result.memory.cleanedText || result.memory.rawText}
                 </Text>
-                <Text style={styles.connectionReason}>Nearby because: {formatRelatedReasons(result)}</Text>
+                <ConnectionReason label="Nearby because" reason={formatRelatedReasons(result)} />
               </Pressable>
               <SecondaryButton label="Merge into this" onPress={() => props.onMergeRelated(result.memory.id)} icon={<Plus size={18} />} />
             </View>
@@ -3270,6 +3270,18 @@ function TagRow(props: { labels: string[] }) {
         </View>
       ))}
     </View>
+  );
+}
+
+function DateCertaintyLabel(props: { memory: Memory }) {
+  return <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>;
+}
+
+function ConnectionReason(props: { label: string; reason: string }) {
+  return (
+    <Text style={styles.connectionReason}>
+      {props.label}: {props.reason}
+    </Text>
   );
 }
 
