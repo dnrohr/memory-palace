@@ -156,9 +156,35 @@ describe("archive operations", () => {
 
     expect(restoreMemory(deleted, "mem-1").memories.find((memory) => memory.id === "mem-1")).not.toHaveProperty("deletedAt");
 
-    const purged = permanentlyDeleteMemory(archive, "mem-1");
+    const purged = permanentlyDeleteMemory(
+      {
+        ...archive,
+        memoryEmbeddings: [
+          {
+            memoryId: "mem-1",
+            values: [0.1],
+            dimension: 1,
+            modelId: "hash-embedding",
+            modelVersion: "0.1.0",
+            createdAt: "2026-06-11T00:00:00.000Z",
+            inputHash: "one"
+          },
+          {
+            memoryId: "mem-2",
+            values: [0.2],
+            dimension: 1,
+            modelId: "hash-embedding",
+            modelVersion: "0.1.0",
+            createdAt: "2026-06-11T00:00:00.000Z",
+            inputHash: "two"
+          }
+        ]
+      },
+      "mem-1"
+    );
     expect(purged.memories.map((memory) => memory.id)).toEqual(["mem-2"]);
     expect(purged.memoryTags.map((link) => link.memoryId)).toEqual(["mem-2"]);
+    expect(purged.memoryEmbeddings?.map((embedding) => embedding.memoryId)).toEqual(["mem-2"]);
   });
 
   it("appends memory addenda without replacing original text", () => {

@@ -181,10 +181,13 @@ export function restoreMemory(archive: MemoryArchive, memoryId: string): MemoryA
 }
 
 export function permanentlyDeleteMemory(archive: MemoryArchive, memoryId: string): MemoryArchive {
+  const nextEmbeddings = archive.memoryEmbeddings?.filter((embedding) => embedding.memoryId !== memoryId);
+
   return {
     ...archive,
     memories: archive.memories.filter((memory) => memory.id !== memoryId),
-    memoryTags: archive.memoryTags.filter((link) => link.memoryId !== memoryId)
+    memoryTags: archive.memoryTags.filter((link) => link.memoryId !== memoryId),
+    ...(nextEmbeddings ? { memoryEmbeddings: nextEmbeddings } : {})
   };
 }
 

@@ -48,7 +48,12 @@ import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/pr
 import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import { searchArchive } from "../../../src/search/searchService";
-import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../../../src/security/dataAudit";
+import {
+  buildDataAuditReport,
+  clearDeletedMemoryArtifacts,
+  clearProcessingRuns,
+  clearRetainedAudioReferences
+} from "../../../src/security/dataAudit";
 import { buildTagClusters } from "../../../src/visualization/clusters";
 import { buildTagGraphData } from "../../../src/visualization/graph";
 import {
@@ -426,6 +431,7 @@ export default function App() {
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
+            onClearDeletedArtifacts={async () => persist(clearDeletedMemoryArtifacts(archive))}
             onRegenerateEmbeddings={async () => persist(archive)}
             onEnableBiometricLock={async () =>
               saveAppLockSettings({
@@ -1691,6 +1697,7 @@ function Settings(props: {
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
+  onClearDeletedArtifacts: () => Promise<void>;
   onRegenerateEmbeddings: () => Promise<void>;
   onEnableBiometricLock: () => Promise<void>;
   onSavePin: (pin: string) => Promise<void>;
@@ -1768,8 +1775,10 @@ function Settings(props: {
         <Text style={styles.panelTitle}>Data audit</Text>
         <Text style={styles.metadata}>Local modes: {audit.localProcessingModes.join(", ")}</Text>
         <Text style={styles.metadata}>Retained audio references: {audit.retainedAudioCount}</Text>
+        <Text style={styles.metadata}>Deleted-memory audio references: {audit.deletedRetainedAudioCount}</Text>
         <Text style={styles.metadata}>Generated processing logs: {audit.processingRunCount}</Text>
         <Text style={styles.metadata}>Stored embedding vectors: {audit.embeddingCount}</Text>
+        <Text style={styles.metadata}>Stale embedding vectors: {audit.staleEmbeddingCount}</Text>
         <Text style={styles.metadata}>
           Estimated storage: text {formatBytes(audit.estimatedTextBytes)}, embeddings {formatBytes(audit.estimatedEmbeddingBytes)},
           processing {formatBytes(audit.estimatedProcessingBytes)}
@@ -1778,6 +1787,7 @@ function Settings(props: {
         <View style={styles.actionRow}>
           <SecondaryButton label="Clear processing logs" onPress={props.onClearProcessingRuns} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Forget audio links" onPress={props.onClearRetainedAudio} icon={<Trash2 size={18} />} />
+          <SecondaryButton label="Clear deleted artifacts" onPress={props.onClearDeletedArtifacts} icon={<Trash2 size={18} />} />
           <SecondaryButton label="Regenerate embeddings" onPress={props.onRegenerateEmbeddings} icon={<Search size={18} />} />
         </View>
       </View>

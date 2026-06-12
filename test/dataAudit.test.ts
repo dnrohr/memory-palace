@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
-import { buildDataAuditReport, clearProcessingRuns, clearRetainedAudioReferences } from "../src/security/dataAudit";
+import {
+  buildDataAuditReport,
+  clearDeletedMemoryArtifacts,
+  clearProcessingRuns,
+  clearRetainedAudioReferences
+} from "../src/security/dataAudit";
 
 const now = "2026-06-11T00:00:00.000Z";
 
@@ -27,7 +32,8 @@ const archive: MemoryArchive = {
       createdAt: now,
       updatedAt: now,
       sourceType: "typed",
-      isAudioRetained: false,
+      audioUri: "file:///deleted.m4a",
+      isAudioRetained: true,
       datePrecision: "unknown",
       userDateConfirmed: false,
       deletedAt: now
@@ -48,6 +54,24 @@ const archive: MemoryArchive = {
       modelVersion: "0.1.0",
       inputHash: "abc",
       createdAt: now
+    },
+    {
+      memoryId: "mem-2",
+      values: [0.4, 0.5],
+      dimension: 2,
+      modelId: "hash-embedding",
+      modelVersion: "0.1.0",
+      inputHash: "deleted",
+      createdAt: now
+    },
+    {
+      memoryId: "mem-missing",
+      values: [0.6],
+      dimension: 1,
+      modelId: "hash-embedding",
+      modelVersion: "0.1.0",
+      inputHash: "missing",
+      createdAt: now
     }
   ],
   processingRuns: [
@@ -67,13 +91,15 @@ describe("data audit", () => {
       expect.objectContaining({
         activeMemoryCount: 1,
         deletedMemoryCount: 1,
-        retainedAudioCount: 1,
-        embeddingCount: 1,
+        retainedAudioCount: 2,
+        deletedRetainedAudioCount: 1,
+        embeddingCount: 3,
+        staleEmbeddingCount: 2,
         processingRunCount: 1,
         estimatedTextBytes: 40,
-        estimatedEmbeddingBytes: 24,
+        estimatedEmbeddingBytes: 48,
         estimatedProcessingBytes: 2,
-        estimatedTotalLocalBytes: 66
+        estimatedTotalLocalBytes: 90
       })
     );
   });
@@ -94,5 +120,20 @@ describe("data audit", () => {
       })
     );
     expect(memory).not.toHaveProperty("audioUri");
+  });
+
+  it("clears deleted-memory audio references and stale embeddings", () => {
+    const next = clearDeletedMemoryArtifacts(archive, "2026-06-12T00:00:00.000Z");
+    const deleted = next.memories.find((item) => item.id === "mem-2");
+
+    expect(deleted).toEqual(
+      expect.objectContaining({
+        rawText: "Deleted memory",
+        isAudioRetained: false,
+        updatedAt: "2026-06-12T00:00:00.000Z"
+      })
+    );
+    expect(deleted).not.toHaveProperty("audioUri");
+    expect(next.memoryEmbeddings?.map((embedding) => embedding.memoryId)).toEqual(["mem-1"]);
   });
 });
