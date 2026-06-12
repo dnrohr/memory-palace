@@ -87,6 +87,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web chapter QA on `http://localhost:8081`: normal and mobile-width chapter cards rendered provisional labels, recurring details, controls, and connection explanations without horizontal overflow or console errors.
 - Added a Review `Later` action that defers suggestions for the current session without rejecting them, plus copy that makes deferred details feel tucked away rather than lost.
 - Ran local web Review-later QA on `http://localhost:8081`: normal and mobile-width Review allowed deferring a visible suggestion and showed tucked-away copy without horizontal overflow or console errors.
+- Added explicit `Back to Explore` navigation on Explore subpaths and memory detail so users can leave timeline, context, themes, chapters, and detail paths without relying on bottom navigation.
+- Ran local web back-navigation QA on `http://localhost:8081`: normal-width Timeline and mobile-width memory detail both returned to Explore without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -294,7 +296,7 @@ Status: Done
 Done:
 - Review inbox data/UI, quiet optional-review surface with accept/edit/dismiss/defer actions, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
-- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible-chapter card polish, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible-chapter card polish, explicit back-to-Explore affordances, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:
 - None.

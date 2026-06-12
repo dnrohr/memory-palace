@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -441,6 +441,10 @@ export default function App() {
               .filter((item) => item.memoryId === selectedMemory.id && item.type !== "untagged_memory")
               .slice(0, 4)}
             onEdit={() => setMode("editor")}
+            onBack={() => {
+              setPostSaveMemoryId(undefined);
+              setMode("list");
+            }}
             onSelect={(id) => {
               setPostSaveMemoryId(undefined);
               setSelectedId(id);
@@ -485,6 +489,7 @@ export default function App() {
             archive={archive}
             memories={memories}
             onArchiveChange={persist}
+            onBack={() => setMode("list")}
             onSelect={(id) => {
               setSelectedId(id);
               setMode("detail");
@@ -509,6 +514,7 @@ export default function App() {
             archive={archive}
             onSave={async (entity) => persist(upsertLifeContext(archive, entity))}
             onDelete={async (kind, id) => persist(deleteLifeContext(archive, kind, id))}
+            onBack={() => setMode("list")}
             onSelect={(id) => {
               setSelectedId(id);
               setMode("detail");
@@ -535,6 +541,7 @@ export default function App() {
               await persist(deleteTag(archive, tagId));
               setSelectedTagIds((current) => current.filter((id) => id !== tagId));
             }}
+            onBack={() => setMode("list")}
           />
         ) : null}
 
@@ -950,6 +957,7 @@ function LifeContextView(props: {
   archive: MemoryArchive;
   onSave: (entity: LifeContextEntity) => Promise<void>;
   onDelete: (kind: LifeContextKind, id: string) => Promise<void>;
+  onBack: () => void;
   onSelect: (id: string) => void;
 }) {
   const [kind, setKind] = useState<LifeContextKind>("person");
@@ -970,6 +978,7 @@ function LifeContextView(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <PathBackButton onPress={props.onBack} />
       <View style={styles.segmentRow}>
         {(["person", "pet", "place", "life_period"] as LifeContextKind[]).map((value) => (
           <Pressable
@@ -1322,6 +1331,7 @@ function TimelineView(props: {
   archive: MemoryArchive;
   memories: Memory[];
   onArchiveChange: (archive: MemoryArchive) => Promise<void>;
+  onBack: () => void;
   onSelect: (id: string) => void;
 }) {
   const [tab, setTab] = useState<ExploreTab>("timeline");
@@ -1348,6 +1358,7 @@ function TimelineView(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <PathBackButton onPress={props.onBack} />
       <View style={styles.segmentRow}>
         {(["timeline", "graph", "clusters", "chapters"] as ExploreTab[]).map((nextTab) => (
           <Pressable
@@ -2014,6 +2025,7 @@ function TagManagement(props: {
   onTypeChange: (tagId: string, type: TagType) => Promise<void>;
   onMerge: (sourceTagId: string, targetTagId: string) => Promise<void>;
   onDelete: (tagId: string) => Promise<void>;
+  onBack: () => void;
 }) {
   const [editingTagId, setEditingTagId] = useState<string | undefined>();
   const [mergingTagId, setMergingTagId] = useState<string | undefined>();
@@ -2023,6 +2035,7 @@ function TagManagement(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <PathBackButton onPress={props.onBack} />
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionEyebrow}>Themes</Text>
@@ -2403,6 +2416,7 @@ function MemoryDetail(props: {
   postSaveActive: boolean;
   postSaveItems: ReviewInboxItem[];
   onEdit: () => void;
+  onBack: () => void;
   onDelete: () => Promise<void>;
   onSelect: (id: string) => void;
   onAcceptPostSave: (item: ReviewInboxItem) => Promise<void>;
@@ -2438,6 +2452,7 @@ function MemoryDetail(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <PathBackButton onPress={props.onBack} />
       {props.postSaveActive ? (
         <PostSaveSuggestionSheet
           items={props.postSaveItems}
@@ -3256,6 +3271,15 @@ function SecondaryButton(props: { label: string; icon: ReactNode; onPress: () =>
   );
 }
 
+function PathBackButton(props: { onPress: () => void }) {
+  return (
+    <Pressable onPress={props.onPress} style={styles.pathBackButton}>
+      <ArrowLeft size={18} color="#51604f" />
+      <Text style={styles.pathBackText}>Back to Explore</Text>
+    </Pressable>
+  );
+}
+
 function buildUpdatedMemory(memory: Memory, startDate: string, endDate: string): Memory {
   const {
     approximateStartDate: _approximateStartDate,
@@ -3418,6 +3442,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }
+  },
+  pathBackButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#d6d9c8",
+    backgroundColor: "#f8f5ee",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 7
+  },
+  pathBackText: {
+    color: "#51604f",
+    fontSize: 13,
+    fontWeight: "700"
   },
   brand: {
     fontSize: 24,
