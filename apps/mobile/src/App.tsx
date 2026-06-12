@@ -95,14 +95,21 @@ import {
 } from "./audioCapture";
 import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
+import {
+  DEFAULT_APP_SETTINGS,
+  loadAppSettings,
+  saveEmbeddingMaintenanceMode,
+  saveEncryptionSettings,
+  saveStructuredExtractionMode,
+  type EmbeddingMaintenanceMode,
+  type StructuredExtractionMode
+} from "./settingsStore";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
 type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
 type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
-type StructuredExtractionMode = "none" | "rules";
-type EmbeddingMaintenanceMode = "automatic" | "manual";
 
 export default function App() {
   const { width } = useWindowDimensions();
@@ -113,13 +120,13 @@ export default function App() {
     autoLockTimeoutMs: 0,
     hidePreviewsInSwitcher: false
   });
-  const [encryptionSettings, setEncryptionSettings] = useState<EncryptionSettings>({
-    scope: "disabled",
-    keySource: "none",
-    requireUnlockForExport: false
-  });
-  const [structuredExtractionMode, setStructuredExtractionMode] = useState<StructuredExtractionMode>("rules");
-  const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>("automatic");
+  const [encryptionSettings, setEncryptionSettings] = useState<EncryptionSettings>(DEFAULT_APP_SETTINGS.encryptionSettings);
+  const [structuredExtractionMode, setStructuredExtractionMode] = useState<StructuredExtractionMode>(
+    DEFAULT_APP_SETTINGS.structuredExtractionMode
+  );
+  const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>(
+    DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
+  );
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -139,6 +146,14 @@ export default function App() {
       if (indexedMemoryIds.length > 0 || removedMemoryIds.length > 0) {
         await saveArchive(indexedArchive);
       }
+    });
+  }, []);
+
+  useEffect(() => {
+    void loadAppSettings().then((settings) => {
+      setEncryptionSettings(settings.encryptionSettings);
+      setStructuredExtractionMode(settings.structuredExtractionMode);
+      setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
     });
   }, []);
 
@@ -483,9 +498,18 @@ export default function App() {
               await appLockProvider.lock();
               setIsAppLocked(await appLockProvider.isLocked());
             }}
-            onSaveEncryptionSettings={async (settings) => setEncryptionSettings(settings)}
-            onStructuredExtractionModeChange={async (mode) => setStructuredExtractionMode(mode)}
-            onEmbeddingMaintenanceModeChange={async (mode) => setEmbeddingMaintenanceMode(mode)}
+            onSaveEncryptionSettings={async (settings) => {
+              const savedSettings = await saveEncryptionSettings(settings);
+              setEncryptionSettings(savedSettings.encryptionSettings);
+            }}
+            onStructuredExtractionModeChange={async (mode) => {
+              const savedSettings = await saveStructuredExtractionMode(mode);
+              setStructuredExtractionMode(savedSettings.structuredExtractionMode);
+            }}
+            onEmbeddingMaintenanceModeChange={async (mode) => {
+              const savedSettings = await saveEmbeddingMaintenanceMode(mode);
+              setEmbeddingMaintenanceMode(savedSettings.embeddingMaintenanceMode);
+            }}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
@@ -2253,10 +2277,10 @@ function Settings(props: {
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Encryption</Text>
-        <Text style={styles.metadata}>Provider: Web Crypto encrypted exports</Text>
+        <Text style={styles.metadata}>Provider: Web Crypto encrypted exports and archive adapter</Text>
         <Text style={styles.metadata}>
           Status: encrypted exports are available when scope is exports or archive and key source is user passphrase. Archive-at-rest
-          encryption still requires a storage adapter.
+          adapter support is available; startup unlock and storage migration are still pending.
         </Text>
         <View style={styles.filterSection}>
           <Text style={styles.metadata}>Scope</Text>
