@@ -1,6 +1,6 @@
 # Memory Palace Roadmap
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 Memory Palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
 
@@ -14,6 +14,13 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | Phase 4: Optional Expansion | 11-12 | In progress |
 
 ## Implementation Log
+
+### 2026-06-12
+
+- Added `UI_DESIGN_DOCUMENT.md` as the design source for the app experience.
+- Folded the design document into this roadmap as a product posture, UI design track, milestone mapping, and acceptance criteria.
+- Prioritized the next UI implementation slice around Explore-first navigation, central capture, lower-pressure capture, and calmer review/settings surfaces.
+- Implemented the first design-doc UI slice: Explore-first header, bottom navigation with central capture, path cards for timeline/context/themes, lower-pressure new-memory capture, and calmer review/search wording.
 
 ### 2026-06-11
 
@@ -101,7 +108,29 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI. | Production encryption adapter. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
-| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode, memory split/merge flows. | Richer correction/private-note fields and editing polish. |
+| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards, lower-pressure new-memory capture, and calmer search/review wording. | Post-save suggestion sheet, richer correction/private-note fields, emotional-safety controls, responsive layout polish, Settings information architecture polish, microcopy polish, and editing polish. |
+
+## Design North Star
+
+Memory Palace should feel like a private notebook at capture time, an archive box for storage and trust, a museum label on memory detail screens, and a quiet memory palace during exploration.
+
+The main product contrast is:
+
+- Capture removes decisions.
+- Explore offers doors.
+
+The app should not feel like an AI assistant, productivity dashboard, therapy app, social journal, CRM, or quantified-self tool. Intelligence should be modest and explainable. Structure should help the user move through memories without making the app sound certain about the user's life.
+
+Fixed design decisions:
+
+- Save before metadata. Title, date, tags, people, places, pets, chapters, and emotional labels are second-layer activities.
+- Do not retain audio by default. The transcript is the saved memory unless the user opts into keeping the recording.
+- Titles are generated or later edited, not required during capture.
+- Explore begins with paths: timeline, people and pets, places, themes, chapters, unknown dates, recently added memories, and continue-from cards.
+- Every generated connection explains itself in plain language.
+- Generated structures remain provisional until the user accepts or edits them.
+- Do not use gamification, streaks, confetti, scores, sentiment dashboards, or productivity framing.
+- Put technical truth in Settings: processing modes, local/cloud state, encryption, retained audio, stale embeddings, storage estimates, logs, and diagnostics.
 
 ## Product Principles
 
@@ -111,6 +140,67 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - User-confirmed metadata wins over imported, inferred, rule-based, model, or cloud suggestions.
 - All replaceable capabilities sit behind interfaces: transcription, structured extraction, embeddings, search, sync, export/import, visualization, and security.
 - Export must remain boring and durable: JSON, Markdown, and eventually SQLite.
+
+## UI Design Track
+
+The design work from `UI_DESIGN_DOCUMENT.md` maps into the existing milestones rather than creating a competing roadmap.
+
+| Design Area | Roadmap Placement |
+| --- | --- |
+| Cross-platform mobile, tablet, and desktop layouts | Milestone 1 device-level QA and Milestone 12 responsive polish |
+| Search labels, theme shelves, and calmer tag browsing | Milestone 2 search polish and Milestone 12 Explore design |
+| Recording state, transcript review, audio-retention copy, and interruption handling | Milestone 3 voice capture |
+| Entity pages that feel like constellations rather than CRM records | Milestone 5 life-context graph and Milestone 12 Explore design |
+| Local model surfaces and generated metadata wording | Milestone 6 structured extraction and Milestone 12 microcopy |
+| Nearby-memory language and connection explanations | Milestone 7 semantic search and Milestone 12 memory detail polish |
+| Explore home, paths, timeline/date certainty treatment, chapters, and related memories | Milestone 8 functionality plus Milestone 12 design polish |
+| Privacy, storage, app lock, encryption, logs, and diagnostics information architecture | Milestone 10 trust and Settings polish |
+| Optional cloud/sync visibility and consent boundaries | Milestone 11 opt-in expansion |
+| App shell, central capture, post-save suggestions, Review tone, sensitive-memory controls, dark theme, motion, gestures, component system, and editing polish | Milestone 12 product refinement |
+
+Design implementation should happen in this order:
+
+1. App shell with Explore, central capture, Review, and Settings.
+2. Lower-pressure New Memory flow with save-before-metadata behavior and transcript review language.
+3. Explore home with path cards, visible-but-secondary search, recently added memories, and unknown-date entry points.
+4. Memory card/detail polish with date certainty labels and connection explanations.
+5. Review inbox tone and actions: accept, edit, dismiss, later.
+6. Settings section reorganization for privacy, local processing, audio retention, app lock, encryption, export/import, storage, logs, and diagnostics.
+7. Emotional-safety controls: sensitive memories, show less like this, exclude from resurfacing, and opt-in resurfacing.
+
+## UI Acceptance Criteria
+
+Capture:
+
+- User can save a memory without title, date, or tags.
+- User can save before suggestions appear.
+- User understands audio is not kept unless they choose it.
+- User can recover from voice or transcription failure.
+- Capture does not feel like a form.
+
+Explore:
+
+- User can find a known memory.
+- User can drift from one memory to another.
+- User can browse without using search.
+- User understands approximate and unknown dates.
+- User can see why related memories appear.
+- User can back out of any path.
+
+Review:
+
+- User understands suggestions are optional.
+- User can accept, edit, dismiss, or defer.
+- Review does not feel like a chore list.
+- Rejected suggestions do not repeatedly return.
+
+Settings:
+
+- User understands where data lives.
+- User understands export options.
+- User understands audio retention.
+- User understands local/cloud processing state.
+- Advanced diagnostics are present but not intrusive.
 
 ## Core Architecture
 
@@ -143,9 +233,10 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Add native speech-to-text adapter behind `ITranscriptionEngine`.
-2. Add cluster/chapter merge and split actions.
-3. Add user-selectable import conflict resolution.
-4. Add encryption options and stronger deletion guarantees.
-5. Add native speech-to-text adapter and interruption/background handling.
-6. Add production local embedding/model adapters when target models are selected.
+1. Add a post-save suggestion sheet so structure appears only after the memory is safely saved.
+2. Expand Explore home with recently added memories, unknown-date entry points, and continue-from cards.
+3. Polish memory cards/detail with date certainty labels and plain-language connection reasons.
+4. Reorganize Settings around privacy, local processing, audio retention, app lock, encryption, export/import, storage, logs, and diagnostics.
+5. Add emotional-safety controls for sensitive memories and resurfacing exclusions.
+6. Add native speech-to-text adapter behind `ITranscriptionEngine` plus interruption/background handling.
+7. Add production local embedding/model adapters when target models are selected.

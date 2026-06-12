@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Download, Edit3, List, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import { CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -256,16 +256,6 @@ export default function App() {
       <View style={styles.shell}>
         <Header
           mode={mode}
-          onNew={() => {
-            setSelectedId(undefined);
-            setMode("editor");
-          }}
-          onVoice={() => setMode("voice")}
-          onList={() => setMode("list")}
-          onTimeline={() => setMode("timeline")}
-          onReview={() => setMode("review")}
-          onContext={() => setMode("context")}
-          onTags={() => setMode("tags")}
           onSettings={() => setMode("settings")}
         />
 
@@ -313,6 +303,9 @@ export default function App() {
               setSelectedId(undefined);
               setMode("editor");
             }}
+            onTimeline={() => setMode("timeline")}
+            onContext={() => setMode("context")}
+            onTags={() => setMode("tags")}
             onFastCapture={async (text) => {
               const memory = createMemory(text);
               await persist(upsertMemory(archive, memory));
@@ -327,6 +320,7 @@ export default function App() {
             archive={archive}
             structuredExtractionMode={structuredExtractionMode}
             {...(selectedMemory ? { memory: selectedMemory } : {})}
+            onVoice={() => setMode("voice")}
             onCancel={() => setMode(selectedMemory ? "detail" : "list")}
             onSave={async (memory, tagText) => {
               const withMemory = upsertMemory(archive, memory);
@@ -475,6 +469,17 @@ export default function App() {
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
           />
         ) : null}
+
+        <BottomNavigation
+          mode={mode}
+          onExplore={() => setMode("list")}
+          onCapture={() => {
+            setSelectedId(undefined);
+            setMode("editor");
+          }}
+          onReview={() => setMode("review")}
+          onSettings={() => setMode("settings")}
+        />
       </View>
     </SafeAreaView>
   );
@@ -482,33 +487,94 @@ export default function App() {
 
 function Header(props: {
   mode: ViewMode;
-  onNew: () => void;
-  onVoice: () => void;
-  onList: () => void;
-  onTimeline: () => void;
-  onReview: () => void;
-  onContext: () => void;
-  onTags: () => void;
   onSettings: () => void;
 }) {
+  const title = screenTitle(props.mode);
+  const subtitle = screenSubtitle(props.mode);
+
   return (
     <View style={styles.header}>
       <View>
-        <Text style={styles.brand}>Memory Palace</Text>
-        <Text style={styles.subtle}>Local archive</Text>
+        <Text style={styles.brand}>{title}</Text>
+        <Text style={styles.subtle}>{subtitle}</Text>
       </View>
       <View style={styles.headerActions}>
-        <IconButton label="List" active={props.mode === "list"} onPress={props.onList} icon={<List size={20} />} />
-        <IconButton label="New" active={props.mode === "editor"} onPress={props.onNew} icon={<Plus size={20} />} />
-        <IconButton label="Voice" active={props.mode === "voice"} onPress={props.onVoice} icon={<Mic size={20} />} />
-        <IconButton label="Timeline" active={props.mode === "timeline"} onPress={props.onTimeline} icon={<CalendarDays size={20} />} />
-        <IconButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
-        <IconButton label="Context" active={props.mode === "context"} onPress={props.onContext} icon={<Users size={20} />} />
-        <IconButton label="Tags" active={props.mode === "tags"} onPress={props.onTags} icon={<Tags size={20} />} />
         <IconButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
       </View>
     </View>
   );
+}
+
+function BottomNavigation(props: {
+  mode: ViewMode;
+  onExplore: () => void;
+  onCapture: () => void;
+  onReview: () => void;
+  onSettings: () => void;
+}) {
+  const exploreActive = ["list", "timeline", "detail", "context", "tags"].includes(props.mode);
+
+  return (
+    <View style={styles.bottomNav}>
+      <NavButton label="Explore" active={exploreActive} onPress={props.onExplore} icon={<Search size={20} />} />
+      <Pressable accessibilityLabel="New memory" onPress={props.onCapture} style={styles.captureButton}>
+        <Plus size={26} color="#ffffff" />
+      </Pressable>
+      <NavButton label="Review" active={props.mode === "review"} onPress={props.onReview} icon={<ClipboardList size={20} />} />
+      <NavButton label="Settings" active={props.mode === "settings"} onPress={props.onSettings} icon={<SettingsIcon size={20} />} />
+    </View>
+  );
+}
+
+function NavButton(props: { label: string; icon: ReactNode; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={props.onPress} style={[styles.navButton, props.active ? styles.navButtonActive : null]}>
+      {props.icon}
+      <Text style={[styles.navLabel, props.active ? styles.navLabelActive : null]}>{props.label}</Text>
+    </Pressable>
+  );
+}
+
+function screenTitle(mode: ViewMode): string {
+  switch (mode) {
+    case "editor":
+      return "New Memory";
+    case "voice":
+      return "Voice";
+    case "detail":
+      return "Memory";
+    case "timeline":
+      return "Ways through";
+    case "review":
+      return "Review";
+    case "context":
+      return "People, Pets, Places";
+    case "tags":
+      return "Themes";
+    case "settings":
+      return "Settings";
+    default:
+      return "Explore";
+  }
+}
+
+function screenSubtitle(mode: ViewMode): string {
+  switch (mode) {
+    case "editor":
+      return "A fragment is enough";
+    case "voice":
+      return "No audio is kept unless you choose";
+    case "review":
+      return "Possible details";
+    case "settings":
+      return "Privacy, storage, and portability";
+    case "timeline":
+    case "context":
+    case "tags":
+      return "Move through the archive";
+    default:
+      return "Local memory archive";
+  }
 }
 
 function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: string) => Promise<boolean> }) {
@@ -880,7 +946,7 @@ function ReviewInboxView(props: {
                   <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
                 ) : null}
                 {item.type === "tag_suggestion" ? (
-                  <SecondaryButton label="Reject" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
+                  <SecondaryButton label="Dismiss" onPress={() => void props.onReject(item)} icon={<X size={18} />} />
                 ) : null}
               </View>
             </Pressable>
@@ -1165,11 +1231,11 @@ function ChapterCandidateCard(props: {
 function reviewTypeLabel(type: string): string {
   switch (type) {
     case "tag_suggestion":
-      return "Suggested tag";
+      return "Possible tag";
     case "date_suggestion":
-      return "Suggested date";
+      return "Possible date";
     case "untagged_memory":
-      return "Needs tags";
+      return "Possible details";
     default:
       return "Review";
   }
@@ -1198,6 +1264,9 @@ function MemoryList(props: {
   onPrompt: (prompt: ResurfacingPrompt) => void;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onTimeline: () => void;
+  onContext: () => void;
+  onTags: () => void;
   onFastCapture: (text: string) => Promise<void>;
 }) {
   const [fastCaptureText, setFastCaptureText] = useState("");
@@ -1221,20 +1290,21 @@ function MemoryList(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.filterPanel}>
-        <Text style={styles.panelTitle}>Fast capture</Text>
+      <View style={styles.capturePanel}>
+        <Text style={styles.capturePrompt}>What came back?</Text>
         <TextInput
           value={fastCaptureText}
           onChangeText={setFastCaptureText}
-          placeholder="Jot a memory"
+          placeholder="Put the fragment here"
           placeholderTextColor="#7b8178"
           multiline
           textAlignVertical="top"
           style={styles.fastCaptureInput}
         />
+        <Text style={styles.metadata}>Dates and tags can wait.</Text>
         <View style={styles.actionRow}>
           <PrimaryButton label="Save memory" onPress={saveFastCapture} disabled={!fastCaptureText.trim()} icon={<Save size={18} />} />
-          <SecondaryButton label="Full editor" onPress={props.onNew} icon={<Plus size={18} />} />
+          <SecondaryButton label="Open capture" onPress={props.onNew} icon={<Plus size={18} />} />
         </View>
       </View>
       {props.prompts.length > 0 ? (
@@ -1252,7 +1322,7 @@ function MemoryList(props: {
         <TextInput
           value={props.query}
           onChangeText={props.onQueryChange}
-          placeholder={props.searchMode === "semantic" ? "Search by meaning" : "Search memories or tags"}
+          placeholder={props.searchMode === "semantic" ? "Nearby memories" : "Search memories"}
           placeholderTextColor="#7b8178"
           style={styles.searchInput}
         />
@@ -1265,11 +1335,37 @@ function MemoryList(props: {
             style={[styles.segment, props.searchMode === mode ? styles.segmentActive : null]}
           >
             <Text style={[styles.segmentText, props.searchMode === mode ? styles.segmentTextActive : null]}>
-              {mode}
+              {mode === "semantic" ? "Nearby" : "Keyword"}
             </Text>
           </Pressable>
         ))}
         {props.semanticSearchPending ? <Text style={styles.metadata}>Searching local index</Text> : null}
+      </View>
+      <View style={styles.pathGrid}>
+        <PathCard
+          label="Timeline"
+          detail="By approximate date"
+          icon={<CalendarDays size={20} color="#5f655d" />}
+          onPress={props.onTimeline}
+        />
+        <PathCard
+          label="People & pets"
+          detail="Known companions"
+          icon={<Users size={20} color="#5f655d" />}
+          onPress={props.onContext}
+        />
+        <PathCard
+          label="Places"
+          detail="Homes and rooms"
+          icon={<MapPin size={20} color="#5f655d" />}
+          onPress={props.onContext}
+        />
+        <PathCard
+          label="Themes"
+          detail={`${props.archive.tags.length} tags`}
+          icon={<Tags size={20} color="#5f655d" />}
+          onPress={props.onTags}
+        />
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Filters</Text>
@@ -1355,6 +1451,18 @@ function HighlightedText(props: { text: string; query: string }) {
       <Text style={styles.highlightText}>{props.text.slice(index, index + query.length)}</Text>
       {props.text.slice(index + query.length)}
     </Text>
+  );
+}
+
+function PathCard(props: { label: string; detail: string; icon: ReactNode; onPress: () => void }) {
+  return (
+    <Pressable onPress={props.onPress} style={styles.pathCard}>
+      <View style={styles.pathIcon}>{props.icon}</View>
+      <View style={styles.pathText}>
+        <Text style={styles.memoryTitle}>{props.label}</Text>
+        <Text style={styles.metadata}>{props.detail}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1472,6 +1580,7 @@ function MemoryEditor(props: {
   archive: MemoryArchive;
   structuredExtractionMode: StructuredExtractionMode;
   memory?: Memory;
+  onVoice: () => void;
   onCancel: () => void;
   onSave: (memory: Memory, tagText: string) => Promise<void>;
 }) {
@@ -1487,6 +1596,7 @@ function MemoryEditor(props: {
   const [dateSuggestions, setDateSuggestions] = useState<DateCandidate[]>([]);
 
   const canSave = text.trim().length > 0;
+  const isEditing = Boolean(props.memory);
 
   async function save() {
     if (!canSave) return;
@@ -1544,67 +1654,81 @@ function MemoryEditor(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <TextInput
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Title"
-        placeholderTextColor="#7b8178"
-        style={styles.titleInput}
-      />
+      <View style={styles.capturePanel}>
+        <Text style={styles.capturePrompt}>What came back?</Text>
+        <Text style={styles.metadata}>You can save this before you understand where it belongs.</Text>
+      </View>
       <TextInput
         value={text}
         onChangeText={setText}
-        placeholder="Write a memory"
+        placeholder="A fragment is enough"
         placeholderTextColor="#7b8178"
         multiline
         textAlignVertical="top"
         style={styles.bodyInput}
       />
-      <TextInput
-        value={tagText}
-        onChangeText={setTagText}
-        placeholder="Tags, separated by commas"
-        placeholderTextColor="#7b8178"
-        style={styles.tagInput}
-      />
-      <View style={styles.datePanel}>
-        <View style={styles.panelHeader}>
-          <CalendarDays size={18} color="#374236" />
-          <Text style={styles.panelTitle}>Memory date</Text>
-        </View>
-        <View style={styles.segmentRow}>
-          {(["unknown", "year", "grade", "range", "exact"] as DatePrecision[]).map((precision) => (
-            <Pressable
-              key={precision}
-              onPress={() => setDatePrecision(precision)}
-              style={[styles.segment, datePrecision === precision ? styles.segmentActive : null]}
-            >
-              <Text style={[styles.segmentText, datePrecision === precision ? styles.segmentTextActive : null]}>
-                {precision}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.dateInputs}>
+      {isEditing ? (
+        <>
           <TextInput
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="Start date"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Title"
             placeholderTextColor="#7b8178"
-            style={styles.dateInput}
+            style={styles.titleInput}
           />
           <TextInput
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="End date"
+            value={tagText}
+            onChangeText={setTagText}
+            placeholder="Tags, separated by commas"
             placeholderTextColor="#7b8178"
-            style={styles.dateInput}
+            style={styles.tagInput}
           />
+          <View style={styles.datePanel}>
+            <View style={styles.panelHeader}>
+              <CalendarDays size={18} color="#374236" />
+              <Text style={styles.panelTitle}>Memory date</Text>
+            </View>
+            <View style={styles.segmentRow}>
+              {(["unknown", "year", "grade", "range", "exact"] as DatePrecision[]).map((precision) => (
+                <Pressable
+                  key={precision}
+                  onPress={() => setDatePrecision(precision)}
+                  style={[styles.segment, datePrecision === precision ? styles.segmentActive : null]}
+                >
+                  <Text style={[styles.segmentText, datePrecision === precision ? styles.segmentTextActive : null]}>
+                    {precision}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.dateInputs}>
+              <TextInput
+                value={startDate}
+                onChangeText={setStartDate}
+                placeholder="Start date"
+                placeholderTextColor="#7b8178"
+                style={styles.dateInput}
+              />
+              <TextInput
+                value={endDate}
+                onChangeText={setEndDate}
+                placeholder="End date"
+                placeholderTextColor="#7b8178"
+                style={styles.dateInput}
+              />
+            </View>
+          </View>
+        </>
+      ) : (
+        <View style={styles.filterPanel}>
+          <Text style={styles.panelTitle}>Optional</Text>
+          <Text style={styles.metadata}>Dates, tags, and title can wait. Memory Palace will suggest possible details after saving.</Text>
+          <SecondaryButton label="Use voice instead" onPress={props.onVoice} icon={<Mic size={18} />} />
         </View>
-      </View>
+      )}
       {tagSuggestions.length > 0 || dateSuggestions.length > 0 ? (
         <View style={styles.suggestionPanel}>
-          <Text style={styles.panelTitle}>Suggested metadata</Text>
+          <Text style={styles.panelTitle}>Possible details</Text>
           <TagRow labels={tagSuggestions.map((tag) => tag.name)} />
           {dateSuggestions.map((candidate) => (
             <Text key={`${candidate.label}-${candidate.startDate ?? ""}`} style={styles.metadata}>
@@ -1615,8 +1739,8 @@ function MemoryEditor(props: {
       ) : null}
       <View style={styles.actionRow}>
         <SecondaryButton label="Cancel" onPress={props.onCancel} icon={<X size={18} />} />
-        <SecondaryButton label="Suggest" onPress={generateSuggestions} icon={<Wand2 size={18} />} />
-        <PrimaryButton label="Save" onPress={save} disabled={!canSave} icon={<Save size={18} />} />
+        {isEditing ? <SecondaryButton label="Suggest" onPress={generateSuggestions} icon={<Wand2 size={18} />} /> : null}
+        <PrimaryButton label={isEditing ? "Save changes" : "Save privately"} onPress={save} disabled={!canSave} icon={<Save size={18} />} />
       </View>
     </ScrollView>
   );
@@ -2228,6 +2352,49 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12
   },
+  bottomNav: {
+    minHeight: 74,
+    borderTopWidth: 1,
+    borderTopColor: "#dedbd1",
+    backgroundColor: "#f8f6f1",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    gap: 10
+  },
+  navButton: {
+    minWidth: 72,
+    minHeight: 50,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3
+  },
+  navButtonActive: {
+    backgroundColor: "#ece8dd"
+  },
+  navLabel: {
+    color: "#697067",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  navLabelActive: {
+    color: "#252925"
+  },
+  captureButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#38543c",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#252925",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }
+  },
   brand: {
     fontSize: 24,
     fontWeight: "700",
@@ -2245,7 +2412,21 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 18,
+    paddingBottom: 28,
     gap: 14
+  },
+  capturePanel: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 16,
+    gap: 10
+  },
+  capturePrompt: {
+    color: "#252925",
+    fontSize: 22,
+    fontWeight: "800"
   },
   searchRow: {
     minHeight: 48,
@@ -2391,6 +2572,36 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e1e7d9",
     paddingTop: 10
+  },
+  pathGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  pathCard: {
+    minWidth: 150,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  pathIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: "#ece8dd",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  pathText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2
   },
   relatedPanel: {
     borderWidth: 1,
