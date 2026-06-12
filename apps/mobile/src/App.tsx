@@ -1548,9 +1548,7 @@ function TimelineView(props: {
 
 function FilterChip(props: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={props.onPress} style={[styles.tag, props.selected ? styles.tagSelected : null]}>
-      <Text style={[styles.tagLabel, props.selected ? styles.tagLabelSelected : null]}>{props.label}</Text>
-    </Pressable>
+    <TagPill label={props.label} selected={props.selected} onPress={props.onPress} />
   );
 }
 
@@ -1912,15 +1910,11 @@ function MemoryList(props: {
           const result = searchResultsByMemoryId.get(memory.id);
           const preview = result?.snippet ?? memory.cleanedText ?? memory.rawText;
           return (
-            <Pressable key={memory.id} style={styles.memoryCard} onPress={() => props.onSelect(memory.id)}>
-              <View style={styles.memoryCardHeader}>
-                <Text style={styles.memoryTitle}>{memory.title}</Text>
-                <DateCertaintyLabel memory={memory} />
-              </View>
+            <MemoryCard key={memory.id} memory={memory} onPress={() => props.onSelect(memory.id)}>
               <HighlightedText text={preview} query={props.searchMode === "keyword" ? props.query : ""} />
               {result?.matchedTags.length ? <Text style={styles.metadata}>Matched tags: {result.matchedTags.join(", ")}</Text> : null}
               <TagRow labels={tagsForMemory(props.archive, memory.id).map((tag) => tag.name)} />
-            </Pressable>
+            </MemoryCard>
           );
         })
       )}
@@ -3264,12 +3258,32 @@ function TagRow(props: { labels: string[] }) {
   if (props.labels.length === 0) return null;
   return (
     <View style={styles.tags}>
-      {props.labels.map((label) => (
-        <View key={label} style={styles.tag}>
-          <Text style={styles.tagLabel}>{label}</Text>
-        </View>
-      ))}
+      {props.labels.map((label) => <TagPill key={label} label={label} />)}
     </View>
+  );
+}
+
+function TagPill(props: { label: string; selected?: boolean; onPress?: () => void }) {
+  const label = <Text style={[styles.tagLabel, props.selected ? styles.tagLabelSelected : null]}>{props.label}</Text>;
+  if (props.onPress) {
+    return (
+      <Pressable onPress={props.onPress} style={[styles.tag, props.selected ? styles.tagSelected : null]}>
+        {label}
+      </Pressable>
+    );
+  }
+  return <View style={styles.tag}>{label}</View>;
+}
+
+function MemoryCard(props: { memory: Memory; onPress: () => void; children: ReactNode }) {
+  return (
+    <Pressable style={styles.memoryCard} onPress={props.onPress}>
+      <View style={styles.memoryCardHeader}>
+        <Text style={styles.memoryCardTitle}>{props.memory.title}</Text>
+        <DateCertaintyLabel memory={props.memory} />
+      </View>
+      {props.children}
+    </Pressable>
   );
 }
 
@@ -3644,6 +3658,13 @@ const lightStyles = StyleSheet.create({
     gap: 10
   },
   memoryTitle: {
+    color: "#252925",
+    fontSize: 18,
+    fontWeight: "700"
+  },
+  memoryCardTitle: {
+    flex: 1,
+    minWidth: 0,
     color: "#252925",
     fontSize: 18,
     fontWeight: "700"
