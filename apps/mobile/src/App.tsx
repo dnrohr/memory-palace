@@ -1291,6 +1291,8 @@ function MemoryList(props: {
       }).map((result) => [result.memory.id, result])
     );
   }, [props.archive, props.query, props.searchMode, props.selectedDatePrecision, props.selectedTagIds]);
+  const activeMemories = props.archive.memories.filter((memory) => !memory.deletedAt);
+  const unknownDateCount = activeMemories.filter((memory) => memory.datePrecision === "unknown").length;
 
   async function saveFastCapture() {
     const text = fastCaptureText.trim();
@@ -1320,7 +1322,7 @@ function MemoryList(props: {
       </View>
       {props.prompts.length > 0 ? (
         <View style={styles.promptPanel}>
-          <Text style={styles.panelTitle}>Prompts</Text>
+          <Text style={styles.panelTitle}>Continue from</Text>
           {props.prompts.slice(0, 3).map((prompt) => (
             <Pressable key={prompt.id} style={styles.promptItem} onPress={() => props.onPrompt(prompt)}>
               <Text style={styles.memoryPreview}>{prompt.label}</Text>
@@ -1377,6 +1379,12 @@ function MemoryList(props: {
           icon={<Tags size={20} color="#5f655d" />}
           onPress={props.onTags}
         />
+        <PathCard
+          label="Unknown dates"
+          detail={`${unknownDateCount} memories`}
+          icon={<CalendarDays size={20} color="#5f655d" />}
+          onPress={() => props.onSelectDatePrecision("unknown")}
+        />
       </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Filters</Text>
@@ -1410,6 +1418,11 @@ function MemoryList(props: {
         {props.query || props.selectedTagIds.length > 0 || props.selectedDatePrecision ? (
           <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} />
         ) : null}
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.panelTitle}>{props.query || props.selectedTagIds.length > 0 || props.selectedDatePrecision ? "Matching memories" : "Recently added"}</Text>
+        <Text style={styles.metadata}>{props.memories.length} {props.memories.length === 1 ? "memory" : "memories"}</Text>
       </View>
 
       {props.memories.length === 0 ? (
@@ -2668,6 +2681,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 2
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
   },
   relatedPanel: {
     borderWidth: 1,
