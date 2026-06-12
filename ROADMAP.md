@@ -147,20 +147,141 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ## Milestone Status
 
-| Milestone | Status | Done | Remaining |
-| --- | --- | --- | --- |
-| 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking, richer settings, storage diagnostics. | Device-level QA. |
-| 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, native SQLite FTS rebuild/query integration. | Device-level search and keyboard QA. |
-| 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, native speech permissions config, editable manual fallback on recognition errors, and AppState interruption/background handling. | Device-level speech QA. |
-| 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
-| 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
-| 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Production local model/runtime selection and device QA. |
-| 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model/runtime selection and device QA. |
-| 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
-| 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
-| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, persisted encryption/local-processing preferences, Web Crypto AES-GCM encrypted export provider, portable archive-at-rest encryption adapter, startup unlock for encrypted archive records, encrypted save path after archive unlock, and plaintext primary-storage cleanup after encrypted saves. | Device QA for app lock, encrypted exports, encrypted backup, and archive-at-rest unlock/migration paths. |
-| 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape, opt-in encrypted backup/sync provider backed by the archive-at-rest adapter, WebDAV encrypted sync provider target, Settings UI for local encrypted backup sync with an explicit passphrase, and Settings UI for explicit WebDAV URL/credentials/passphrase sync. | Device QA for WebDAV sync and any cloud-AI adapters behind explicit consent. |
-| 12. Product Refinement and Habit Formation | Done | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, low-saturation varied path cards, post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish. | None. |
+### 1. Product Skeleton and Local Database
+
+Status: In progress
+
+Done:
+- App shell, CRUD, export, restore, and permanent delete.
+- Native SQLite path, web fallback, and migration tracking.
+- Richer settings and storage diagnostics.
+
+Remaining:
+- Device-level QA.
+
+### 2. Manual Tags and Basic Search
+
+Status: In progress
+
+Done:
+- Manual tag assignment, tag management, filters, tag type editing, and tag merge UI/operations.
+- Basic search, ranked portable search snippets, keyword highlighting, and matched-tag labels.
+- Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
+
+Remaining:
+- Device-level search and keyboard QA.
+
+### 3. Voice Capture and Transcription
+
+Status: In progress
+
+Done:
+- Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and typed recording errors.
+- Capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, and native speech permissions config.
+- Editable manual fallback on recognition errors and AppState interruption/background handling.
+
+Remaining:
+- Device-level speech QA.
+
+### 4. Rules-Based Metadata Suggestions
+
+Status: Done
+
+Done:
+- Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, and review UI with source/explanation provenance.
+- Accept/reject actions and rejected-tag feedback for future suggestions.
+
+Remaining:
+- None.
+
+### 5. Life Context Graph
+
+Status: Done
+
+Done:
+- People, pets, places, and life-period schema/types, app management UI, and basic text matcher.
+- Graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships.
+
+Remaining:
+- None.
+
+### 6. Local Structured Extraction Model
+
+Status: In progress
+
+Done:
+- Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
+- Settings controls for local rules extraction.
+
+Remaining:
+- Production local model/runtime selection and device QA.
+
+### 7. Semantic Search and Embeddings
+
+Status: In progress
+
+Done:
+- Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
+- Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
+
+Remaining:
+- Production local embedding model/runtime selection and device QA.
+
+### 8. Timeline and Memory Visualization
+
+Status: Done
+
+Done:
+- Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, and related memories.
+
+Remaining:
+- None.
+
+### 9. Import, Export, and Data Portability
+
+Status: Done
+
+Done:
+- JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, and backup manifest.
+- JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, and user-selectable import conflict resolution.
+
+Remaining:
+- None.
+
+### 10. Privacy, Security, and Trust
+
+Status: In progress
+
+Done:
+- Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, and deleted-artifact cleanup for audio references and stale embeddings.
+- App-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, and persisted encryption/local-processing preferences.
+- Web Crypto AES-GCM encrypted export provider, portable archive-at-rest encryption adapter, startup unlock for encrypted archive records, encrypted save path after archive unlock, and plaintext primary-storage cleanup after encrypted saves.
+
+Remaining:
+- Device QA for app lock, encrypted exports, encrypted backup, and archive-at-rest unlock/migration paths.
+
+### 11. Optional Cloud and Sync Layer
+
+Status: In progress
+
+Done:
+- Sync provider contract, disabled no-sync provider, conflict shape, and opt-in encrypted backup/sync provider backed by the archive-at-rest adapter.
+- WebDAV encrypted sync provider target, Settings UI for local encrypted backup sync with an explicit passphrase, and Settings UI for explicit WebDAV URL/credentials/passphrase sync.
+
+Remaining:
+- Device QA for WebDAV sync and any cloud-AI adapters behind explicit consent.
+
+### 12. Product Refinement and Habit Formation
+
+Status: Done
+
+Done:
+- Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
+- Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+
+Remaining:
+- None.
 
 ## Design North Star
 
