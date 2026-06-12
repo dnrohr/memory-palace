@@ -1,16 +1,17 @@
 import type { MemoryArchive } from "../core/archive";
 import { tagsForMemoryArchive } from "../core/archiveOperations";
+import { findLifeContextMatches } from "../core/lifeContext";
 
 export type GraphNode = {
   id: string;
   label: string;
-  kind: "memory" | "tag";
+  kind: "memory" | "tag" | "person" | "pet" | "place" | "life_period";
 };
 
 export type GraphEdge = {
   source: string;
   target: string;
-  kind: "memory_tag";
+  kind: "memory_tag" | "memory_context";
 };
 
 export type TagGraphData = {
@@ -41,8 +42,20 @@ export function buildTagGraphData(archive: MemoryArchive): TagGraphData {
         kind: "memory_tag"
       });
     }
+
+    for (const match of findLifeContextMatches(memory.cleanedText ?? memory.rawText, archive)) {
+      nodes.set(`${match.kind}:${match.id}`, {
+        id: `${match.kind}:${match.id}`,
+        label: match.name,
+        kind: match.kind
+      });
+      edges.push({
+        source: `memory:${memory.id}`,
+        target: `${match.kind}:${match.id}`,
+        kind: "memory_context"
+      });
+    }
   }
 
   return { nodes: [...nodes.values()], edges };
 }
-

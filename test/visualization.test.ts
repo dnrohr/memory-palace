@@ -9,7 +9,7 @@ const archive: MemoryArchive = {
   memories: [
     {
       id: "mem-1",
-      rawText: "One",
+      rawText: "One memory with Maya at old house",
       title: "One",
       createdAt: "2026-06-11T00:00:00.000Z",
       updatedAt: "2026-06-11T00:00:00.000Z",
@@ -59,9 +59,24 @@ const archive: MemoryArchive = {
       createdAt: "2026-06-11T00:00:00.000Z"
     }
   ],
-  people: [],
+  people: [
+    {
+      id: "person-1",
+      displayName: "Maya",
+      normalizedName: "maya",
+      relationship: "friend",
+      createdAt: "2026-06-11T00:00:00.000Z"
+    }
+  ],
   pets: [],
-  places: [],
+  places: [
+    {
+      id: "place-1",
+      name: "old house",
+      type: "house",
+      privacyLevel: "vague"
+    }
+  ],
   lifePeriods: [],
   processingRuns: []
 };
@@ -73,10 +88,17 @@ describe("visualization data", () => {
     expect(graph.nodes).toEqual(
       expect.arrayContaining([
         { id: "memory:mem-1", label: "One", kind: "memory" },
-        { id: "tag:tag-1", label: "old house", kind: "tag" }
+        { id: "tag:tag-1", label: "old house", kind: "tag" },
+        { id: "person:person-1", label: "Maya", kind: "person" },
+        { id: "place:place-1", label: "old house", kind: "place" }
       ])
     );
-    expect(graph.edges).toHaveLength(2);
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        { source: "memory:mem-1", target: "person:person-1", kind: "memory_context" },
+        { source: "memory:mem-1", target: "place:place-1", kind: "memory_context" }
+      ])
+    );
   });
 
   it("builds shared-tag clusters", () => {
@@ -85,4 +107,3 @@ describe("visualization data", () => {
     ]);
   });
 });
-
