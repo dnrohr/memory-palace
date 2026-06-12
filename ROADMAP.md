@@ -83,6 +83,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web Settings QA on `http://localhost:8081`: normal and mobile-width Settings rendered trust cards and separated diagnostics without horizontal overflow or console errors.
 - Polished the voice capture surface with a private-listening panel, soft waveform/timer treatment, clearer no-audio-retention copy, and gentler transcript-review language.
 - Ran local web voice UI QA on `http://localhost:8081`: normal and mobile-width voice capture rendered the private recording copy, timer, waveform, and start action without horizontal overflow or console errors.
+- Polished possible chapter cards with provisional framing, recurring details, memory previews, connection reasons, and quieter hide/rename/split/merge controls.
+- Ran local web chapter QA on `http://localhost:8081`: normal and mobile-width chapter cards rendered provisional labels, recurring details, controls, and connection explanations without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -243,7 +245,7 @@ Remaining:
 Status: Done
 
 Done:
-- Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, and related memories.
+- Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, polished possible chapter cards, persisted chapter rename/reject/merge/split actions, and related memories.
 
 Remaining:
 - None.
@@ -290,7 +292,7 @@ Status: Done
 Done:
 - Review inbox data/UI, quiet optional-review surface, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
-- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible-chapter card polish, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:
 - None.

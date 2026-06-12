@@ -1487,6 +1487,7 @@ function TimelineView(props: {
           chapters.map((chapter, index) => (
             <ChapterCandidateCard
               key={chapter.id}
+              archive={props.archive}
               chapter={chapter}
               {...(index > 0 && chapters[index - 1] ? { previousChapter: chapters[index - 1] } : {})}
               memoriesById={memoriesById}
@@ -1512,6 +1513,7 @@ function FilterChip(props: { label: string; selected: boolean; onPress: () => vo
 }
 
 function ChapterCandidateCard(props: {
+  archive: MemoryArchive;
   chapter: LifeChapterCandidate;
   previousChapter?: LifeChapterCandidate;
   memoriesById: Map<string, Memory>;
@@ -1523,52 +1525,121 @@ function ChapterCandidateCard(props: {
 }) {
   const [draftName, setDraftName] = useState(props.chapter.name);
   const splitMemoryId = props.chapter.memoryIds[0];
+  const chapterMemories = props.chapter.memoryIds
+    .map((memoryId) => props.memoriesById.get(memoryId))
+    .filter((memory): memory is Memory => Boolean(memory));
+  const recurringDetails = topChapterDetailLabels(props.archive, chapterMemories);
+  const chapterPeriod = formatChapterPeriod(chapterMemories);
 
   useEffect(() => {
     setDraftName(props.chapter.name);
   }, [props.chapter.name]);
 
   return (
-    <View style={styles.filterPanel}>
-      <TextInput
-        value={draftName}
-        onChangeText={setDraftName}
-        placeholder="Chapter name"
-        placeholderTextColor="#7b8178"
-        style={styles.tagInput}
-      />
-      <Text style={styles.metadata}>
-        {props.chapter.memoryIds.length} memories · {props.chapter.basis.replace("_", " ")}
-      </Text>
-      <View style={styles.actionRow}>
-        <SecondaryButton label="Rename" onPress={() => props.onRename(draftName)} icon={<Save size={18} />} />
-        {props.previousChapter ? (
-          <SecondaryButton
-            label="Merge into previous"
-            onPress={() => props.onMergeInto(props.previousChapter!.id)}
-            icon={<Plus size={18} />}
-          />
-        ) : null}
-        {splitMemoryId && props.chapter.memoryIds.length > 1 ? (
-          <SecondaryButton
-            label="Split first"
-            onPress={() => props.onSplit([splitMemoryId], `${props.chapter.name} split`)}
-            icon={<Edit3 size={18} />}
-          />
-        ) : null}
-        <SecondaryButton label="Reject" onPress={props.onReject} icon={<X size={18} />} />
+    <View style={styles.chapterCard}>
+      <View style={styles.constellationHeader}>
+        <View style={styles.detailTitleBlock}>
+          <Text style={styles.sectionEyebrow}>Possible chapter</Text>
+          <Text style={styles.memoryTitle}>{props.chapter.name}</Text>
+          <View style={styles.constellationStats}>
+            <Text style={styles.timelineBadge}>{formatChapterBasis(props.chapter.basis)}</Text>
+            <Text style={styles.metadata}>
+              {props.chapter.memoryIds.length} {props.chapter.memoryIds.length === 1 ? "memory" : "memories"}
+            </Text>
+            {chapterPeriod ? <Text style={styles.metadata}>{chapterPeriod}</Text> : null}
+          </View>
+        </View>
       </View>
-      {props.chapter.memoryIds.slice(0, 5).map((memoryId) => {
-        const memory = props.memoriesById.get(memoryId);
-        if (!memory) return null;
-        return (
-          <Pressable key={memoryId} style={styles.relatedItem} onPress={() => props.onSelect(memoryId)}>
-            <Text style={styles.memoryTitle}>{memory.title}</Text>
+
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Recurring details</Text>
+        {recurringDetails.length > 0 ? (
+          <TagRow labels={recurringDetails} />
+        ) : (
+          <Text style={styles.metadata}>Details will appear as memories overlap.</Text>
+        )}
+      </View>
+
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Memories</Text>
+        {chapterMemories.slice(0, 5).map((memory) => (
+          <Pressable key={memory.id} style={styles.chapterMemory} onPress={() => props.onSelect(memory.id)}>
+            <Text style={styles.memoryPreview} numberOfLines={2}>
+              {memory.title ?? memory.rawText}
+            </Text>
+            <Text style={styles.connectionReason}>Chapter because: {formatChapterBasis(props.chapter.basis)}</Text>
           </Pressable>
-        );
-      })}
+        ))}
+      </View>
+
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Chapter controls</Text>
+        <TextInput
+          value={draftName}
+          onChangeText={setDraftName}
+          placeholder="Chapter name"
+          placeholderTextColor="#7b8178"
+          style={styles.tagInput}
+        />
+        <View style={styles.actionRow}>
+          <SecondaryButton label="Rename" onPress={() => props.onRename(draftName)} icon={<Save size={18} />} />
+          {props.previousChapter ? (
+            <SecondaryButton
+              label="Merge into previous"
+              onPress={() => props.onMergeInto(props.previousChapter!.id)}
+              icon={<Plus size={18} />}
+            />
+          ) : null}
+          {splitMemoryId && props.chapter.memoryIds.length > 1 ? (
+            <SecondaryButton
+              label="Split first"
+              onPress={() => props.onSplit([splitMemoryId], `${props.chapter.name} split`)}
+              icon={<Edit3 size={18} />}
+            />
+          ) : null}
+          <SecondaryButton label="Hide" onPress={props.onReject} icon={<X size={18} />} />
+        </View>
+      </View>
     </View>
   );
+}
+
+function topChapterDetailLabels(archive: MemoryArchive, memories: Memory[]): string[] {
+  const counts = new Map<string, number>();
+  for (const memory of memories) {
+    for (const tag of tagsForMemory(archive, memory.id)) {
+      incrementCount(counts, tag.name);
+    }
+  }
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 5)
+    .map(([name]) => name);
+}
+
+function formatChapterPeriod(memories: Memory[]): string | undefined {
+  const years = memories
+    .flatMap((memory) => [
+      parseYearFromDateText(memory.approximateStartDate),
+      parseYearFromDateText(memory.approximateEndDate)
+    ])
+    .filter((year): year is number => year !== undefined);
+
+  if (years.length === 0) return undefined;
+  const first = Math.min(...years);
+  const last = Math.max(...years);
+  return first === last ? `around ${first}` : `roughly ${first}-${last}`;
+}
+
+function formatChapterBasis(basis: LifeChapterCandidate["basis"]): string {
+  switch (basis) {
+    case "timeline":
+      return "timeline";
+    case "tag_cluster":
+      return "shared tags";
+    case "life_period":
+      return "life period";
+  }
 }
 
 function reviewTypeLabel(type: string): string {
@@ -3671,6 +3742,14 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14
   },
+  chapterCard: {
+    borderWidth: 1,
+    borderColor: "#d7d0c1",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 16,
+    gap: 14
+  },
   constellationHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -3690,6 +3769,14 @@ const styles = StyleSheet.create({
     gap: 8
   },
   constellationMemory: {
+    borderWidth: 1,
+    borderColor: "#e0d8c9",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 12,
+    gap: 5
+  },
+  chapterMemory: {
     borderWidth: 1,
     borderColor: "#e0d8c9",
     backgroundColor: "#fffaf1",
