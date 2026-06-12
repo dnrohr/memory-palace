@@ -17,7 +17,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Ready to Continue Locally
 
-- Milestone 10: add startup unlock, archive-storage migration, and key lifecycle UI around the archive-at-rest adapter.
+- Milestone 10: add primary-storage migration/cleanup and device QA around archive-at-rest encryption.
 - Milestone 11: add real provider targets and consent surfaces for any cloud sync or cloud AI adapters.
 
 ### Needs Model or Provider Selection
@@ -62,6 +62,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web backup QA on `http://localhost:8081`: the encrypted backup panel rendered and completed a dummy-passphrase backup sync without console errors.
 - Added a JSON-speaking local structured-extraction model adapter with prompt construction, fenced JSON parsing, result validation, and tests against a fake local model runtime.
 - Added a local embedding model adapter with single/batch runtime wrapping, vector normalization, dimension checks, and tests against a fake local embedding runtime.
+- Added startup unlock handling for encrypted archive-at-rest records, including a dedicated archive passphrase screen and encrypted save path after unlock.
+- Ran local web startup QA on `http://localhost:8081`: the default non-encrypted startup path still rendered Explore without console errors.
 
 ### 2026-06-11
 
@@ -147,7 +149,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 7. Semantic Search and Embeddings | In progress | Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, related memories, embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, automatic/manual embedding maintenance controls. | Production local embedding model/runtime selection and device QA. |
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
-| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, persisted encryption/local-processing preferences, Web Crypto AES-GCM encrypted export provider, and portable archive-at-rest encryption adapter. | Startup unlock, native/web storage integration for archive-at-rest encryption, key lifecycle, and migration UI. |
+| 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, persisted encryption/local-processing preferences, Web Crypto AES-GCM encrypted export provider, portable archive-at-rest encryption adapter, startup unlock for encrypted archive records, and encrypted save path after archive unlock. | Primary-storage migration/cleanup for archive-at-rest encryption and device QA. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape, opt-in encrypted backup/sync provider backed by the archive-at-rest adapter, and Settings UI for local encrypted backup sync with an explicit passphrase. | Real cloud/provider targets, consent UI, and cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | Done | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, post-save suggestion sheet, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish. | None. |
 

@@ -130,6 +130,9 @@ export default function App() {
   const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>(
     DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
   );
+  const [archiveAtRestPassphrase, setArchiveAtRestPassphrase] = useState("");
+  const [archiveUnlockRequired, setArchiveUnlockRequired] = useState(false);
+  const [archiveUnlockError, setArchiveUnlockError] = useState<string | undefined>();
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -143,20 +146,11 @@ export default function App() {
   const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
   useEffect(() => {
-    void loadArchive().then(async (loadedArchive) => {
-      const { archive: indexedArchive, indexedMemoryIds, removedMemoryIds } = await rebuildEmbeddingIndex(loadedArchive);
-      setArchive(indexedArchive);
-      if (indexedMemoryIds.length > 0 || removedMemoryIds.length > 0) {
-        await saveArchive(indexedArchive);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    void loadAppSettings().then((settings) => {
+    void loadAppSettings().then(async (settings) => {
       setEncryptionSettings(settings.encryptionSettings);
       setStructuredExtractionMode(settings.structuredExtractionMode);
       setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
+      await loadArchiveForSettings(settings.encryptionSettings);
     });
   }, []);
 
@@ -240,11 +234,73 @@ export default function App() {
 
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
+  async function loadArchiveForSettings(settings: EncryptionSettings) {
+    if (settings.scope === "archive" && settings.keySource === "user_passphrase") {
+      const encryptedRecord = await new AsyncStorageArchiveAtRestRecordStore().read();
+      if (encryptedRecord?.format === "memory-palace.archive.encrypted.v1") {
+        setArchiveUnlockRequired(true);
+        return;
+      }
+    }
+
+    await loadAndIndexArchive(await loadArchive());
+  }
+
+  async function loadAndIndexArchive(loadedArchive: MemoryArchive, passphraseOverride?: string) {
+    const { archive: indexedArchive, indexedMemoryIds, removedMemoryIds } = await rebuildEmbeddingIndex(loadedArchive);
+    setArchive(indexedArchive);
+    if (indexedMemoryIds.length > 0 || removedMemoryIds.length > 0) {
+      await saveArchiveForCurrentSettings(indexedArchive, passphraseOverride);
+    }
+  }
+
+  async function unlockEncryptedArchive(passphrase: string): Promise<boolean> {
+    try {
+      setArchiveUnlockError(undefined);
+      const adapter = await createArchiveAtRestAdapter(passphrase);
+      const unlockedArchive = await adapter.loadArchive();
+      if (!unlockedArchive) {
+        setArchiveUnlockError("No encrypted archive was found.");
+        return false;
+      }
+      setArchiveAtRestPassphrase(passphrase);
+      setArchiveUnlockRequired(false);
+      await loadAndIndexArchive(unlockedArchive, passphrase);
+      return true;
+    } catch (error) {
+      setArchiveUnlockError(error instanceof Error ? error.message : "Archive unlock failed.");
+      return false;
+    }
+  }
+
+  async function createArchiveAtRestAdapter(passphrase: string): Promise<EncryptedArchiveAtRestAdapter> {
+    const provider = new WebCryptoExportEncryptionProvider();
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    return new EncryptedArchiveAtRestAdapter(new AsyncStorageArchiveAtRestRecordStore(), provider, {
+      async getPassphrase() {
+        return passphrase;
+      }
+    });
+  }
+
+  async function saveArchiveForCurrentSettings(archiveToSave: MemoryArchive, passphraseOverride?: string) {
+    const passphrase = passphraseOverride ?? archiveAtRestPassphrase;
+    if (encryptionSettings.scope === "archive" && encryptionSettings.keySource === "user_passphrase" && passphrase.trim()) {
+      await (await createArchiveAtRestAdapter(passphrase)).saveArchive(archiveToSave);
+      return;
+    }
+    await saveArchive(archiveToSave);
+  }
+
   async function persist(nextArchive: MemoryArchive, options: { rebuildEmbeddings?: boolean } = {}) {
     const shouldRebuildEmbeddings = embeddingMaintenanceMode === "automatic" || options.rebuildEmbeddings;
     const archiveToSave = shouldRebuildEmbeddings ? (await rebuildEmbeddingIndex(nextArchive)).archive : nextArchive;
     setArchive(archiveToSave);
-    await saveArchive(archiveToSave);
+    await saveArchiveForCurrentSettings(archiveToSave);
   }
 
   async function saveAppLockSettings(settings: AppLockSettings) {
@@ -254,6 +310,14 @@ export default function App() {
   }
 
   if (!archive) {
+    if (archiveUnlockRequired) {
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <ArchiveUnlockView error={archiveUnlockError} onUnlock={unlockEncryptedArchive} />
+        </SafeAreaView>
+      );
+    }
+
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loading}>
@@ -653,6 +717,40 @@ function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: 
       ) : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       <PrimaryButton label="Unlock" onPress={unlock} icon={<Lock size={18} />} />
+    </View>
+  );
+}
+
+function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passphrase: string) => Promise<boolean> }) {
+  const [passphrase, setPassphrase] = useState("");
+  const [localError, setLocalError] = useState<string | undefined>();
+
+  async function unlock() {
+    setLocalError(undefined);
+    if (!passphrase.trim()) {
+      setLocalError("Archive passphrase is required.");
+      return;
+    }
+    const unlocked = await props.onUnlock(passphrase);
+    if (!unlocked) setLocalError("Archive unlock was not completed.");
+  }
+
+  return (
+    <View style={styles.lockScreen}>
+      <Lock size={32} color="#374236" />
+      <Text style={styles.detailTitle}>Encrypted archive</Text>
+      <Text style={styles.metadata}>Enter the archive passphrase to open the local encrypted archive.</Text>
+      <TextInput
+        value={passphrase}
+        onChangeText={setPassphrase}
+        placeholder="Archive passphrase"
+        placeholderTextColor="#7b8178"
+        secureTextEntry
+        style={styles.tagInput}
+      />
+      {props.error ? <Text style={styles.errorText}>{props.error}</Text> : null}
+      {localError ? <Text style={styles.errorText}>{localError}</Text> : null}
+      <PrimaryButton label="Unlock archive" onPress={unlock} disabled={!passphrase.trim()} icon={<Lock size={18} />} />
     </View>
   );
 }
