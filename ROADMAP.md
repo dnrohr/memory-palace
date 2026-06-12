@@ -18,7 +18,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 ### Ready to Continue Locally
 
 - Milestone 10: add startup unlock, archive-storage migration, and key lifecycle UI around the archive-at-rest adapter.
-- Milestone 11: add opt-in backup/sync provider adapters that keep cloud behavior explicit and disabled by default.
+- Milestone 11: add real provider targets and consent surfaces for any cloud sync or cloud AI adapters.
 
 ### Needs Model or Provider Selection
 
@@ -57,6 +57,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added a top-level remaining-work register to make roadmap status easier to scan by local implementation work, provider/model choices, and device QA.
 - Polished search results with an active-search summary, clearer keyword/nearby section headings, and empty-state guidance with a direct clear-filters action.
 - Ran local web search QA on `http://localhost:8081`: keyword search and empty-result states rendered the new summary/guidance without console errors.
+- Added an opt-in encrypted backup/sync provider that syncs through the archive-at-rest adapter, pushes initial encrypted backups, pulls clean remote archives, and reports merge conflicts without enabling cloud behavior by default.
 
 ### 2026-06-11
 
@@ -143,7 +144,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 8. Timeline and Memory Visualization | Done | Timeline v1, timeline date certainty/range cues, richer timeline filtering, tag graph summary UI, shared-tag cluster UI, editable life chapter candidate UI, persisted chapter rename/reject/merge/split actions, related memories. | None. |
 | 9. Import, Export, and Data Portability | Done | JSON/Markdown export providers, folder-style Markdown bundle export/import with manifest, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | None. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, deleted-artifact cleanup for audio references and stale embeddings, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, persisted encryption/local-processing preferences, Web Crypto AES-GCM encrypted export provider, and portable archive-at-rest encryption adapter. | Startup unlock, native/web storage integration for archive-at-rest encryption, key lifecycle, and migration UI. |
-| 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
+| 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape, and opt-in encrypted backup/sync provider backed by the archive-at-rest adapter. | Real cloud/provider targets, consent UI, and cloud-AI adapters behind explicit consent. |
 | 12. Product Refinement and Habit Formation | Done | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, memory split/merge flows, Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, post-save suggestion sheet, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish. | None. |
 
 ## Design North Star

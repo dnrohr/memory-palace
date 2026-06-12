@@ -8,6 +8,7 @@ import {
 import { NoAppLockProvider } from "../src/security/appLock";
 import { NoEncryptionProvider, WebCryptoExportEncryptionProvider } from "../src/security/encryption";
 import { NoSyncProvider } from "../src/sync/contracts";
+import { EncryptedBackupSyncProvider } from "../src/sync/encryptedBackupSync";
 
 const archiveFixture: MemoryArchive = {
   exportedAt: "2026-06-12T00:00:00.000Z",
@@ -192,6 +193,101 @@ describe("security and sync seams", () => {
 
     await expect(adapter.getStatus()).resolves.toEqual(expect.objectContaining({ encrypted: false }));
     await expect(adapter.loadArchive()).resolves.toEqual(archiveFixture);
+  });
+
+  it("pushes a local archive into an encrypted backup", async () => {
+    const store = new InMemoryArchiveAtRestRecordStore();
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    const backupArchive = new EncryptedArchiveAtRestAdapter(store, provider, {
+      async getPassphrase() {
+        return "correct horse battery staple";
+      }
+    });
+    const sync = new EncryptedBackupSyncProvider({
+      async getLocalArchive() {
+        return archiveFixture;
+      },
+      async saveLocalArchive() {
+        throw new Error("Initial backup should not overwrite local archive.");
+      },
+      backupArchive,
+      now: () => "2026-06-12T00:00:00.000Z"
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pushedCount: 1,
+        pulledCount: 0,
+        conflicts: []
+      })
+    );
+    expect(JSON.stringify(store.record)).not.toContain("A private memory");
+    await expect(backupArchive.loadArchive()).resolves.toEqual(expect.objectContaining({ memories: archiveFixture.memories }));
+  });
+
+  it("pulls an encrypted backup into the local archive when there are no conflicts", async () => {
+    const store = new InMemoryArchiveAtRestRecordStore();
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    const backupArchive = new EncryptedArchiveAtRestAdapter(store, provider, {
+      async getPassphrase() {
+        return "correct horse battery staple";
+      }
+    });
+    await backupArchive.saveArchive(archiveFixture);
+    let savedArchive: MemoryArchive | undefined;
+    const emptyArchive = { ...archiveFixture, memories: [] };
+    const sync = new EncryptedBackupSyncProvider({
+      async getLocalArchive() {
+        return emptyArchive;
+      },
+      async saveLocalArchive(archive) {
+        savedArchive = archive;
+      },
+      backupArchive,
+      now: () => "2026-06-12T00:00:00.000Z"
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pulledCount: 1,
+        conflicts: []
+      })
+    );
+    expect(savedArchive?.memories).toEqual(archiveFixture.memories);
+  });
+
+  it("reports a settings conflict when encrypted backup sync is disabled", async () => {
+    const sync = new EncryptedBackupSyncProvider({
+      async getLocalArchive() {
+        return archiveFixture;
+      },
+      async saveLocalArchive() {
+        return undefined;
+      },
+      backupArchive: new EncryptedArchiveAtRestAdapter(new InMemoryArchiveAtRestRecordStore(), new WebCryptoExportEncryptionProvider(), {
+        async getPassphrase() {
+          return "correct horse battery staple";
+        }
+      })
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pushedCount: 0,
+        pulledCount: 0,
+        conflicts: [expect.objectContaining({ entityType: "settings" })]
+      })
+    );
   });
 });
 
