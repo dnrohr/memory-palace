@@ -1,6 +1,6 @@
 import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, useEffect, useMemo, useState } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
   AppState,
@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
 import type { ExportArtifact } from "../../../src/export/contracts";
@@ -104,9 +105,11 @@ import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
 import {
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
+  saveAppearanceMode,
   saveEmbeddingMaintenanceMode,
   saveEncryptionSettings,
   saveStructuredExtractionMode,
+  type AppearanceMode,
   type EmbeddingMaintenanceMode,
   type StructuredExtractionMode
 } from "./settingsStore";
@@ -133,6 +136,7 @@ export default function App() {
   const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>(
     DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
   );
+  const [appearanceMode, setAppearanceMode] = useState<AppearanceMode>(DEFAULT_APP_SETTINGS.appearanceMode);
   const [archiveAtRestPassphrase, setArchiveAtRestPassphrase] = useState("");
   const [archiveUnlockRequired, setArchiveUnlockRequired] = useState(false);
   const [archiveUnlockError, setArchiveUnlockError] = useState<string | undefined>();
@@ -153,6 +157,7 @@ export default function App() {
       setEncryptionSettings(settings.encryptionSettings);
       setStructuredExtractionMode(settings.structuredExtractionMode);
       setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
+      setAppearanceMode(settings.appearanceMode);
       await loadArchiveForSettings(settings.encryptionSettings);
     });
   }, []);
@@ -199,6 +204,7 @@ export default function App() {
 
   const memories = searchMode === "semantic" && query.trim() ? semanticFilteredMemories : keywordMemories;
   const prompts = useMemo(() => (archive ? buildResurfacingPrompts(archive) : []), [archive]);
+  styles = appearanceMode === "dark" ? darkStyles : lightStyles;
 
   useEffect(() => {
     if (!query.trim()) {
@@ -553,6 +559,7 @@ export default function App() {
             encryptionSettings={encryptionSettings}
             structuredExtractionMode={structuredExtractionMode}
             embeddingMaintenanceMode={embeddingMaintenanceMode}
+            appearanceMode={appearanceMode}
             onArchiveChange={persist}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
@@ -598,6 +605,10 @@ export default function App() {
             onEmbeddingMaintenanceModeChange={async (mode) => {
               const savedSettings = await saveEmbeddingMaintenanceMode(mode);
               setEmbeddingMaintenanceMode(savedSettings.embeddingMaintenanceMode);
+            }}
+            onAppearanceModeChange={async (mode) => {
+              const savedSettings = await saveAppearanceMode(mode);
+              setAppearanceMode(savedSettings.appearanceMode);
             }}
             onRestore={async (memoryId) => persist(restoreMemory(archive, memoryId))}
             onPermanentlyDelete={async (memoryId) => persist(permanentlyDeleteMemory(archive, memoryId))}
@@ -2661,6 +2672,7 @@ function Settings(props: {
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
+  appearanceMode: AppearanceMode;
   onArchiveChange: (archive: MemoryArchive) => Promise<void>;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
@@ -2674,6 +2686,7 @@ function Settings(props: {
   onSaveEncryptionSettings: (settings: EncryptionSettings) => Promise<void>;
   onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
   onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
+  onAppearanceModeChange: (mode: AppearanceMode) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
 }) {
@@ -2863,6 +2876,22 @@ function Settings(props: {
           <TrustItem label="Suggestions" value={props.structuredExtractionMode === "rules" ? "local rules" : "off"} />
           <TrustItem label="Nearby search" value="local index" />
           <TrustItem label="Audio" value="optional" />
+        </View>
+      </View>
+
+      <SettingsSectionHeader title="Appearance" description="Choose the archive light you want around the memories." />
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Archive light</Text>
+        <Text style={styles.metadata}>Mode: {props.appearanceMode}</Text>
+        <View style={styles.tags}>
+          {(["light", "dark"] as AppearanceMode[]).map((mode) => (
+            <FilterChip
+              key={mode}
+              label={mode}
+              selected={props.appearanceMode === mode}
+              onPress={() => void props.onAppearanceModeChange(mode)}
+            />
+          ))}
         </View>
       </View>
 
@@ -3251,13 +3280,14 @@ function IconButton(props: {
   active?: boolean;
   danger?: boolean;
 }) {
+  const iconColor = props.danger ? "#9a3d2f" : props.active ? styles.iconButtonActiveIcon.color : styles.iconButtonIcon.color;
   return (
     <Pressable
       accessibilityLabel={props.label}
       onPress={props.onPress}
       style={[styles.iconButton, props.active ? styles.iconButtonActive : null, props.danger ? styles.iconButtonDanger : null]}
     >
-      {props.icon}
+      {renderIcon(props.icon, iconColor)}
     </Pressable>
   );
 }
@@ -3265,7 +3295,7 @@ function IconButton(props: {
 function PrimaryButton(props: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable onPress={props.onPress} disabled={props.disabled} style={[styles.primaryButton, props.disabled ? styles.disabled : null]}>
-      {props.icon}
+      {renderIcon(props.icon, styles.primaryButtonIcon.color)}
       <Text style={styles.primaryButtonText}>{props.label}</Text>
     </Pressable>
   );
@@ -3274,16 +3304,20 @@ function PrimaryButton(props: { label: string; icon: ReactNode; onPress: () => v
 function SecondaryButton(props: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable onPress={props.onPress} disabled={props.disabled} style={[styles.secondaryButton, props.disabled ? styles.disabled : null]}>
-      {props.icon}
+      {renderIcon(props.icon, styles.secondaryButtonIcon.color)}
       <Text style={styles.secondaryButtonText}>{props.label}</Text>
     </Pressable>
   );
 }
 
+function renderIcon(icon: ReactNode, color: string): ReactNode {
+  return isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color }) : icon;
+}
+
 function PathBackButton(props: { onPress: () => void }) {
   return (
     <Pressable onPress={props.onPress} style={styles.pathBackButton}>
-      <ArrowLeft size={18} color="#51604f" />
+      <ArrowLeft size={18} color={styles.pathBackText.color} />
       <Text style={styles.pathBackText}>Back to Explore</Text>
     </Pressable>
   );
@@ -3367,7 +3401,7 @@ function formatBytes(bytes: number): string {
   return `${(kilobytes / 1024).toFixed(1)} MB`;
 }
 
-const styles = StyleSheet.create({
+const lightStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#f6f2ea"
@@ -4144,6 +4178,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff4f0",
     borderColor: "#dfb7a8"
   },
+  iconButtonIcon: {
+    color: "#30352f"
+  },
+  iconButtonActiveIcon: {
+    color: "#263323"
+  },
   primaryButton: {
     minHeight: 44,
     borderRadius: 8,
@@ -4158,6 +4198,9 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "700"
+  },
+  primaryButtonIcon: {
+    color: "#ffffff"
   },
   secondaryButton: {
     minHeight: 44,
@@ -4175,6 +4218,9 @@ const styles = StyleSheet.create({
     color: "#30352f",
     fontSize: 15,
     fontWeight: "700"
+  },
+  secondaryButtonIcon: {
+    color: "#30352f"
   },
   disabled: {
     opacity: 0.45
@@ -4237,3 +4283,126 @@ const styles = StyleSheet.create({
     lineHeight: 21
   }
 });
+
+type AppStyle = ViewStyle | TextStyle | ImageStyle;
+type AppStyleKey = keyof typeof lightStyles;
+
+const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
+  safeArea: { backgroundColor: "#171b18" },
+  header: { backgroundColor: "#20251f", borderBottomColor: "#343b33" },
+  bottomNav: { backgroundColor: "#20251f", borderTopColor: "#343b33" },
+  navButtonActive: { backgroundColor: "#2c382d" },
+  navLabel: { color: "#aab1a6" },
+  navLabelActive: { color: "#f3efe7" },
+  captureButton: { backgroundColor: "#66825f", shadowColor: "#000000" },
+  pathBackButton: { backgroundColor: "#222821", borderColor: "#3a4338" },
+  pathBackText: { color: "#cbd8c2" },
+  brand: { color: "#f3efe7" },
+  subtle: { color: "#aab1a6" },
+  loadingText: { color: "#d8d2c5" },
+  capturePanel: { backgroundColor: "#251f1b", borderColor: "#534235", shadowColor: "#000000" },
+  captureEyebrow: { color: "#d7bca9" },
+  capturePrompt: { color: "#f3efe7" },
+  captureNote: { color: "#c2b8aa" },
+  voicePanel: { backgroundColor: "#251f1b", borderColor: "#534235" },
+  voiceTimer: { color: "#f3efe7" },
+  waveformBar: { backgroundColor: "#8fa984" },
+  transcriptPanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  searchRow: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  searchInput: { color: "#f3efe7" },
+  emptyTitle: { color: "#f3efe7" },
+  memoryCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  memoryTitle: { color: "#f3efe7" },
+  memoryPreview: { color: "#d8d2c5" },
+  highlightText: { color: "#f3efe7", backgroundColor: "#3f563b" },
+  titleInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  bodyInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  addendumInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  fastCaptureInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  tagInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  dateInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  datePanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  suggestionPanel: { backgroundColor: "#20301f", borderColor: "#40513d" },
+  postSaveSheet: { backgroundColor: "#20301f", borderColor: "#40513d" },
+  postSaveItem: { borderTopColor: "#40513d" },
+  promptPanel: { backgroundColor: "#202a1f", borderColor: "#3f4b39" },
+  promptItem: { borderTopColor: "#3f4b39" },
+  pathCard: { borderColor: "#3a4338" },
+  pathCardSage: { backgroundColor: "#202a1f", borderColor: "#3d5038" },
+  pathCardClay: { backgroundColor: "#2d241f", borderColor: "#5a4032" },
+  pathCardBlue: { backgroundColor: "#1f2a2c", borderColor: "#3d5054" },
+  pathCardPaper: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  pathCardStone: { backgroundColor: "#252822", borderColor: "#46483f" },
+  pathIconSage: { backgroundColor: "#31402e" },
+  pathIconClay: { backgroundColor: "#473327" },
+  pathIconBlue: { backgroundColor: "#2e3f43" },
+  pathIconPaper: { backgroundColor: "#393a32" },
+  pathIconStone: { backgroundColor: "#3d3f38" },
+  relatedPanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  relatedItem: { borderTopColor: "#3a4338" },
+  constellationCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  chapterCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  constellationSection: { borderTopColor: "#3a4338" },
+  constellationMemory: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
+  chapterMemory: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
+  themeShelf: { backgroundColor: "#202a1f", borderColor: "#3f4b39" },
+  themeMemory: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  graphRow: { borderTopColor: "#3a4338" },
+  filterPanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  diagnosticsPanel: { backgroundColor: "#232823", borderColor: "#414941" },
+  panelTitle: { color: "#f3efe7" },
+  sectionEyebrow: { color: "#9ea69a" },
+  segment: { borderColor: "#485244" },
+  segmentActive: { backgroundColor: "#334832", borderColor: "#71906b" },
+  segmentText: { color: "#cbd2c6" },
+  segmentTextActive: { color: "#f3efe7" },
+  memoryPlaque: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  detailTitle: { color: "#f3efe7" },
+  memoryTextPanel: { backgroundColor: "#251f1b", borderColor: "#534235" },
+  memoryBody: { color: "#f3efe7" },
+  metadata: { color: "#aab1a6" },
+  connectionReason: { color: "#b8c9b1" },
+  tag: { backgroundColor: "#30362f" },
+  tagSelected: { backgroundColor: "#6f8a68" },
+  tagLabel: { color: "#dbe1d7" },
+  tagLabelSelected: { color: "#111511" },
+  tagCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  timelineYear: { color: "#f3efe7" },
+  timelineItem: { backgroundColor: "#20251f", borderLeftColor: "#8fa984" },
+  timelineItemInferred: { backgroundColor: "#28251d", borderLeftColor: "#c1aa63" },
+  timelineItemUnknown: { backgroundColor: "#252822", borderLeftColor: "#80877d" },
+  timelineBadge: { color: "#dbe1d7", backgroundColor: "#30362f" },
+  deletedRow: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  reviewIntro: { backgroundColor: "#202a1f", borderColor: "#3f4b39" },
+  reviewItem: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  reviewDetail: { borderLeftColor: "#53624f" },
+  reviewType: { color: "#b8c9b1" },
+  errorText: { color: "#eba18e" },
+  iconButton: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  iconButtonActive: { backgroundColor: "#334832", borderColor: "#71906b" },
+  iconButtonDanger: { backgroundColor: "#3b251f", borderColor: "#89513f" },
+  iconButtonIcon: { color: "#d8d2c5" },
+  iconButtonActiveIcon: { color: "#f3efe7" },
+  primaryButton: { backgroundColor: "#6f8a68" },
+  primaryButtonText: { color: "#111511" },
+  primaryButtonIcon: { color: "#111511" },
+  secondaryButton: { backgroundColor: "#20251f", borderColor: "#596454" },
+  secondaryButtonText: { color: "#f3efe7" },
+  secondaryButtonIcon: { color: "#f3efe7" },
+  trustItem: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
+  trustValue: { color: "#f3efe7" },
+  settingsSectionTitle: { color: "#f3efe7" },
+  stat: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  statValue: { color: "#f3efe7" },
+  statLabel: { color: "#aab1a6" },
+  privacy: { color: "#d8d2c5" }
+};
+
+const darkStyles = Object.fromEntries(
+  (Object.keys(lightStyles) as AppStyleKey[]).map((key) => [
+    key,
+    StyleSheet.flatten([lightStyles[key], darkStyleOverrides[key]])
+  ])
+) as typeof lightStyles;
+
+let styles = lightStyles;

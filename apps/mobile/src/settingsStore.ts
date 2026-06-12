@@ -5,11 +5,13 @@ const SETTINGS_KEY = "memory-palace.settings.v1";
 
 export type StructuredExtractionMode = "none" | "rules";
 export type EmbeddingMaintenanceMode = "automatic" | "manual";
+export type AppearanceMode = "light" | "dark";
 
 export type AppSettings = {
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
+  appearanceMode: AppearanceMode;
 };
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -19,7 +21,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     requireUnlockForExport: false
   },
   structuredExtractionMode: "rules",
-  embeddingMaintenanceMode: "automatic"
+  embeddingMaintenanceMode: "automatic",
+  appearanceMode: "light"
 };
 
 export async function loadAppSettings(): Promise<AppSettings> {
@@ -55,6 +58,13 @@ export async function saveEmbeddingMaintenanceMode(mode: EmbeddingMaintenanceMod
   return next;
 }
 
+export async function saveAppearanceMode(mode: AppearanceMode): Promise<AppSettings> {
+  const current = await loadAppSettings();
+  const next = normalizeSettings({ ...current, appearanceMode: mode });
+  await saveAppSettings(next);
+  return next;
+}
+
 function normalizeSettings(settings: Partial<AppSettings>): AppSettings {
   const encryptionSettings = settings.encryptionSettings ?? DEFAULT_APP_SETTINGS.encryptionSettings;
   const scope = encryptionSettings.scope ?? DEFAULT_APP_SETTINGS.encryptionSettings.scope;
@@ -72,6 +82,10 @@ function normalizeSettings(settings: Partial<AppSettings>): AppSettings {
     embeddingMaintenanceMode:
       settings.embeddingMaintenanceMode === "manual" || settings.embeddingMaintenanceMode === "automatic"
         ? settings.embeddingMaintenanceMode
-        : DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
+        : DEFAULT_APP_SETTINGS.embeddingMaintenanceMode,
+    appearanceMode:
+      settings.appearanceMode === "dark" || settings.appearanceMode === "light"
+        ? settings.appearanceMode
+        : DEFAULT_APP_SETTINGS.appearanceMode
   };
 }

@@ -91,6 +91,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web back-navigation QA on `http://localhost:8081`: normal-width Timeline and mobile-width memory detail both returned to Explore without horizontal overflow or console errors.
 - Added persisted chapter acceptance so generated `Possible chapter` cards can become user-confirmed `Accepted chapter` cards, keep edited names, and sort ahead of unaccepted generated candidates.
 - Ran local web accepted-chapter QA on `http://localhost:8081`: normal-width chapters accepted a visible candidate and showed accepted/user-confirmed copy; mobile-width chapters rendered without horizontal overflow or console errors.
+- Added a persisted Appearance setting with light/dark modes and a first app-wide dark theme pass for the shell, navigation, capture, cards, inputs, chips, review, timeline, chapter, theme, and Settings surfaces.
+- Ran local web dark-theme QA on `http://localhost:8081`: toggled dark mode in Settings, verified charcoal surfaces on Settings and Explore, confirmed persistence into a fresh mobile-width tab, and found no horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -298,7 +300,7 @@ Status: Done
 Done:
 - Review inbox data/UI, quiet optional-review surface with accept/edit/dismiss/defer actions, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
-- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible/accepted chapter card polish, explicit back-to-Explore affordances, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible/accepted chapter card polish, explicit back-to-Explore affordances, persisted light/dark appearance, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:
 - None.
