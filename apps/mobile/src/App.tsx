@@ -19,6 +19,8 @@ import type { AppLockSettings } from "../../../src/security/appLock";
 import type { ExportArtifact } from "../../../src/export/contracts";
 import type { EncryptionKeySource, EncryptionScope, EncryptionSettings } from "../../../src/security/encryption";
 import { WebCryptoExportEncryptionProvider } from "../../../src/security/encryption";
+import { EncryptedArchiveAtRestAdapter } from "../../../src/security/archiveAtRest";
+import { EncryptedBackupSyncProvider } from "../../../src/sync/encryptedBackupSync";
 import {
   buildTimelineBuckets,
   appendMemoryAddendum,
@@ -95,6 +97,7 @@ import {
 } from "./audioCapture";
 import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
+import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
 import {
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
@@ -465,6 +468,7 @@ export default function App() {
             encryptionSettings={encryptionSettings}
             structuredExtractionMode={structuredExtractionMode}
             embeddingMaintenanceMode={embeddingMaintenanceMode}
+            onArchiveChange={persist}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
             onClearProcessingRuns={async () => persist(clearProcessingRuns(archive))}
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
@@ -2094,6 +2098,7 @@ function Settings(props: {
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
+  onArchiveChange: (archive: MemoryArchive) => Promise<void>;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
@@ -2122,6 +2127,8 @@ function Settings(props: {
   const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
   const [encryptionDraft, setEncryptionDraft] = useState<EncryptionSettings>(props.encryptionSettings);
   const [exportPassphrase, setExportPassphrase] = useState("");
+  const [backupPassphrase, setBackupPassphrase] = useState("");
+  const [backupStatus, setBackupStatus] = useState<string | undefined>();
   const encryptionProvider = useMemo(() => new WebCryptoExportEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
@@ -2149,6 +2156,45 @@ function Settings(props: {
       });
     } catch (error) {
       setPortabilityError(error instanceof Error ? error.message : "Encrypted export failed.");
+    }
+  }
+
+  async function syncEncryptedBackup() {
+    setPortabilityError(undefined);
+    setBackupStatus(undefined);
+    if (!backupPassphrase.trim()) {
+      setPortabilityError("A backup passphrase is required.");
+      return;
+    }
+
+    try {
+      const provider = new WebCryptoExportEncryptionProvider();
+      await provider.saveSettings({
+        scope: "archive",
+        keySource: "user_passphrase",
+        requireUnlockForExport: true
+      });
+      const backupArchive = new EncryptedArchiveAtRestAdapter(new AsyncStorageArchiveAtRestRecordStore(), provider, {
+        async getPassphrase() {
+          return backupPassphrase;
+        }
+      });
+      const sync = new EncryptedBackupSyncProvider({
+        async getLocalArchive() {
+          return props.archive;
+        },
+        saveLocalArchive: props.onArchiveChange,
+        backupArchive
+      });
+      const result = await sync.sync();
+      if (result.conflicts.length > 0) {
+        setPortabilityError(result.conflicts.map((conflict) => conflict.summary).join(" "));
+        return;
+      }
+      setBackupStatus(`Encrypted backup synced. Pushed ${result.pushedCount}, pulled ${result.pulledCount}.`);
+      setBackupPassphrase("");
+    } catch (error) {
+      setPortabilityError(error instanceof Error ? error.message : "Encrypted backup sync failed.");
     }
   }
 
@@ -2365,6 +2411,22 @@ function Settings(props: {
       </View>
 
       <SettingsSectionHeader title="Export and Import" description="Portable archive files you control." />
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Encrypted local backup</Text>
+        <Text style={styles.metadata}>
+          Stores an encrypted archive snapshot in this app's local storage. The passphrase is used for this backup and is not stored.
+        </Text>
+        <TextInput
+          value={backupPassphrase}
+          onChangeText={setBackupPassphrase}
+          placeholder="Backup passphrase"
+          placeholderTextColor="#7b8178"
+          secureTextEntry
+          style={styles.tagInput}
+        />
+        <SecondaryButton label="Sync encrypted backup" onPress={syncEncryptedBackup} disabled={!backupPassphrase.trim()} icon={<Lock size={18} />} />
+        {backupStatus ? <Text style={styles.metadata}>{backupStatus}</Text> : null}
+      </View>
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Export archive</Text>
         {encryptedExportsEnabled ? (
