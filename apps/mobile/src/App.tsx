@@ -1058,50 +1058,14 @@ function LifeContextView(props: {
         entities.map((entity) => {
           const constellation = buildLifeContextConstellation(props.archive, kind, entity);
           return (
-            <View key={entity.id} style={styles.constellationCard}>
-              <View style={styles.constellationHeader}>
-                <View style={styles.detailTitleBlock}>
-                  <Text style={styles.sectionEyebrow}>{lifeContextSingularLabel(kind)}</Text>
-                  <Text style={styles.memoryTitle}>{entity.name}</Text>
-                  {entity.detail ? <Text style={styles.metadata}>{entity.detail}</Text> : null}
-                </View>
-                <IconButton
-                  label="Delete context"
-                  danger
-                  onPress={() => void props.onDelete(kind, entity.id)}
-                  icon={<Trash2 size={20} />}
-                />
-              </View>
-              <View style={styles.constellationStats}>
-                <Text style={styles.timelineBadge}>
-                  {constellation.memoryCount} {constellation.memoryCount === 1 ? "memory" : "memories"}
-                </Text>
-                {constellation.period ? <Text style={styles.metadata}>{constellation.period}</Text> : null}
-              </View>
-              <View style={styles.constellationSection}>
-                <Text style={styles.sectionEyebrow}>{kind === "place" ? "Recurring details" : "Often with"}</Text>
-                {constellation.recurringDetails.length > 0 ? (
-                  <TagRow labels={constellation.recurringDetails} />
-                ) : (
-                  <Text style={styles.metadata}>More connections will appear as memories mention this.</Text>
-                )}
-              </View>
-              <View style={styles.constellationSection}>
-                <Text style={styles.sectionEyebrow}>Memories</Text>
-                {constellation.memories.length > 0 ? (
-                  constellation.memories.map((memory) => (
-                    <Pressable key={memory.id} style={styles.constellationMemory} onPress={() => props.onSelect(memory.id)}>
-                      <Text style={styles.memoryPreview} numberOfLines={2}>
-                        {memory.title ?? memory.rawText}
-                      </Text>
-                      <ConnectionReason label="Connected by" reason={entity.name} />
-                    </Pressable>
-                  ))
-                ) : (
-                  <Text style={styles.metadata}>No matching memories yet.</Text>
-                )}
-              </View>
-            </View>
+            <EntityCard
+              key={entity.id}
+              kind={kind}
+              entity={entity}
+              constellation={constellation}
+              onDelete={() => void props.onDelete(kind, entity.id)}
+              onSelectMemory={props.onSelect}
+            />
           );
         })
       )}
@@ -1110,6 +1074,56 @@ function LifeContextView(props: {
 }
 
 type LifeContextListEntity = { id: string; name: string; detail?: string };
+
+function EntityCard(props: {
+  kind: LifeContextKind;
+  entity: LifeContextListEntity;
+  constellation: ReturnType<typeof buildLifeContextConstellation>;
+  onDelete: () => void;
+  onSelectMemory: (id: string) => void;
+}) {
+  return (
+    <View style={styles.constellationCard}>
+      <View style={styles.constellationHeader}>
+        <View style={styles.detailTitleBlock}>
+          <Text style={styles.sectionEyebrow}>{lifeContextSingularLabel(props.kind)}</Text>
+          <Text style={styles.memoryTitle}>{props.entity.name}</Text>
+          {props.entity.detail ? <Text style={styles.metadata}>{props.entity.detail}</Text> : null}
+        </View>
+        <IconButton label="Delete context" danger onPress={props.onDelete} icon={<Trash2 size={20} />} />
+      </View>
+      <View style={styles.constellationStats}>
+        <Text style={styles.timelineBadge}>
+          {props.constellation.memoryCount} {props.constellation.memoryCount === 1 ? "memory" : "memories"}
+        </Text>
+        {props.constellation.period ? <Text style={styles.metadata}>{props.constellation.period}</Text> : null}
+      </View>
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>{props.kind === "place" ? "Recurring details" : "Often with"}</Text>
+        {props.constellation.recurringDetails.length > 0 ? (
+          <TagRow labels={props.constellation.recurringDetails} />
+        ) : (
+          <Text style={styles.metadata}>More connections will appear as memories mention this.</Text>
+        )}
+      </View>
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Memories</Text>
+        {props.constellation.memories.length > 0 ? (
+          props.constellation.memories.map((memory) => (
+            <Pressable key={memory.id} style={styles.constellationMemory} onPress={() => props.onSelectMemory(memory.id)}>
+              <Text style={styles.memoryPreview} numberOfLines={2}>
+                {memory.title ?? memory.rawText}
+              </Text>
+              <ConnectionReason label="Connected by" reason={props.entity.name} />
+            </Pressable>
+          ))
+        ) : (
+          <Text style={styles.metadata}>No matching memories yet.</Text>
+        )}
+      </View>
+    </View>
+  );
+}
 
 function buildLifeContextConstellation(archive: MemoryArchive, kind: LifeContextKind, entity: LifeContextListEntity) {
   const activeMemories = archive.memories.filter((memory) => !memory.deletedAt);
