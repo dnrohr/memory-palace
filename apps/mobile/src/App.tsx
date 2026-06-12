@@ -2059,34 +2059,44 @@ function MemoryDetail(props: {
           onLater={props.onDismissPostSave}
         />
       ) : null}
-      <View style={styles.detailHeader}>
-        <Text style={styles.detailTitle}>{props.memory.title}</Text>
-        <View style={styles.headerActions}>
-          <IconButton label="Edit" onPress={props.onEdit} icon={<Edit3 size={20} />} />
-          <IconButton
-            label="Delete"
-            danger
-            onPress={() => {
-              if (Platform.OS === "web") {
-                void props.onDelete();
-                return;
-              }
-              Alert.alert("Delete memory", "Move this memory out of the active archive?", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: () => void props.onDelete() }
-              ]);
-            }}
-            icon={<Trash2 size={20} />}
-          />
+      <View style={styles.memoryPlaque}>
+        <View style={styles.detailHeader}>
+          <View style={styles.detailTitleBlock}>
+            <Text style={styles.sectionEyebrow}>Memory label</Text>
+            <Text style={styles.detailTitle}>{props.memory.title}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <IconButton label="Edit" onPress={props.onEdit} icon={<Edit3 size={20} />} />
+            <IconButton
+              label="Delete"
+              danger
+              onPress={() => {
+                if (Platform.OS === "web") {
+                  void props.onDelete();
+                  return;
+                }
+                Alert.alert("Delete memory", "Move this memory out of the active archive?", [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Delete", style: "destructive", onPress: () => void props.onDelete() }
+                ]);
+              }}
+              icon={<Trash2 size={20} />}
+            />
+          </View>
         </View>
+        <View style={styles.dateSummary}>
+          <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>
+          <Text style={styles.metadata}>{formatMemoryDate(props.memory)}</Text>
+        </View>
+        <TagRow labels={tagsForMemory(props.archive, props.memory.id).map((tag) => tag.name)} />
       </View>
-      <Text style={styles.memoryBody}>{memoryText}</Text>
-      <TagRow labels={tagsForMemory(props.archive, props.memory.id).map((tag) => tag.name)} />
-      <Text style={styles.metadata}>Created {new Date(props.memory.createdAt).toLocaleString()}</Text>
-      <View style={styles.dateSummary}>
-        <Text style={styles.timelineBadge}>{formatDateCertaintyLabel(props.memory)}</Text>
-        <Text style={styles.metadata}>{formatMemoryDate(props.memory)}</Text>
+
+      <View style={styles.memoryTextPanel}>
+        <Text style={styles.sectionEyebrow}>Original memory</Text>
+        <Text style={styles.memoryBody}>{memoryText}</Text>
+        <Text style={styles.metadata}>Created {new Date(props.memory.createdAt).toLocaleString()}</Text>
       </View>
+
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Resurfacing</Text>
         <Text style={styles.metadata}>These controls keep this memory from appearing unexpectedly.</Text>
@@ -2194,7 +2204,7 @@ function MemoryDetail(props: {
                 <Text style={styles.memoryPreview} numberOfLines={2}>
                   {result.memory.cleanedText || result.memory.rawText}
                 </Text>
-                <Text style={styles.metadata}>Nearby because: {formatRelatedReasons(result)}</Text>
+                <Text style={styles.connectionReason}>Nearby because: {formatRelatedReasons(result)}</Text>
               </Pressable>
               <SecondaryButton label="Merge into this" onPress={() => props.onMergeRelated(result.memory.id)} icon={<Plus size={18} />} />
             </View>
@@ -3387,8 +3397,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     outlineStyle: "none" as never
   },
-  detailHeader: {
+  memoryPlaque: {
+    borderWidth: 1,
+    borderColor: "#d8d1c2",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 16,
     gap: 12
+  },
+  detailHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  detailTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6
   },
   dateSummary: {
     flexDirection: "row",
@@ -3401,14 +3427,28 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "800"
   },
+  memoryTextPanel: {
+    borderWidth: 1,
+    borderColor: "#d4c7b4",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 18,
+    gap: 14
+  },
   memoryBody: {
-    color: "#30352f",
-    fontSize: 17,
-    lineHeight: 27
+    color: "#252925",
+    fontSize: 18,
+    lineHeight: 30
   },
   metadata: {
     color: "#697067",
     fontSize: 13
+  },
+  connectionReason: {
+    color: "#596c55",
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 20
   },
   tags: {
     flexDirection: "row",
