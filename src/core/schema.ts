@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS memory (
   cleaned_text TEXT,
   title TEXT,
   summary TEXT,
+  private_notes TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   captured_at TEXT,

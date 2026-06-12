@@ -17,6 +17,7 @@ import {
   splitMemory,
   tagsForMemoryArchive,
   updateMemorySafety,
+  updateMemoryPrivateNotes,
   updateTagType
 } from "../src/core/archiveOperations";
 
@@ -213,6 +214,15 @@ describe("archive operations", () => {
         updatedAt: "2026-06-12T00:00:00.000Z"
       })
     );
+  });
+
+  it("updates private notes without changing original memory text", () => {
+    const next = updateMemoryPrivateNotes(archive, "mem-1", "Remember to ask about the window.", "2026-06-12T00:00:00.000Z");
+    const memory = next.memories.find((item) => item.id === "mem-1");
+
+    expect(memory?.rawText).toBe("Patrick slept in the old house.");
+    expect(memory?.privateNotes).toBe("Remember to ask about the window.");
+    expect(memory?.updatedAt).toBe("2026-06-12T00:00:00.000Z");
   });
 
   it("splits a memory into two editable memories with copied tags and stale embeddings removed", () => {

@@ -49,6 +49,13 @@ ALTER TABLE memory ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE memory ADD COLUMN exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;
 `
+  },
+  {
+    id: "0006_memory_private_notes",
+    version: schemaVersion,
+    sql: `
+ALTER TABLE memory ADD COLUMN private_notes TEXT;
+`
   }
 ];
 

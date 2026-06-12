@@ -237,6 +237,27 @@ export function updateMemorySafety(
   };
 }
 
+export function updateMemoryPrivateNotes(
+  archive: MemoryArchive,
+  memoryId: string,
+  privateNotes: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  const trimmed = privateNotes.trim();
+  return {
+    ...archive,
+    memories: archive.memories.map((memory) => {
+      if (memory.id !== memoryId) return memory;
+      const { privateNotes: _privateNotes, ...rest } = memory;
+      return {
+        ...rest,
+        ...(trimmed ? { privateNotes: trimmed } : {}),
+        updatedAt: now
+      };
+    })
+  };
+}
+
 export function splitMemory(
   archive: MemoryArchive,
   memoryId: string,

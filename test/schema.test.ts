@@ -8,6 +8,7 @@ describe("schema", () => {
 
   it("includes the MVP canonical tables and FTS index", () => {
     expect(initialSchemaSql).toContain("CREATE TABLE IF NOT EXISTS memory");
+    expect(initialSchemaSql).toContain("private_notes TEXT");
     expect(initialSchemaSql).toContain("is_sensitive INTEGER NOT NULL DEFAULT 0");
     expect(initialSchemaSql).toContain("exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0");
     expect(initialSchemaSql).toContain("show_less_like_this INTEGER NOT NULL DEFAULT 0");

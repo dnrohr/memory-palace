@@ -54,17 +54,18 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
     for (const memory of archive.memories) {
       await db.runAsync(
         `INSERT INTO memory (
-          id, raw_text, cleaned_text, title, summary, created_at, updated_at, captured_at,
+          id, raw_text, cleaned_text, title, summary, private_notes, created_at, updated_at, captured_at,
           source_type, audio_uri, is_audio_retained, approximate_start_date, approximate_end_date,
           date_precision, date_confidence, date_explanation, user_date_confirmed,
           is_sensitive, exclude_from_resurfacing, show_less_like_this, deleted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           memory.id,
           memory.rawText,
           memory.cleanedText ?? null,
           memory.title ?? null,
           memory.summary ?? null,
+          memory.privateNotes ?? null,
           memory.createdAt,
           memory.updatedAt,
           memory.capturedAt ?? null,
@@ -357,6 +358,7 @@ type MemoryRow = {
   cleaned_text: string | null;
   title: string | null;
   summary: string | null;
+  private_notes: string | null;
   created_at: string;
   updated_at: string;
   captured_at: string | null;
@@ -421,6 +423,7 @@ function rowToMemory(row: MemoryRow): Memory {
     ...(row.cleaned_text ? { cleanedText: row.cleaned_text } : {}),
     ...(row.title ? { title: row.title } : {}),
     ...(row.summary ? { summary: row.summary } : {}),
+    ...(row.private_notes ? { privateNotes: row.private_notes } : {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(row.captured_at ? { capturedAt: row.captured_at } : {}),

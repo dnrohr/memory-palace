@@ -49,6 +49,7 @@ export type Memory = {
   cleanedText?: string;
   title?: string;
   summary?: string;
+  privateNotes?: string;
   createdAt: string;
   updatedAt: string;
   capturedAt?: string;

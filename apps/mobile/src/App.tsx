@@ -29,6 +29,7 @@ import {
   summarizeArchive,
   splitMemory,
   updateMemorySafety,
+  updateMemoryPrivateNotes,
   updateTagType
 } from "../../../src/core/archiveOperations";
 import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
@@ -358,6 +359,7 @@ export default function App() {
             onDismissPostSave={() => setPostSaveMemoryId(undefined)}
             onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
             onUpdateSafety={async (safety) => persist(updateMemorySafety(archive, selectedMemory.id, safety))}
+            onSavePrivateNotes={async (notes) => persist(updateMemoryPrivateNotes(archive, selectedMemory.id, notes))}
             onSplit={async (splitIndex) => persist(splitMemory(archive, selectedMemory.id, splitIndex))}
             onMergeRelated={async (sourceMemoryId) => persist(mergeMemories(archive, selectedMemory.id, sourceMemoryId))}
             onDelete={async () => {
@@ -1787,16 +1789,22 @@ function MemoryDetail(props: {
   onDismissPostSave: () => void;
   onAddendum: (text: string) => Promise<void>;
   onUpdateSafety: (safety: Pick<Memory, "isSensitive" | "excludeFromResurfacing" | "showLessLikeThis">) => Promise<void>;
+  onSavePrivateNotes: (notes: string) => Promise<void>;
   onSplit: (splitIndex: number) => Promise<void>;
   onMergeRelated: (sourceMemoryId: string) => Promise<void>;
 }) {
   const [relatedMemories, setRelatedMemories] = useState<RelatedMemoryResult[]>([]);
   const [addendumText, setAddendumText] = useState("");
+  const [privateNotes, setPrivateNotes] = useState(props.memory.privateNotes ?? "");
   const [splitMarker, setSplitMarker] = useState("");
   const memoryText = props.memory.cleanedText || props.memory.rawText;
   const trimmedSplitMarker = splitMarker.trim();
   const splitMarkerIndex = trimmedSplitMarker ? memoryText.indexOf(trimmedSplitMarker) : -1;
   const splitIndex = splitMarkerIndex >= 0 ? splitMarkerIndex + trimmedSplitMarker.length : -1;
+
+  useEffect(() => {
+    setPrivateNotes(props.memory.privateNotes ?? "");
+  }, [props.memory.id, props.memory.privateNotes]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -1902,6 +1910,24 @@ function MemoryDetail(props: {
             await props.onAddendum(addendumText);
             setAddendumText("");
           }}
+          icon={<Save size={18} />}
+        />
+      </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Private note</Text>
+        <TextInput
+          value={privateNotes}
+          onChangeText={setPrivateNotes}
+          placeholder="A note for later context"
+          placeholderTextColor="#7b8178"
+          multiline
+          textAlignVertical="top"
+          style={styles.addendumInput}
+        />
+        <SecondaryButton
+          label="Save private note"
+          disabled={privateNotes.trim() === (props.memory.privateNotes ?? "")}
+          onPress={() => void props.onSavePrivateNotes(privateNotes)}
           icon={<Save size={18} />}
         />
       </View>
