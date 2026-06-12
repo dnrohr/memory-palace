@@ -75,6 +75,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Ran local web detail QA on `http://localhost:8081`: normal and mobile-width detail views rendered the new labels and connection explanation without horizontal overflow or console errors.
 - Polished the people, pets, places, and life-period context screen into constellation-style entity cards with memory counts, recurring details, linked memories, and connection explanations.
 - Ran local web context QA on `http://localhost:8081`: empty entity states, populated pet constellation cards, and mobile-width navigation rendered without horizontal overflow or console errors.
+- Polished the Themes path into readable theme shelves backed by tag data, with related-tag context, connected memory previews, and tag-management controls moved below the browsing surface.
+- Ran local web Themes QA on `http://localhost:8081`: normal and mobile-width theme shelves rendered related tags, connected memories, and management controls without horizontal overflow or console errors.
 
 ### 2026-06-11
 
@@ -166,7 +168,7 @@ Remaining:
 Status: In progress
 
 Done:
-- Manual tag assignment, tag management, filters, tag type editing, and tag merge UI/operations.
+- Manual tag assignment, readable theme shelves, tag management, filters, tag type editing, and tag merge UI/operations.
 - Basic search, ranked portable search snippets, keyword highlighting, and matched-tag labels.
 - Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
 
@@ -280,7 +282,7 @@ Status: Done
 
 Done:
 - Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
-- Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
+- Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
 - Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, memory card/detail date-certainty labels, `Nearby because` connection explanations, Settings information architecture, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 
 Remaining:

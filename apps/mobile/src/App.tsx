@@ -519,6 +519,12 @@ export default function App() {
         {mode === "tags" ? (
           <TagManagement
             archive={archive}
+            onOpenTag={(tagId) => {
+              setSelectedTagIds([tagId]);
+              setSelectedDatePrecision(undefined);
+              setQuery("");
+              setMode("list");
+            }}
             onRename={async (tagId, name) => persist(renameTag(archive, tagId, name))}
             onTypeChange={async (tagId, type) => persist(updateTagType(archive, tagId, type))}
             onMerge={async (sourceTagId, targetTagId) => {
@@ -1857,6 +1863,7 @@ function pathIconToneStyle(tone: "sage" | "clay" | "blue" | "paper" | "stone") {
 
 function TagManagement(props: {
   archive: MemoryArchive;
+  onOpenTag: (tagId: string) => void;
   onRename: (tagId: string, name: string) => Promise<void>;
   onTypeChange: (tagId: string, type: TagType) => Promise<void>;
   onMerge: (sourceTagId: string, targetTagId: string) => Promise<void>;
@@ -1866,15 +1873,61 @@ function TagManagement(props: {
   const [mergingTagId, setMergingTagId] = useState<string | undefined>();
   const [draftName, setDraftName] = useState("");
   const tagTypes: TagType[] = ["custom", "person", "pet", "place", "time", "emotion", "theme", "activity", "life_period"];
+  const themeShelves = buildThemeShelves(props.archive);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionEyebrow}>Themes</Text>
+          <Text style={styles.panelTitle}>Readable shelves</Text>
+        </View>
+        <Text style={styles.metadata}>{themeShelves.length} {themeShelves.length === 1 ? "theme" : "themes"}</Text>
+      </View>
       {props.archive.tags.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No tags yet</Text>
         </View>
       ) : (
-        props.archive.tags.map((tag) => {
+        <>
+          {themeShelves.map((shelf) => (
+            <View key={shelf.tag.id} style={styles.themeShelf}>
+              <View style={styles.constellationHeader}>
+                <View style={styles.detailTitleBlock}>
+                  <Text style={styles.sectionEyebrow}>{themeTypeLabel(shelf.tag.type)}</Text>
+                  <Text style={styles.memoryTitle}>{shelf.tag.name}</Text>
+                  <Text style={styles.metadata}>
+                    {shelf.memories.length} {shelf.memories.length === 1 ? "memory" : "memories"}
+                  </Text>
+                </View>
+                <SecondaryButton label="Open" onPress={() => props.onOpenTag(shelf.tag.id)} icon={<Search size={18} />} />
+              </View>
+              <View style={styles.constellationSection}>
+                <Text style={styles.sectionEyebrow}>Appears with</Text>
+                {shelf.relatedTags.length > 0 ? <TagRow labels={shelf.relatedTags} /> : <Text style={styles.metadata}>No nearby tags yet.</Text>}
+              </View>
+              <View style={styles.constellationSection}>
+                <Text style={styles.sectionEyebrow}>Memories</Text>
+                {shelf.memories.slice(0, 3).map((memory) => (
+                  <Pressable key={memory.id} style={styles.themeMemory} onPress={() => props.onOpenTag(shelf.tag.id)}>
+                    <Text style={styles.memoryPreview} numberOfLines={2}>
+                      {memory.title ?? memory.rawText}
+                    </Text>
+                    <Text style={styles.connectionReason}>Connected by: {shelf.tag.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ))}
+
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionEyebrow}>Manage</Text>
+              <Text style={styles.panelTitle}>Rename, type, merge, or delete tags</Text>
+            </View>
+          </View>
+
+          {props.archive.tags.map((tag) => {
           const usageCount = props.archive.memoryTags.filter((link) => link.tagId === tag.id && !link.rejected).length;
           const isEditing = editingTagId === tag.id;
 
@@ -1959,10 +2012,73 @@ function TagManagement(props: {
               </View>
             </View>
           );
-        })
+        })}
+        </>
       )}
     </ScrollView>
   );
+}
+
+type ThemeShelf = {
+  tag: MemoryArchive["tags"][number];
+  memories: Memory[];
+  relatedTags: string[];
+};
+
+function buildThemeShelves(archive: MemoryArchive): ThemeShelf[] {
+  return archive.tags
+    .map((tag) => {
+      const memories = archive.memories
+        .filter((memory) => !memory.deletedAt)
+        .filter((memory) => tagsForMemory(archive, memory.id).some((candidate) => candidate.id === tag.id));
+      return {
+        tag,
+        memories,
+        relatedTags: topRelatedTagNames(archive, tag.id, memories)
+      };
+    })
+    .filter((shelf) => shelf.memories.length > 0)
+    .sort((left, right) => right.memories.length - left.memories.length || left.tag.name.localeCompare(right.tag.name));
+}
+
+function topRelatedTagNames(archive: MemoryArchive, tagId: string, memories: Memory[]): string[] {
+  const counts = new Map<string, number>();
+  for (const memory of memories) {
+    for (const tag of tagsForMemory(archive, memory.id)) {
+      if (tag.id === tagId) continue;
+      incrementCount(counts, tag.name);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 5)
+    .map(([name]) => name);
+}
+
+function themeTypeLabel(type: TagType): string {
+  switch (type) {
+    case "person":
+      return "Person theme";
+    case "pet":
+      return "Pet theme";
+    case "place":
+      return "Place theme";
+    case "time":
+      return "Time theme";
+    case "emotion":
+      return "Feeling theme";
+    case "activity":
+      return "Activity theme";
+    case "life_period":
+      return "Life-period theme";
+    case "object":
+      return "Object theme";
+    case "theme":
+      return "Theme";
+    case "custom":
+      return "Theme";
+  }
 }
 
 function MemoryEditor(props: {
@@ -3471,6 +3587,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0d8c9",
     backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 12,
+    gap: 5
+  },
+  themeShelf: {
+    borderWidth: 1,
+    borderColor: "#d6d9c8",
+    backgroundColor: "#f9fbf5",
+    borderRadius: 8,
+    padding: 16,
+    gap: 14
+  },
+  themeMemory: {
+    borderWidth: 1,
+    borderColor: "#dfe5d5",
+    backgroundColor: "#fffdf8",
     borderRadius: 8,
     padding: 12,
     gap: 5
