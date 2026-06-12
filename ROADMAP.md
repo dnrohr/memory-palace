@@ -74,6 +74,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added timeline filters for confirmed, inferred, unknown, point, range, and year-window views.
 - Added user-selectable import conflict resolution for duplicate memories, same-ID memories, and tag type conflicts.
 - Added rejected-tag feedback to suppress repeated tag suggestions for edited memories.
+- Added a fast capture composer on the memory list for quick typed-memory saves.
 
 ## Milestone Status
 
@@ -90,7 +91,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | 9. Import, Export, and Data Portability | In progress | JSON/Markdown export providers, SQLite SQL dump export, backup manifest, JSON/Markdown import providers, platform file export/import preview/apply UI, duplicate detection, conflict preview details, archive merge behavior, user-selectable import conflict resolution. | Folder-style Markdown bundle import/export. |
 | 10. Privacy, Security, and Trust | In progress | Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, app-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock. | Deletion guarantees for model files/audio files and encryption options. |
 | 11. Optional Cloud and Sync Layer | In progress | Sync provider contract, disabled no-sync provider, conflict shape. | Opt-in provider adapters, encrypted backup/sync, cloud-AI adapters behind explicit consent. |
-| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow. | Fast capture mode, memory split/merge flows, richer correction/private-note fields, editing polish. |
+| 12. Product Refinement and Habit Formation | In progress | Review inbox data/UI, gentle resurfacing prompt data/UI, related-memory prompts, memory addendum flow, fast capture mode. | Memory split/merge flows, richer correction/private-note fields, editing polish. |
 
 ## Product Principles
 

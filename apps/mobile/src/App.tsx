@@ -292,6 +292,12 @@ export default function App() {
               setSelectedId(undefined);
               setMode("editor");
             }}
+            onFastCapture={async (text) => {
+              const memory = createMemory(text);
+              await persist(upsertMemory(archive, memory));
+              setSelectedId(memory.id);
+              setMode("detail");
+            }}
           />
         ) : null}
 
@@ -1118,7 +1124,9 @@ function MemoryList(props: {
   onPrompt: (prompt: ResurfacingPrompt) => void;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onFastCapture: (text: string) => Promise<void>;
 }) {
+  const [fastCaptureText, setFastCaptureText] = useState("");
   const searchResultsByMemoryId = useMemo(() => {
     if (!props.query.trim() || props.searchMode !== "keyword") return new Map();
     return new Map(
@@ -1130,8 +1138,31 @@ function MemoryList(props: {
     );
   }, [props.archive, props.query, props.searchMode, props.selectedDatePrecision, props.selectedTagIds]);
 
+  async function saveFastCapture() {
+    const text = fastCaptureText.trim();
+    if (!text) return;
+    await props.onFastCapture(text);
+    setFastCaptureText("");
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Fast capture</Text>
+        <TextInput
+          value={fastCaptureText}
+          onChangeText={setFastCaptureText}
+          placeholder="Jot a memory"
+          placeholderTextColor="#7b8178"
+          multiline
+          textAlignVertical="top"
+          style={styles.fastCaptureInput}
+        />
+        <View style={styles.actionRow}>
+          <PrimaryButton label="Save memory" onPress={saveFastCapture} disabled={!fastCaptureText.trim()} icon={<Save size={18} />} />
+          <SecondaryButton label="Full editor" onPress={props.onNew} icon={<Plus size={18} />} />
+        </View>
+      </View>
       {props.prompts.length > 0 ? (
         <View style={styles.promptPanel}>
           <Text style={styles.panelTitle}>Prompts</Text>
@@ -2085,6 +2116,18 @@ const styles = StyleSheet.create({
   },
   addendumInput: {
     minHeight: 96,
+    borderWidth: 1,
+    borderColor: "#d1cdbf",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 12,
+    color: "#252925",
+    fontSize: 15,
+    lineHeight: 22,
+    outlineStyle: "none" as never
+  },
+  fastCaptureInput: {
+    minHeight: 72,
     borderWidth: 1,
     borderColor: "#d1cdbf",
     backgroundColor: "#fffdf8",
