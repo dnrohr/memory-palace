@@ -31,6 +31,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Added durable life-context relationship schema/storage and graph support for explicit relationships alongside inferred co-occurrence edges.
 - Added a Web Crypto AES-GCM encrypted export provider with PBKDF2 passphrase keys and Settings export controls.
 - Added an optional `expo-speech-recognition` native speech-to-text adapter behind `ITranscriptionEngine`, wired voice drafts to attempt local transcription, and kept editable manual fallback on recognition errors.
+- Added AppState interruption handling so active voice recordings stop into a reviewable draft when the app backgrounds.
 
 ### 2026-06-11
 
@@ -109,7 +110,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 | --- | --- | --- | --- |
 | 1. Product Skeleton and Local Database | In progress | App shell, CRUD, export, restore, permanent delete, native SQLite path, web fallback, migration tracking, richer settings, storage diagnostics. | Device-level QA. |
 | 2. Manual Tags and Basic Search | In progress | Manual tag assignment, tag management, filters, tag type editing/merge UI and operations, basic search, ranked portable search snippets, keyword highlighting, matched-tag labels, timeline v1, native SQLite FTS rebuild/query integration. | Search polish and device-level QA. |
-| 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, native speech permissions config, and editable manual fallback on recognition errors. | Interruption/background handling and device-level speech QA. |
+| 3. Voice Capture and Transcription | In progress | Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, typed recording errors, capture status/retry states, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, native speech permissions config, editable manual fallback on recognition errors, and AppState interruption/background handling. | Device-level speech QA. |
 | 4. Rules-Based Metadata Suggestions | Done | Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, review UI with source/explanation provenance, accept/reject actions, rejected-tag feedback for future suggestions. | None. |
 | 5. Life Context Graph | Done | People, pets, places, and life-period schema/types, app management UI, basic text matcher, graph nodes, memory-context edges, inferred co-occurrence relationship edges, graph neighborhood traversal UI, durable explicit relationship schema/storage, and graph support for explicit relationships. | None. |
 | 6. Local Structured Extraction Model | In progress | Structured extraction interface, no-op engine, local rules-backed extraction engine, schema validation, prompt/version metadata, Settings controls for local rules extraction. | Local model adapter. |
@@ -243,7 +244,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Add interruption/background handling and device-level speech QA.
+1. Run device-level speech QA across iOS, Android, and web voice flows.
 2. Add archive-at-rest encryption adapter.
 3. Add production local embedding/model adapters when target models are selected.
 4. Add opt-in sync/backup provider adapters when provider targets are selected.

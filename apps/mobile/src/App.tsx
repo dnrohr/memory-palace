@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Alert,
+  AppState,
   Platform,
   Pressable,
   SafeAreaView,
@@ -655,7 +656,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     }
   }
 
-  async function stop() {
+  async function stop(reason: "user" | "interruption" = "user") {
     if (!session) return;
     setError(undefined);
     setStatus("stopping");
@@ -670,6 +671,9 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
         setError(formatAudioCaptureError(error, "Recording saved. Type or paste the transcript to continue."));
       }
       setDraft({ artifact, transcript, retainAudio: false });
+      if (reason === "interruption") {
+        setError("Recording stopped because Memory Palace moved to the background. Review the transcript before saving.");
+      }
       setStatus("draft_ready");
     } catch (error) {
       setError(formatAudioCaptureError(error, "Recording could not be saved."));
@@ -677,6 +681,16 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
       setStatus("idle");
     }
   }
+
+  useEffect(() => {
+    if (!session || status !== "recording") return undefined;
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") {
+        void stop("interruption");
+      }
+    });
+    return () => subscription.remove();
+  }, [session, status]);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
