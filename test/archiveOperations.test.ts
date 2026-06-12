@@ -7,12 +7,14 @@ import {
   filterTimelineBuckets,
   filterMemories,
   permanentlyDeleteMemory,
+  mergeMemories,
   mergeArchive,
   mergeTags,
   previewArchiveMerge,
   renameTag,
   restoreMemory,
   summarizeArchive,
+  splitMemory,
   tagsForMemoryArchive,
   updateTagType
 } from "../src/core/archiveOperations";
@@ -166,6 +168,69 @@ describe("archive operations", () => {
     expect(memory?.rawText).toContain("Patrick slept in the old house.");
     expect(memory?.rawText).toContain("Addendum (2026-06-12): I later remembered the window was blue.");
     expect(memory?.updatedAt).toBe("2026-06-12T00:00:00.000Z");
+  });
+
+  it("splits a memory into two editable memories with copied tags and stale embeddings removed", () => {
+    const source = {
+      ...archive,
+      memoryEmbeddings: [
+        {
+          memoryId: "mem-1",
+          values: [0.1, 0.2],
+          dimension: 2,
+          modelId: "hash-embedding",
+          modelVersion: "0.1.0",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          inputHash: "old"
+        }
+      ]
+    };
+    const split = splitMemory(source, "mem-1", "Patrick slept ".length, "2026-06-12T00:00:00.000Z");
+
+    expect(split.memories.map((memory) => memory.id)).toEqual(["mem-1", "mem-1_split", "mem-2"]);
+    expect(split.memories.find((memory) => memory.id === "mem-1")?.rawText).toBe("Patrick slept");
+    expect(split.memories.find((memory) => memory.id === "mem-1_split")).toEqual(
+      expect.objectContaining({
+        rawText: "in the old house.",
+        sourceType: "edit",
+        isAudioRetained: false
+      })
+    );
+    expect(split.memoryTags.filter((link) => link.memoryId === "mem-1_split").map((link) => link.tagId)).toEqual(["tag-1"]);
+    expect(split.memoryEmbeddings).toEqual([]);
+  });
+
+  it("merges one memory into another and deduplicates links while removing stale embeddings", () => {
+    const source = {
+      ...archive,
+      memoryEmbeddings: [
+        {
+          memoryId: "mem-1",
+          values: [0.1],
+          dimension: 1,
+          modelId: "hash-embedding",
+          modelVersion: "0.1.0",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          inputHash: "one"
+        },
+        {
+          memoryId: "mem-2",
+          values: [0.2],
+          dimension: 1,
+          modelId: "hash-embedding",
+          modelVersion: "0.1.0",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          inputHash: "two"
+        }
+      ]
+    };
+    const merged = mergeMemories(source, "mem-1", "mem-2", "2026-06-12T00:00:00.000Z");
+
+    expect(merged.memories.map((memory) => memory.id)).toEqual(["mem-1"]);
+    expect(merged.memories[0]?.rawText).toContain("Merged memory (2026-06-12):");
+    expect(merged.memories[0]?.rawText).toContain("Maya and I worked late after college.");
+    expect(merged.memoryTags.filter((link) => link.memoryId === "mem-1").map((link) => link.tagId).sort()).toEqual(["tag-1", "tag-2"]);
+    expect(merged.memoryEmbeddings).toEqual([]);
   });
 
   it("builds timeline buckets from approximate or created dates", () => {

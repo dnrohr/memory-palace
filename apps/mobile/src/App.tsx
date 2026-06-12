@@ -25,7 +25,9 @@ import {
   permanentlyDeleteMemory,
   renameTag,
   restoreMemory,
+  mergeMemories,
   summarizeArchive,
+  splitMemory,
   updateTagType
 } from "../../../src/core/archiveOperations";
 import type { TimelineBucketFilter } from "../../../src/core/archiveOperations";
@@ -339,6 +341,8 @@ export default function App() {
               setMode("detail");
             }}
             onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
+            onSplit={async (splitIndex) => persist(splitMemory(archive, selectedMemory.id, splitIndex))}
+            onMergeRelated={async (sourceMemoryId) => persist(mergeMemories(archive, selectedMemory.id, sourceMemoryId))}
             onDelete={async () => {
               await persist(softDeleteMemory(archive, selectedMemory.id));
               setSelectedId(undefined);
@@ -1568,9 +1572,16 @@ function MemoryDetail(props: {
   onDelete: () => Promise<void>;
   onSelect: (id: string) => void;
   onAddendum: (text: string) => Promise<void>;
+  onSplit: (splitIndex: number) => Promise<void>;
+  onMergeRelated: (sourceMemoryId: string) => Promise<void>;
 }) {
   const [relatedMemories, setRelatedMemories] = useState<RelatedMemoryResult[]>([]);
   const [addendumText, setAddendumText] = useState("");
+  const [splitMarker, setSplitMarker] = useState("");
+  const memoryText = props.memory.cleanedText || props.memory.rawText;
+  const trimmedSplitMarker = splitMarker.trim();
+  const splitMarkerIndex = trimmedSplitMarker ? memoryText.indexOf(trimmedSplitMarker) : -1;
+  const splitIndex = splitMarkerIndex >= 0 ? splitMarkerIndex + trimmedSplitMarker.length : -1;
 
   useEffect(() => {
     let isCurrent = true;
@@ -1605,7 +1616,7 @@ function MemoryDetail(props: {
           />
         </View>
       </View>
-      <Text style={styles.memoryBody}>{props.memory.cleanedText || props.memory.rawText}</Text>
+      <Text style={styles.memoryBody}>{memoryText}</Text>
       <TagRow labels={tagsForMemory(props.archive, props.memory.id).map((tag) => tag.name)} />
       <Text style={styles.metadata}>Created {new Date(props.memory.createdAt).toLocaleString()}</Text>
       <Text style={styles.metadata}>
@@ -1632,17 +1643,39 @@ function MemoryDetail(props: {
           icon={<Save size={18} />}
         />
       </View>
+      <View style={styles.filterPanel}>
+        <Text style={styles.panelTitle}>Split memory</Text>
+        <TextInput
+          value={splitMarker}
+          onChangeText={setSplitMarker}
+          placeholder="Split after exact text"
+          placeholderTextColor="#7b8178"
+          style={styles.tagInput}
+        />
+        <SecondaryButton
+          label="Split"
+          disabled={splitIndex <= 0 || splitIndex >= memoryText.length}
+          onPress={async () => {
+            await props.onSplit(splitIndex);
+            setSplitMarker("");
+          }}
+          icon={<Edit3 size={18} />}
+        />
+      </View>
       {relatedMemories.length > 0 ? (
         <View style={styles.relatedPanel}>
           <Text style={styles.panelTitle}>Related memories</Text>
           {relatedMemories.map((result) => (
-            <Pressable key={result.memory.id} style={styles.relatedItem} onPress={() => props.onSelect(result.memory.id)}>
-              <Text style={styles.memoryTitle}>{result.memory.title}</Text>
-              <Text style={styles.memoryPreview} numberOfLines={2}>
-                {result.memory.cleanedText || result.memory.rawText}
-              </Text>
-              <Text style={styles.metadata}>{formatRelatedReasons(result)}</Text>
-            </Pressable>
+            <View key={result.memory.id} style={styles.relatedItem}>
+              <Pressable onPress={() => props.onSelect(result.memory.id)}>
+                <Text style={styles.memoryTitle}>{result.memory.title}</Text>
+                <Text style={styles.memoryPreview} numberOfLines={2}>
+                  {result.memory.cleanedText || result.memory.rawText}
+                </Text>
+                <Text style={styles.metadata}>{formatRelatedReasons(result)}</Text>
+              </Pressable>
+              <SecondaryButton label="Merge into this" onPress={() => props.onMergeRelated(result.memory.id)} icon={<Plus size={18} />} />
+            </View>
           ))}
         </View>
       ) : null}
@@ -1995,9 +2028,9 @@ function PrimaryButton(props: { label: string; icon: ReactNode; onPress: () => v
   );
 }
 
-function SecondaryButton(props: { label: string; icon: ReactNode; onPress: () => void }) {
+function SecondaryButton(props: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={props.onPress} style={styles.secondaryButton}>
+    <Pressable onPress={props.onPress} disabled={props.disabled} style={[styles.secondaryButton, props.disabled ? styles.disabled : null]}>
       {props.icon}
       <Text style={styles.secondaryButtonText}>{props.label}</Text>
     </Pressable>

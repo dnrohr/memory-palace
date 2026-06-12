@@ -212,6 +212,117 @@ export function appendMemoryAddendum(
   };
 }
 
+export function splitMemory(
+  archive: MemoryArchive,
+  memoryId: string,
+  splitIndex: number,
+  now = new Date().toISOString()
+): MemoryArchive {
+  const memory = archive.memories.find((item) => item.id === memoryId);
+  if (!memory) return archive;
+
+  const text = memory.cleanedText ?? memory.rawText;
+  if (splitIndex <= 0 || splitIndex >= text.length) return archive;
+
+  const firstText = text.slice(0, splitIndex).trim();
+  const secondText = text.slice(splitIndex).trim();
+  if (!firstText || !secondText) return archive;
+
+  const newMemoryId = uniqueArchiveId(`${memoryId}_split`, new Set(archive.memories.map((item) => item.id)));
+  const { audioUri: _audioUri, ...memoryWithoutAudio } = memory;
+  const nextMemory: Memory = {
+    ...memoryWithoutAudio,
+    id: newMemoryId,
+    rawText: secondText,
+    cleanedText: secondText,
+    title: deriveMemoryTitle(secondText),
+    createdAt: now,
+    updatedAt: now,
+    sourceType: "edit",
+    isAudioRetained: false
+  };
+  const firstMemory: Memory = {
+    ...memory,
+    rawText: firstText,
+    cleanedText: firstText,
+    updatedAt: now,
+    sourceType: "edit"
+  };
+
+  const memoryLinks = archive.memoryTags.filter((link) => link.memoryId === memoryId);
+  const nextLinks = [
+    ...archive.memoryTags,
+    ...memoryLinks.map((link) => ({
+      ...link,
+      memoryId: newMemoryId,
+      createdAt: now
+    }))
+  ];
+
+  const nextEmbeddings = archive.memoryEmbeddings?.filter((embedding) => embedding.memoryId !== memoryId);
+
+  return {
+    ...archive,
+    memories: archive.memories.flatMap((item) => (item.id === memoryId ? [firstMemory, nextMemory] : [item])),
+    memoryTags: nextLinks,
+    ...(nextEmbeddings ? { memoryEmbeddings: nextEmbeddings } : {})
+  };
+}
+
+export function mergeMemories(
+  archive: MemoryArchive,
+  targetMemoryId: string,
+  sourceMemoryId: string,
+  now = new Date().toISOString()
+): MemoryArchive {
+  if (targetMemoryId === sourceMemoryId) return archive;
+
+  const target = archive.memories.find((memory) => memory.id === targetMemoryId);
+  const source = archive.memories.find((memory) => memory.id === sourceMemoryId);
+  if (!target || !source) return archive;
+
+  const targetText = target.cleanedText ?? target.rawText;
+  const sourceText = source.cleanedText ?? source.rawText;
+  const mergedText = `${targetText.trim()}\n\nMerged memory (${now.slice(0, 10)}):\n${sourceText.trim()}`;
+  const mergedMemory: Memory = {
+    ...target,
+    rawText: mergedText,
+    cleanedText: mergedText,
+    updatedAt: now,
+    sourceType: "edit"
+  };
+
+  const existingLinks = new Set<string>();
+  const nextLinks = [];
+  for (const link of archive.memoryTags) {
+    if (link.memoryId === sourceMemoryId) {
+      const key = `${targetMemoryId}:${link.tagId}:${link.rejected ? "rejected" : "active"}`;
+      if (existingLinks.has(key)) continue;
+      existingLinks.add(key);
+      nextLinks.push({ ...link, memoryId: targetMemoryId, createdAt: now });
+      continue;
+    }
+    const key = `${link.memoryId}:${link.tagId}:${link.rejected ? "rejected" : "active"}`;
+    if (!existingLinks.has(key)) {
+      existingLinks.add(key);
+      nextLinks.push(link);
+    }
+  }
+
+  const nextEmbeddings = archive.memoryEmbeddings?.filter(
+    (embedding) => embedding.memoryId !== targetMemoryId && embedding.memoryId !== sourceMemoryId
+  );
+
+  return {
+    ...archive,
+    memories: archive.memories
+      .filter((memory) => memory.id !== sourceMemoryId)
+      .map((memory) => (memory.id === targetMemoryId ? mergedMemory : memory)),
+    memoryTags: nextLinks,
+    ...(nextEmbeddings ? { memoryEmbeddings: nextEmbeddings } : {})
+  };
+}
+
 export function buildTimelineBuckets(memories: Memory[]): TimelineBucket[] {
   const bucketMap = new Map<string, TimelineBucket>();
 
@@ -468,13 +579,23 @@ function memoryDeduplicationKey(memory: Memory): string {
 }
 
 function uniqueImportedMemoryId(baseId: string, usedIds: Set<string>): string {
+  return uniqueArchiveId(`${baseId}-imported`, usedIds);
+}
+
+function uniqueArchiveId(baseId: string, usedIds: Set<string>): string {
   let index = 1;
-  let candidate = `${baseId}-imported`;
+  let candidate = baseId;
   while (usedIds.has(candidate)) {
     index += 1;
-    candidate = `${baseId}-imported-${index}`;
+    candidate = `${baseId}-${index}`;
   }
   return candidate;
+}
+
+function deriveMemoryTitle(text: string): string {
+  const firstSentence = text.split(/[.!?]/)[0]?.trim();
+  if (!firstSentence) return "Untitled memory";
+  return firstSentence.length > 48 ? `${firstSentence.slice(0, 45)}...` : firstSentence;
 }
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
