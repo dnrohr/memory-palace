@@ -22,11 +22,11 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; native device QA remains open.
 
-### Needs Model or Provider Selection
+### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: select the production local structured-extraction model/runtime and run device QA.
-- Milestone 7: select the production local embedding model/runtime and run device QA.
-- Milestone 11: wire real cloud AI or cloud sync adapters only after explicit provider targets and consent boundaries are selected.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through a local llama.cpp-compatible runtime such as `llama.rn`; runtime wiring and device QA remain.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter is present, and native/web model asset loading plus device QA remain.
+- Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
 ### Needs Device QA
 
@@ -71,6 +71,8 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Wired archive-at-rest encryption into the Settings save flow: archive scope with user passphrase now requires a one-time archive passphrase, immediately writes the encrypted archive, clears plaintext primary storage, and disabling archive scope writes the current archive back to primary storage while clearing the encrypted record and in-memory archive passphrase.
 - Ran archive-at-rest web QA on `http://localhost:8093`: Settings showed the archive passphrase migration field, saving with a test passphrase showed encrypted-archive success copy, reload displayed the encrypted archive unlock screen, unlocking returned to Explore, and no console errors appeared beyond existing style warnings.
 - Ran `npm run verify` and `npm run pixel8:preflight` for the archive-at-rest Settings migration slice; both passed. Physical archive-at-rest device QA remains deferred because the available Pixel 8a development client did not complete the Metro connection in the prior device pass, and exact Pixel 8 hardware is not attached.
+- Selected production local model targets in `docs/model-selection.md`: BGE small English v1.5 for embeddings, Qwen2.5 0.5B Instruct through a llama.cpp-compatible runtime for optional structured extraction, and WebDAV encrypted sync as the first production sync target.
+- Added a BGE small English v1.5 ONNX embedding adapter with model metadata, query/passage prefix handling, masked mean pooling for token embeddings, and tests for the production embedding target. Hash embeddings remain the runtime fallback until model assets and device QA are wired.
 
 ### 2026-06-12
 
@@ -297,9 +299,10 @@ Status: In progress
 Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
+- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter in the portable core.
 
 Remaining:
-- Production local embedding model/runtime selection and device QA.
+- Native/web model asset loading, tokenizer wiring, and device QA.
 
 ### 8. Timeline and Memory Visualization
 

@@ -13,6 +13,10 @@ export interface IEmbeddingEngine {
   embedBatch(texts: string[]): Promise<Array<EmbeddingVector | undefined>>;
 }
 
+export interface IQueryEmbeddingEngine extends IEmbeddingEngine {
+  embedQuery(query: string): Promise<EmbeddingVector | undefined>;
+}
+
 export interface ILocalEmbeddingModel {
   id: string;
   displayName: string;
@@ -96,6 +100,10 @@ export class LocalModelEmbeddingEngine implements IEmbeddingEngine {
   }
 }
 
+export async function embedSearchQuery(engine: IEmbeddingEngine, query: string): Promise<EmbeddingVector | undefined> {
+  return isQueryEmbeddingEngine(engine) ? engine.embedQuery(query) : engine.embedText(query);
+}
+
 function hashTextToVector(text: string, dimension: number): number[] {
   const vector = Array.from({ length: dimension }, () => 0);
   const tokens = text.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? [];
@@ -120,4 +128,8 @@ function normalizeVector(values: number[]): number[] {
   const magnitude = Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
   if (magnitude === 0) return values;
   return values.map((value) => value / magnitude);
+}
+
+function isQueryEmbeddingEngine(engine: IEmbeddingEngine): engine is IQueryEmbeddingEngine {
+  return typeof (engine as Partial<IQueryEmbeddingEngine>).embedQuery === "function";
 }

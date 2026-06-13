@@ -1,6 +1,6 @@
 import type { MemoryArchive } from "../core/archive";
 import type { Memory, MemoryEmbeddingRecord } from "../core/types";
-import { HashEmbeddingEngine, type IEmbeddingEngine } from "../processing/embeddings";
+import { embedSearchQuery, HashEmbeddingEngine, type IEmbeddingEngine } from "../processing/embeddings";
 import { cosineSimilarity, type SemanticSearchResult } from "./semanticSearch";
 
 export type EmbeddingIndexResult = {
@@ -84,7 +84,7 @@ export async function searchEmbeddingIndex(
   options: { engine?: IEmbeddingEngine; limit?: number } = {}
 ): Promise<SemanticSearchResult[]> {
   const engine = options.engine ?? new HashEmbeddingEngine();
-  const queryEmbedding = await engine.embedText(query);
+  const queryEmbedding = await embedSearchQuery(engine, query);
   if (!queryEmbedding) return [];
 
   const memoriesById = new Map(activeMemories(archive).map((memory) => [memory.id, memory]));

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { HashEmbeddingEngine, LocalModelEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
+import { embedSearchQuery, HashEmbeddingEngine, LocalModelEmbeddingEngine, NoEmbeddingEngine } from "../src/processing/embeddings";
+import {
+  BGE_SMALL_EN_V15_MODEL,
+  createBgeSmallEnV15EmbeddingEngine,
+  meanPoolTokenEmbeddings,
+  toQueryInput
+} from "../src/processing/bgeEmbeddings";
 import {
   buildStructuredExtractionPrompt,
   JsonLocalModelStructuredExtractionEngine,
@@ -74,6 +80,73 @@ describe("optional AI adapter seams", () => {
     });
 
     await expect(engine.embedText("memory")).rejects.toThrow("expected 3");
+  });
+
+  it("defines BGE small English v1.5 as the production embedding target", () => {
+    expect(BGE_SMALL_EN_V15_MODEL).toEqual(
+      expect.objectContaining({
+        id: "bge-small-en-v1.5",
+        dimension: 384,
+        runtime: "onnxruntime-react-native",
+        provider: "BAAI"
+      })
+    );
+    expect(toQueryInput("old bedroom")).toBe("Represent this sentence for searching relevant passages: old bedroom");
+  });
+
+  it("mean-pools BGE ONNX token embeddings with an attention mask", () => {
+    const dimension = BGE_SMALL_EN_V15_MODEL.dimension;
+    const tokenA = Array.from({ length: dimension }, (_, index) => index + 1);
+    const tokenB = Array.from({ length: dimension }, (_, index) => (index + 1) * 3);
+    const padding = Array.from({ length: dimension }, () => 999);
+    const pooled = meanPoolTokenEmbeddings(
+      {
+        dims: [1, 3, dimension],
+        data: [...tokenA, ...tokenB, ...padding]
+      },
+      [[1, 1, 0]]
+    );
+
+    expect(pooled).toHaveLength(1);
+    expect(pooled[0]?.slice(0, 4)).toEqual([2, 4, 6, 8]);
+  });
+
+  it("wraps a BGE ONNX runtime and uses the query prefix only for search queries", async () => {
+    const seenTexts: string[][] = [];
+    const engine = createBgeSmallEnV15EmbeddingEngine({
+      tokenizer: {
+        async tokenize(texts) {
+          seenTexts.push(texts);
+          return {
+            inputIds: texts.map(() => [1, 2]),
+            attentionMask: texts.map(() => [1, 1])
+          };
+        }
+      },
+      session: {
+        async run() {
+          const dimension = BGE_SMALL_EN_V15_MODEL.dimension;
+          return {
+            last_hidden_state: {
+              dims: [1, 2, dimension],
+              data: [
+                ...Array.from({ length: dimension }, () => 3),
+                ...Array.from({ length: dimension }, () => 4)
+              ]
+            }
+          };
+        }
+      }
+    });
+
+    const passageVector = await engine.embedText("my old bedroom");
+    const queryVector = await embedSearchQuery(engine, "old bedroom");
+
+    expect(engine.id).toBe("local-model-embedding-bge-small-en-v1.5");
+    expect(passageVector.values).toHaveLength(384);
+    expect(queryVector?.values).toHaveLength(384);
+    expect(seenTexts).toEqual([["my old bedroom"], [toQueryInput("old bedroom")]]);
+    expect(passageVector.values[0]).toBeCloseTo(1 / Math.sqrt(384));
   });
 
   it("provides a local rules-backed structured extraction engine", async () => {

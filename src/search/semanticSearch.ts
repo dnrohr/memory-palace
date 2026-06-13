@@ -1,6 +1,6 @@
 import type { MemoryArchive } from "../core/archive";
 import type { Memory } from "../core/types";
-import { HashEmbeddingEngine, type IEmbeddingEngine } from "../processing/embeddings";
+import { embedSearchQuery, HashEmbeddingEngine, type IEmbeddingEngine } from "../processing/embeddings";
 
 export type SemanticSearchResult = {
   memory: Memory;
@@ -13,7 +13,7 @@ export async function semanticSearchArchive(
   engine: IEmbeddingEngine = new HashEmbeddingEngine(),
   limit = 10
 ): Promise<SemanticSearchResult[]> {
-  const queryEmbedding = await engine.embedText(query);
+  const queryEmbedding = await embedSearchQuery(engine, query);
   if (!queryEmbedding) return [];
 
   const results: SemanticSearchResult[] = [];
@@ -47,4 +47,3 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   if (magnitudeA === 0 || magnitudeB === 0) return 0;
   return dot / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
 }
-
