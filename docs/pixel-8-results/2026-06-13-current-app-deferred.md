@@ -12,7 +12,8 @@
 ## Local Gate
 
 - `npm run verify`: pass
-- Notes: Local verification passed after rerunning outside the restricted sandbox because Vitest/esbuild could not load `vitest.config.ts` under the managed Windows filesystem profile.
+- `npm run pixel8:preflight`: fail
+- Notes: Local verification passed. Pixel 8 preflight failed because `adb` is not available on PATH in this environment.
 
 ## Device Gate
 
@@ -43,5 +44,5 @@
 
 - Red screens, visible errors, or console errors: none observed in local checks; physical-device runtime not tested.
 - Failed checklist items: none from local gate.
-- Deferred device-QA items and reason: the current Codex environment has no attached Pixel 8, no ADB-visible Android device, and browser automation is blocked by the Windows sandbox, so the Pixel 8 development-build gate remains open.
+- Deferred device-QA items and reason: the current Codex environment has no available `adb` command and no attached Pixel 8, so the Pixel 8 development-build gate remains open.
 - Follow-up issue or roadmap item: run `npm run pixel8:build`, `npm run pixel8`, and the full `PIXEL_8_TEST.md` checklist on the physical Pixel 8.

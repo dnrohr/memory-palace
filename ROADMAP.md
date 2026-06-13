@@ -50,9 +50,11 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added a major-change test gate requiring Pixel 8 development-build QA for substantial mobile, storage, encryption, speech, sync, navigation, and data-model changes before they are considered complete.
 - Added `expo-dev-client`, Pixel 8 start/build scripts, and `PIXEL_8_TEST.md` so Android device QA has a repeatable development-build path.
 - Added `npm run verify` and a Pixel 8 result template so the local gate and device evidence can be recorded consistently for major changes.
+- Added `npm run pixel8:preflight` to check Pixel 8 QA readiness before build/install: required scripts/docs, `adb` availability, and ADB-visible Android devices.
 - Made additive SQLite migrations idempotent when the latest schema already contains the target columns, reducing device-test failures on fresh or partially migrated local databases.
 - Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
 - Recorded the current-app Pixel 8 gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8 QA remains deferred because this environment has no attached device.
+- Ran the Pixel 8 preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
 
 ### 2026-06-12
 

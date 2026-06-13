@@ -18,6 +18,14 @@ On Windows PowerShell, use `npm.cmd` if script execution policy blocks `npm`.
 
 ## Build Or Install The Development Client
 
+Before building, confirm this machine can see the phone:
+
+```bash
+npm run pixel8:preflight
+```
+
+This checks the local Pixel 8 QA scripts/docs and verifies that `adb devices` reports at least one connected Android device.
+
 Install a development build on the Pixel 8:
 
 ```bash

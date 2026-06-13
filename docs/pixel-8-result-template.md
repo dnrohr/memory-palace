@@ -14,6 +14,7 @@ Copy this template into the implementation log, PR notes, or a dated file when a
 ## Local Gate
 
 - `npm run verify`: pass / fail
+- `npm run pixel8:preflight`: pass / fail
 - Notes:
 
 ## Device Gate

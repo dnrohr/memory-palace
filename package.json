@@ -13,6 +13,7 @@
     "pixel8:build": "expo run:android --device",
     "pixel8": "expo start --dev-client --android",
     "pixel8:tunnel": "expo start --dev-client --tunnel",
+    "pixel8:preflight": "node scripts/pixel8-preflight.mjs",
     "ios": "expo start --ios",
     "test": "vitest run",
     "test:watch": "vitest"
