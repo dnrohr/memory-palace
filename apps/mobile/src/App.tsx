@@ -45,7 +45,7 @@ import { JsonExportProvider } from "../../../src/export/jsonExport";
 import { MarkdownBundleExportProvider } from "../../../src/export/markdownBundle";
 import { MarkdownExportProvider } from "../../../src/export/markdownExport";
 import { SqliteExportProvider } from "../../../src/export/sqliteExport";
-import { ExpoSpeechRecognitionTranscriptionEngine } from "../../../src/transcription/expoSpeechRecognition";
+import { ManualTextTranscriptionEngine } from "../../../src/transcription/contracts";
 import {
   applyArchiveImport,
   previewArchiveImport,
@@ -824,7 +824,7 @@ function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passph
 }
 
 function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise<void> }) {
-  const transcriptionEngine = useMemo(() => new ExpoSpeechRecognitionTranscriptionEngine(), []);
+  const transcriptionEngine = useMemo(() => new ManualTextTranscriptionEngine(), []);
   const [session, setSession] = useState<AudioCaptureSession | undefined>();
   const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -1798,7 +1798,9 @@ function MemoryList(props: {
   onTags: () => void;
   onFastCapture: (text: string) => Promise<void>;
 }) {
+  const { width } = useWindowDimensions();
   const [fastCaptureText, setFastCaptureText] = useState("");
+  const isWideExplore = width >= 900;
   const searchResultsByMemoryId = useMemo(() => {
     if (!props.query.trim() || props.searchMode !== "keyword") return new Map();
     return new Map(
@@ -1829,9 +1831,8 @@ function MemoryList(props: {
     setFastCaptureText("");
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.capturePanel}>
+  const captureSurface = (
+    <View style={styles.capturePanel}>
         <Text style={styles.captureEyebrow}>Private notebook</Text>
         <Text style={styles.capturePrompt}>What came back?</Text>
         <TextInput
@@ -1849,8 +1850,9 @@ function MemoryList(props: {
           <SecondaryButton label="Open capture" onPress={props.onNew} icon={<Plus size={18} />} />
         </View>
       </View>
-      {props.prompts.length > 0 ? (
-        <View style={styles.promptPanel}>
+  );
+  const continueSurface = props.prompts.length > 0 ? (
+    <View style={styles.promptPanel}>
           <Text style={styles.panelTitle}>Continue from</Text>
           {props.prompts.slice(0, 3).map((prompt) => (
             <Pressable key={prompt.id} style={styles.promptItem} onPress={() => props.onPrompt(prompt)}>
@@ -1858,7 +1860,9 @@ function MemoryList(props: {
             </Pressable>
           ))}
         </View>
-      ) : null}
+  ) : null;
+  const searchSurface = (
+    <>
       <View style={styles.searchRow}>
         <Search size={20} color="#5f655d" />
         <TextInput
@@ -1884,6 +1888,10 @@ function MemoryList(props: {
         {props.semanticSearchPending ? <Text style={styles.metadata}>Searching local index</Text> : null}
       </View>
       {searchContext ? <Text style={styles.metadata}>{searchContext}</Text> : null}
+    </>
+  );
+  const pathSurface = (
+    <>
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionEyebrow}>Ways in</Text>
@@ -1927,6 +1935,9 @@ function MemoryList(props: {
           tone="stone"
         />
       </View>
+    </>
+  );
+  const filterSurface = (
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Filters</Text>
         <View style={styles.tags}>
@@ -1960,6 +1971,9 @@ function MemoryList(props: {
           <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} />
         ) : null}
       </View>
+  );
+  const memoryListSurface = (
+    <>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.panelTitle}>{resultSectionTitle(props.searchMode, hasActiveSearch)}</Text>
@@ -1985,6 +1999,34 @@ function MemoryList(props: {
             </MemoryCard>
           );
         })
+      )}
+    </>
+  );
+
+  return (
+    <ScrollView contentContainerStyle={[styles.content, isWideExplore ? styles.exploreWideContent : null]}>
+      {isWideExplore ? (
+        <View style={styles.exploreWideGrid}>
+          <View style={styles.explorePrimaryPane}>
+            {captureSurface}
+            {pathSurface}
+            {memoryListSurface}
+          </View>
+          <View style={styles.exploreSecondaryPane}>
+            {continueSurface}
+            {searchSurface}
+            {filterSurface}
+          </View>
+        </View>
+      ) : (
+        <>
+          {captureSurface}
+          {continueSurface}
+          {searchSurface}
+          {pathSurface}
+          {filterSurface}
+          {memoryListSurface}
+        </>
       )}
     </ScrollView>
   );
@@ -2132,33 +2174,7 @@ function TagManagement(props: {
       ) : (
         <>
           {themeShelves.map((shelf) => (
-            <View key={shelf.tag.id} style={styles.themeShelf}>
-              <View style={styles.constellationHeader}>
-                <View style={styles.detailTitleBlock}>
-                  <Text style={styles.sectionEyebrow}>{themeTypeLabel(shelf.tag.type)}</Text>
-                  <Text style={styles.memoryTitle}>{shelf.tag.name}</Text>
-                  <Text style={styles.metadata}>
-                    {shelf.memories.length} {shelf.memories.length === 1 ? "memory" : "memories"}
-                  </Text>
-                </View>
-                <SecondaryButton label="Open" onPress={() => props.onOpenTag(shelf.tag.id)} icon={<Search size={18} />} />
-              </View>
-              <View style={styles.constellationSection}>
-                <Text style={styles.sectionEyebrow}>Appears with</Text>
-                {shelf.relatedTags.length > 0 ? <TagRow labels={shelf.relatedTags} /> : <Text style={styles.metadata}>No nearby tags yet.</Text>}
-              </View>
-              <View style={styles.constellationSection}>
-                <Text style={styles.sectionEyebrow}>Memories</Text>
-                {shelf.memories.slice(0, 3).map((memory) => (
-                  <Pressable key={memory.id} style={styles.themeMemory} onPress={() => props.onOpenTag(shelf.tag.id)}>
-                    <Text style={styles.memoryPreview} numberOfLines={2}>
-                      {memory.title ?? memory.rawText}
-                    </Text>
-                    <ConnectionReason label="Connected by" reason={shelf.tag.name} />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
+            <ThemeClusterCard key={shelf.tag.id} shelf={shelf} onOpen={() => props.onOpenTag(shelf.tag.id)} />
           ))}
 
           <View style={styles.sectionHeader}>
@@ -2927,8 +2943,7 @@ function Settings(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <SettingsSectionHeader title="Privacy" description="Memory text stays local unless you explicitly export it." />
-      <View style={styles.filterPanel}>
+      <SettingsSection title="Privacy" description="Memory text stays local unless you explicitly export it.">
         <Text style={styles.panelTitle}>Local state</Text>
         <Text style={styles.metadata}>A quick map of what can leave this device.</Text>
         <View style={styles.trustGrid}>
@@ -2939,10 +2954,9 @@ function Settings(props: {
           <TrustItem label="Nearby search" value="local index" />
           <TrustItem label="Audio" value="optional" />
         </View>
-      </View>
+      </SettingsSection>
 
-      <SettingsSectionHeader title="Appearance" description="Choose the archive light you want around the memories." />
-      <View style={styles.filterPanel}>
+      <SettingsSection title="Appearance" description="Choose the archive light you want around the memories.">
         <Text style={styles.panelTitle}>Archive light</Text>
         <Text style={styles.metadata}>Mode: {props.appearanceMode}</Text>
         <View style={styles.tags}>
@@ -2955,24 +2969,24 @@ function Settings(props: {
             />
           ))}
         </View>
-      </View>
+      </SettingsSection>
 
-      <SettingsSectionHeader title="Storage" description="Counts and estimates for the local archive." />
-      <View style={styles.statsGrid}>
-        <Stat label="Memories" value={String(summary.activeMemoryCount)} />
-        <Stat label="Deleted" value={String(summary.deletedMemoryCount)} />
-        <Stat label="Tags" value={String(summary.tagCount)} />
-        <Stat label="Retained audio" value={String(summary.retainedAudioCount)} />
-        <Stat label="Confirmed dates" value={String(summary.confirmedDateCount)} />
-        <Stat label="Inferred dates" value={String(summary.inferredDateCount)} />
-        <Stat label="Processing runs" value={String(summary.processingRunCount)} />
-        <Stat label="Embeddings" value={String(audit.embeddingCount)} />
-        <Stat label="Local bytes" value={formatBytes(audit.estimatedTotalLocalBytes)} />
-        <Stat label="Schema" value={props.archive.schemaVersion} />
-      </View>
+      <SettingsSection title="Storage" description="Counts and estimates for the local archive.">
+        <View style={styles.statsGrid}>
+          <Stat label="Memories" value={String(summary.activeMemoryCount)} />
+          <Stat label="Deleted" value={String(summary.deletedMemoryCount)} />
+          <Stat label="Tags" value={String(summary.tagCount)} />
+          <Stat label="Retained audio" value={String(summary.retainedAudioCount)} />
+          <Stat label="Confirmed dates" value={String(summary.confirmedDateCount)} />
+          <Stat label="Inferred dates" value={String(summary.inferredDateCount)} />
+          <Stat label="Processing runs" value={String(summary.processingRunCount)} />
+          <Stat label="Embeddings" value={String(audit.embeddingCount)} />
+          <Stat label="Local bytes" value={formatBytes(audit.estimatedTotalLocalBytes)} />
+          <Stat label="Schema" value={props.archive.schemaVersion} />
+        </View>
+      </SettingsSection>
 
-      <SettingsSectionHeader title="Local Processing" description="Rules, nearby search, and diagnostics that run on this device." />
-      <View style={styles.filterPanel}>
+      <SettingsSection title="Local Processing" description="Rules, nearby search, and diagnostics that run on this device.">
         <Text style={styles.panelTitle}>Structured extraction</Text>
         <Text style={styles.metadata}>Mode: {props.structuredExtractionMode === "rules" ? "local rules" : "off"}</Text>
         <View style={styles.tags}>
@@ -2987,8 +3001,7 @@ function Settings(props: {
             onPress={() => void props.onStructuredExtractionModeChange("rules")}
           />
         </View>
-      </View>
-      <View style={styles.filterPanel}>
+        <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Embedding maintenance</Text>
         <Text style={styles.metadata}>Mode: {props.embeddingMaintenanceMode}</Text>
         <View style={styles.tags}>
@@ -3001,7 +3014,7 @@ function Settings(props: {
             />
           ))}
         </View>
-      </View>
+      </SettingsSection>
       <View style={styles.diagnosticsPanel}>
         <Text style={styles.sectionEyebrow}>Advanced diagnostics</Text>
         <Text style={styles.panelTitle}>Data audit</Text>
@@ -3024,8 +3037,7 @@ function Settings(props: {
         </View>
       </View>
 
-      <SettingsSectionHeader title="Security" description="App lock and encryption controls." />
-      <View style={styles.filterPanel}>
+      <SettingsSection title="Security" description="App lock and encryption controls.">
         <Text style={styles.panelTitle}>App lock</Text>
         <Text style={styles.metadata}>Mode: {props.appLockSettings.mode}</Text>
         <Text style={styles.metadata}>
@@ -3060,8 +3072,7 @@ function Settings(props: {
             </>
           )}
         </View>
-      </View>
-      <View style={styles.filterPanel}>
+        <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Encryption</Text>
         <Text style={styles.metadata}>Provider: Web Crypto encrypted exports and archive adapter</Text>
         <Text style={styles.metadata}>
@@ -3110,7 +3121,7 @@ function Settings(props: {
           />
         </View>
         <SecondaryButton label="Save encryption options" onPress={() => props.onSaveEncryptionSettings(encryptionDraft)} icon={<Save size={18} />} />
-      </View>
+      </SettingsSection>
 
       <SettingsSectionHeader title="Export and Import" description="Portable archive files you control." />
       <View style={styles.filterPanel}>
@@ -3322,11 +3333,52 @@ function SettingsSectionHeader(props: { title: string; description: string }) {
   );
 }
 
+function SettingsSection(props: { title: string; description: string; children: ReactNode }) {
+  return (
+    <View style={styles.settingsSection}>
+      <SettingsSectionHeader title={props.title} description={props.description} />
+      <View style={styles.settingsSectionBody}>{props.children}</View>
+    </View>
+  );
+}
+
 function TagRow(props: { labels: string[] }) {
   if (props.labels.length === 0) return null;
   return (
     <View style={styles.tags}>
       {props.labels.map((label) => <TagPill key={label} label={label} />)}
+    </View>
+  );
+}
+
+function ThemeClusterCard(props: { shelf: ThemeShelf; onOpen: () => void }) {
+  return (
+    <View style={styles.themeShelf}>
+      <View style={styles.constellationHeader}>
+        <View style={styles.detailTitleBlock}>
+          <Text style={styles.sectionEyebrow}>{themeTypeLabel(props.shelf.tag.type)}</Text>
+          <Text style={styles.memoryTitle}>{props.shelf.tag.name}</Text>
+          <Text style={styles.metadata}>
+            {props.shelf.memories.length} {props.shelf.memories.length === 1 ? "memory" : "memories"}
+          </Text>
+        </View>
+        <SecondaryButton label="Open" onPress={props.onOpen} icon={<Search size={18} />} />
+      </View>
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Appears with</Text>
+        {props.shelf.relatedTags.length > 0 ? <TagRow labels={props.shelf.relatedTags} /> : <Text style={styles.metadata}>No nearby tags yet.</Text>}
+      </View>
+      <View style={styles.constellationSection}>
+        <Text style={styles.sectionEyebrow}>Memories</Text>
+        {props.shelf.memories.slice(0, 3).map((memory) => (
+          <Pressable key={memory.id} style={styles.themeMemory} onPress={props.onOpen}>
+            <Text style={styles.memoryPreview} numberOfLines={2}>
+              {memory.title ?? memory.rawText}
+            </Text>
+            <ConnectionReason label="Connected by" reason={props.shelf.tag.name} />
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -3619,6 +3671,24 @@ const lightStyles = StyleSheet.create({
   content: {
     padding: 18,
     paddingBottom: 28,
+    gap: 16
+  },
+  exploreWideContent: {
+    paddingHorizontal: 22
+  },
+  exploreWideGrid: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 18
+  },
+  explorePrimaryPane: {
+    flex: 1.6,
+    minWidth: 0,
+    gap: 16
+  },
+  exploreSecondaryPane: {
+    flex: 1,
+    minWidth: 280,
     gap: 16
   },
   capturePanel: {
@@ -4364,6 +4434,22 @@ const lightStyles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800"
   },
+  settingsSection: {
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    gap: 12
+  },
+  settingsSectionBody: {
+    gap: 10
+  },
+  settingsDivider: {
+    height: 1,
+    backgroundColor: "#e6e0d3",
+    marginVertical: 4
+  },
   stat: {
     minWidth: 120,
     borderWidth: 1,
@@ -4497,6 +4583,8 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   trustItem: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
   trustValue: { color: "#f3efe7" },
   settingsSectionTitle: { color: "#f3efe7" },
+  settingsSection: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  settingsDivider: { backgroundColor: "#3a4338" },
   stat: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   statValue: { color: "#f3efe7" },
   statLabel: { color: "#aab1a6" },

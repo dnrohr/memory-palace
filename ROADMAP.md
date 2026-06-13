@@ -57,6 +57,10 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Ran the Pixel 8 preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
 - Added a GitHub Actions `Verify` workflow so the documented local gate (`npm ci` and `npm run verify`) runs on pushes to `main` and pull requests.
 - Rechecked the Pixel 8 blocker: `adb` is not on PATH, no standard Windows Android SDK `adb.exe` path is present, and no physical Pixel 8 is attached in this environment.
+- Added a UI polish batch from `UI_DESIGN_DOCUMENT.md`: wide Explore now uses a two-pane composition, theme shelves use a reusable `ThemeClusterCard`, and core Settings trust/control areas use a reusable `SettingsSection` surface.
+- Ran `npm run verify` for the UI polish batch; build, all 102 tests, and Expo public config passed.
+- Ran local web visual QA on `http://localhost:8081`: wide Explore rendered as a two-pane layout, Settings rendered the new section surfaces, mobile-width Explore stayed stacked, and no horizontal overflow or console errors appeared.
+- Re-ran the Pixel 8 preflight for the UI polish batch; it still fails because `adb` is not available on PATH, so physical device QA remains deferred.
 
 ### 2026-06-12
 
@@ -338,6 +342,7 @@ Done:
 - Review inbox data/UI, quiet optional-review surface with accept/edit/dismiss/defer actions, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
 - Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
 - Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible/accepted chapter card polish, explicit back-to-Explore affordances, persisted light/dark appearance, shared app-shell, screen-header, center-capture, breadcrumb, memory-card, tag-pill, date-certainty, connection-reason, review-card, entity-card, and chapter-card UI primitives, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
+- Wide Explore two-pane layout, reusable `ThemeClusterCard`, and reusable `SettingsSection` surfaces for calmer desktop/tablet browsing and trust controls.
 
 Remaining:
 - None.

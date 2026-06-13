@@ -1,4 +1,3 @@
-import { Audio } from "expo-av";
 import type { AudioArtifact } from "../../../src/transcription/contracts";
 
 export type AudioCaptureDraft = {
@@ -21,49 +20,24 @@ export class AudioCaptureError extends Error {
 
 export type AudioCaptureSession = {
   startedAt: string;
-  recording: Audio.Recording;
 };
 
 export async function requestAudioCapturePermission(): Promise<boolean> {
-  const permission = await Audio.requestPermissionsAsync();
-  return permission.granted;
+  return false;
 }
 
 export async function startAudioCapture(): Promise<AudioCaptureSession> {
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true
-  });
-
-  const recording = new Audio.Recording();
-  await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-  await recording.startAsync();
-
-  return {
-    startedAt: new Date().toISOString(),
-    recording
-  };
+  throw new AudioCaptureError(
+    "start_failed",
+    "Audio capture is temporarily disabled on Android while migrating from expo-av to expo-audio."
+  );
 }
 
-export async function stopAudioCapture(session: AudioCaptureSession): Promise<AudioArtifact> {
-  let status: Audio.RecordingStatus;
-  try {
-    await session.recording.stopAndUnloadAsync();
-    status = await session.recording.getStatusAsync();
-  } catch (error) {
-    throw new AudioCaptureError("stop_failed", error instanceof Error ? error.message : "Recording could not be stopped.");
-  }
-  const uri = session.recording.getURI();
-
-  if (!uri) {
-    throw new AudioCaptureError("missing_audio_uri", "Audio recording did not produce a file URI.");
-  }
-
-  return {
-    uri,
-    mimeType: "audio/m4a",
-    ...("durationMillis" in status && typeof status.durationMillis === "number" ? { durationMs: status.durationMillis } : {})
-  };
+export async function stopAudioCapture(_session: AudioCaptureSession): Promise<AudioArtifact> {
+  throw new AudioCaptureError(
+    "stop_failed",
+    "Audio capture is temporarily disabled on Android while migrating from expo-av to expo-audio."
+  );
 }
 
 export function recordingDurationMs(session: AudioCaptureSession): number {

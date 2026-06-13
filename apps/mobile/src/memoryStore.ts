@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import type { MemoryArchive } from "../../../src/core/archive";
 import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiveOperations";
@@ -9,7 +10,7 @@ import type { LifeChapterDecision, LifeContextRelationship, Memory, MemoryEmbedd
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
 
-let databasePromise: Promise<import("expo-sqlite").SQLiteDatabase> | undefined;
+let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
 
 export async function loadArchive(): Promise<MemoryArchive> {
   if (Platform.OS === "web") {
@@ -378,13 +379,12 @@ async function saveWebArchive(archive: MemoryArchive): Promise<void> {
   await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify({ ...archive, exportedAt: new Date().toISOString() }));
 }
 
-async function getDatabase(): Promise<import("expo-sqlite").SQLiteDatabase> {
+async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   databasePromise ??= openDatabase();
   return databasePromise;
 }
 
-async function openDatabase(): Promise<import("expo-sqlite").SQLiteDatabase> {
-  const SQLite = await import("expo-sqlite");
+async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync("memory-palace.db");
   await applyMigrations(db);
   return db;

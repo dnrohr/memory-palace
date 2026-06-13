@@ -10,12 +10,20 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow Memory Palace to transcribe voice memories.",
+        "NSMicrophoneUsageDescription": "Allow Memory Palace to use the microphone for voice memories."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f8f6f1"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.memorypalace"
     },
     "web": {
       "bundler": "metro",
