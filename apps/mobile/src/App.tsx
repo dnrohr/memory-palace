@@ -1583,7 +1583,7 @@ function TimelineView(props: {
           </View>
         ) : (
           chapters.map((chapter, index) => (
-            <ChapterCandidateCard
+            <ChapterCard
               key={chapter.id}
               archive={props.archive}
               chapter={chapter}
@@ -1609,7 +1609,7 @@ function FilterChip(props: { label: string; selected: boolean; onPress: () => vo
   );
 }
 
-function ChapterCandidateCard(props: {
+function ChapterCard(props: {
   archive: MemoryArchive;
   chapter: LifeChapterCandidate;
   previousChapter?: LifeChapterCandidate;
