@@ -38,6 +38,7 @@
     "expo-speech-recognition": "^56.0.1",
     "expo-splash-screen": "~56.0.10",
     "expo-sqlite": "^56.0.5",
+    "llama.rn": "^0.12.4",
     "lucide-react-native": "^1.17.0",
     "onnxruntime-react-native": "^1.24.3",
     "react": "19.2.3",

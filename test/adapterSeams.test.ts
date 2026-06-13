@@ -13,6 +13,12 @@ import {
   RulesStructuredExtractionEngine,
   validateStructuredExtractionResult
 } from "../src/processing/structuredExtraction";
+import {
+  buildQwenStructuredExtractionPrompt,
+  createQwenStructuredExtractionEngine,
+  QWEN_2_5_0_5B_STRUCTURED_EXTRACTION_MODEL,
+  type LlamaCompletionRequest
+} from "../src/processing/qwenStructuredExtraction";
 
 describe("optional AI adapter seams", () => {
   it("keeps structured extraction optional", async () => {
@@ -226,6 +232,55 @@ describe("optional AI adapter seams", () => {
         }
       })
     ).toContain("Known pets: Patrick");
+  });
+
+  it("defines Qwen2.5 0.5B Instruct as the structured extraction target", () => {
+    expect(QWEN_2_5_0_5B_STRUCTURED_EXTRACTION_MODEL).toEqual(
+      expect.objectContaining({
+        id: "qwen2.5-0.5b-instruct",
+        runtime: "llama.rn",
+        recommendedQuantization: "Q4_K_M"
+      })
+    );
+    expect(buildQwenStructuredExtractionPrompt({ text: "A memory." })).toContain("<|im_start|>system");
+  });
+
+  it("wraps a llama runtime for deterministic Qwen JSON extraction", async () => {
+    let request: LlamaCompletionRequest | undefined;
+    const engine = createQwenStructuredExtractionEngine({
+      grammar: "root ::= object",
+      runtime: {
+        async complete(input) {
+          request = input;
+          return JSON.stringify({
+            title: "Grandma in Queens",
+            dates: [],
+            tags: [{ name: "Grandma", type: "person", confidence: 0.82, source: "model" }],
+            emotionalTone: []
+          });
+        }
+      }
+    });
+
+    const result = await engine.extract({ text: "I remember visiting Grandma in Queens." });
+
+    expect(request).toEqual(
+      expect.objectContaining({
+        temperature: 0,
+        maxTokens: 700,
+        grammar: "root ::= object"
+      })
+    );
+    expect(request?.prompt).toContain("Return strict JSON only");
+    expect(result).toEqual(
+      expect.objectContaining({
+        title: "Grandma in Queens",
+        engineId: "local-model-structured-qwen2.5-0.5b-instruct",
+        engineVersion: "2.5",
+        promptVersion: "local-model-json.v1"
+      })
+    );
+    expect(validateStructuredExtractionResult(result)).toEqual({ valid: true, warnings: [] });
   });
 
   it("validates structured extraction result confidence ranges", () => {

@@ -24,7 +24,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through a local llama.cpp-compatible runtime such as `llama.rn`; runtime wiring and device QA remain.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter is present, and native model asset loading plus device QA remain.
 - Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter is present, and native/web model asset loading plus device QA remain.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
@@ -73,6 +73,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Ran `npm run verify` and `npm run pixel8:preflight` for the archive-at-rest Settings migration slice; both passed. Physical archive-at-rest device QA remains deferred because the available Pixel 8a development client did not complete the Metro connection in the prior device pass, and exact Pixel 8 hardware is not attached.
 - Selected production local model targets in `docs/model-selection.md`: BGE small English v1.5 for embeddings, Qwen2.5 0.5B Instruct through a llama.cpp-compatible runtime for optional structured extraction, and WebDAV encrypted sync as the first production sync target.
 - Added a BGE small English v1.5 ONNX embedding adapter with model metadata, query/passage prefix handling, masked mean pooling for token embeddings, and tests for the production embedding target. Hash embeddings remain the runtime fallback until model assets and device QA are wired.
+- Added a Qwen2.5 0.5B Instruct structured-extraction adapter for `llama.rn`, with chat prompt wrapping, deterministic local completion settings, optional grammar forwarding, and validation through the existing JSON structured-extraction contract. Rules remain the default until model assets and device QA are wired.
 
 ### 2026-06-12
 
@@ -288,9 +289,10 @@ Status: In progress
 Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
 - Settings controls for local rules extraction.
+- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter in the portable core.
 
 Remaining:
-- Production local model/runtime selection and device QA.
+- Native model asset loading, runtime initialization, and device QA.
 
 ### 7. Semantic Search and Embeddings
 

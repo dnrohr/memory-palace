@@ -23,11 +23,11 @@ Production target: `Qwen2.5-0.5B-Instruct` via a local llama.cpp-compatible runt
 
 - Purpose: optional, user-confirmed title/date/tag/context suggestions beyond the rules engine.
 - Current fallback: rules-based structured extraction.
-- Integration posture: JSON-speaking structured extraction adapter is present; Qwen runtime wiring remains experimental and should not be required at startup.
+- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present; model weights are not bundled in the repository and the runtime should not be required at startup.
 
 Remaining work:
 
-- Add llama runtime adapter and model metadata.
+- Add native model asset loading and runtime initialization.
 - Keep rules as the default until device QA confirms acceptable latency, memory use, and recovery behavior.
 
 ## Sync
