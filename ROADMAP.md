@@ -17,8 +17,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Ready to Continue Locally
 
-- Top priority: make Pixel 8 testing first-class with an Expo development build, repeatable phone-start scripts, and a short device-testing runbook.
-- Add a major-change test gate: before treating any substantial mobile, storage, encryption, speech, sync, navigation, or data-model change as done, verify it on the Pixel 8 development build or explicitly log why device QA was deferred.
+- None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
+- The current app still needs the physical Pixel 8 major-change gate before mobile-facing milestones can be treated as device-verified.
 
 ### Needs Model or Provider Selection
 
@@ -28,7 +28,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Device QA
 
-- Pixel 8 development-build setup is the first device-QA milestone and blocks further major mobile-facing work.
+- Run the Pixel 8 development-build checklist for the current app and record results in `docs/pixel-8-results/`.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
 - Milestone 3: iOS, Android, and web speech-recognition QA, including permission prompts, background interruption, and transcription fallback.
@@ -52,6 +52,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added `npm run verify` and a Pixel 8 result template so the local gate and device evidence can be recorded consistently for major changes.
 - Made additive SQLite migrations idempotent when the latest schema already contains the target columns, reducing device-test failures on fresh or partially migrated local databases.
 - Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
+- Recorded the current-app Pixel 8 gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8 QA remains deferred because this environment has no attached device.
 
 ### 2026-06-12
 
@@ -460,10 +461,9 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Make Pixel 8 testing first-class: add Expo development-build setup, phone-start scripts, and a short device-testing runbook.
-2. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
-3. Run device-level speech QA across iOS, Android, and web voice flows.
-4. Wire archive-at-rest encryption into native/web storage with unlock, key lifecycle, and migration UI.
-5. Add production local embedding/model adapters when target models are selected.
-6. Add opt-in sync/backup provider adapters when provider targets are selected.
-7. Run broader device QA across mobile, tablet, and web.
+1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
+2. Run device-level speech QA across iOS, Android, and web voice flows.
+3. Wire archive-at-rest encryption into native/web storage with unlock, key lifecycle, and migration UI.
+4. Add production local embedding/model adapters when target models are selected.
+5. Add opt-in sync/backup provider adapters when provider targets are selected.
+6. Run broader device QA across mobile, tablet, and web.
