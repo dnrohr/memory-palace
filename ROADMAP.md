@@ -56,6 +56,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Recorded the current-app Pixel 8 gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8 QA remains deferred because this environment has no attached device.
 - Ran the Pixel 8 preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
 - Added a GitHub Actions `Verify` workflow so the documented local gate (`npm ci` and `npm run verify`) runs on pushes to `main` and pull requests.
+- Rechecked the Pixel 8 blocker: `adb` is not on PATH, no standard Windows Android SDK `adb.exe` path is present, and no physical Pixel 8 is attached in this environment.
 
 ### 2026-06-12
 

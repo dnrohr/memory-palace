@@ -44,5 +44,5 @@
 
 - Red screens, visible errors, or console errors: none observed in local checks; physical-device runtime not tested.
 - Failed checklist items: none from local gate.
-- Deferred device-QA items and reason: the current Codex environment has no available `adb` command and no attached Pixel 8, so the Pixel 8 development-build gate remains open.
+- Deferred device-QA items and reason: the current Codex environment has no available `adb` command, no detected standard Windows Android SDK `adb.exe` path, and no attached Pixel 8, so the Pixel 8 development-build gate remains open.
 - Follow-up issue or roadmap item: run `npm run pixel8:build`, `npm run pixel8`, and the full `PIXEL_8_TEST.md` checklist on the physical Pixel 8.
