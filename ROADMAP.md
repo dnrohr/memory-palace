@@ -19,6 +19,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 - None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
 - The current app still needs the full physical Pixel 8 major-change gate before mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
+- A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
 
 ### Needs Model or Provider Selection
 
@@ -64,6 +65,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Improved Pixel 8 device readiness automation: preflight now discovers `adb` in PATH and standard Android SDK locations, checks for a Java runtime in `JAVA_HOME`, Android Studio JBR, and common JDK folders, distinguishes ready/offline/unauthorized devices, and has helper tests.
 - Replaced the interactive `pixel8:build` script with a non-interactive wrapper that selects the first ADB-ready device and wires detected Java into the Expo Android build.
 - Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8 target-device QA remains open.
+- Re-ran the current-app Pixel 8 gate on the available Pixel 8a: `npm run verify` and `npm run pixel8:preflight` passed, direct Gradle debug assembly and `adb install -r` passed, and Metro completed Android bundles. Full workflow QA remains deferred because the Expo development launcher reported `unexpected end of stream` when connecting to the local Metro server, and exact Pixel 8 hardware was not attached.
 
 ### 2026-06-12
 
