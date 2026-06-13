@@ -628,9 +628,23 @@ export default function App() {
               await appLockProvider.lock();
               setIsAppLocked(await appLockProvider.isLocked());
             }}
-            onSaveEncryptionSettings={async (settings) => {
+            onSaveEncryptionSettings={async (settings, passphrase) => {
               const savedSettings = await saveEncryptionSettings(settings);
               setEncryptionSettings(savedSettings.encryptionSettings);
+              if (savedSettings.encryptionSettings.scope === "archive" && savedSettings.encryptionSettings.keySource === "user_passphrase") {
+                if (!passphrase?.trim()) {
+                  throw new Error("Archive-at-rest encryption requires an archive passphrase.");
+                }
+                setArchiveAtRestPassphrase(passphrase);
+                await (await createArchiveAtRestAdapter(passphrase)).saveArchive(archive);
+                await clearPlaintextArchiveStorage();
+                setArchiveUnlockRequired(false);
+                return;
+              }
+
+              await saveArchive(archive);
+              await new AsyncStorageArchiveAtRestRecordStore().clear();
+              setArchiveAtRestPassphrase("");
             }}
             onStructuredExtractionModeChange={async (mode) => {
               const savedSettings = await saveStructuredExtractionMode(mode);
@@ -2869,7 +2883,7 @@ function Settings(props: {
   onSavePin: (pin: string) => Promise<void>;
   onDisableAppLock: () => Promise<void>;
   onLockNow: () => Promise<void>;
-  onSaveEncryptionSettings: (settings: EncryptionSettings) => Promise<void>;
+  onSaveEncryptionSettings: (settings: EncryptionSettings, passphrase?: string) => Promise<void>;
   onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
   onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
   onAppearanceModeChange: (mode: AppearanceMode) => Promise<void>;
@@ -2888,6 +2902,8 @@ function Settings(props: {
   const [memoryIdResolution, setMemoryIdResolution] = useState<NonNullable<ArchiveMergeOptions["memoryIdConflict"]>>("skip");
   const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
   const [encryptionDraft, setEncryptionDraft] = useState<EncryptionSettings>(props.encryptionSettings);
+  const [archivePassphrase, setArchivePassphrase] = useState("");
+  const [encryptionStatusMessage, setEncryptionStatusMessage] = useState<string | undefined>();
   const [exportPassphrase, setExportPassphrase] = useState("");
   const [backupPassphrase, setBackupPassphrase] = useState("");
   const [backupStatus, setBackupStatus] = useState<string | undefined>();
@@ -2899,6 +2915,24 @@ function Settings(props: {
   const encryptionProvider = useMemo(() => new WebCryptoExportEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
+  const archiveAtRestRequested = encryptionDraft.scope === "archive" && encryptionDraft.keySource === "user_passphrase";
+
+  async function saveEncryptionOptions() {
+    setPortabilityError(undefined);
+    setEncryptionStatusMessage(undefined);
+
+    try {
+      await props.onSaveEncryptionSettings(encryptionDraft, archivePassphrase);
+      if (archiveAtRestRequested) {
+        setEncryptionStatusMessage("Archive-at-rest encryption is on. Plaintext primary storage was cleared after the encrypted archive was written.");
+        setArchivePassphrase("");
+        return;
+      }
+      setEncryptionStatusMessage("Encryption options saved. Archive-at-rest encryption is off, so the local archive remains in primary storage.");
+    } catch (error) {
+      setPortabilityError(error instanceof Error ? error.message : "Encryption settings could not be saved.");
+    }
+  }
 
   async function sharePossiblyEncrypted(artifact: ExportArtifact) {
     try {
@@ -3185,7 +3219,7 @@ function Settings(props: {
         <Text style={styles.metadata}>Provider: Web Crypto encrypted exports and archive adapter</Text>
         <Text style={styles.metadata}>
           Status: encrypted exports are available when scope is exports or archive and key source is user passphrase. Archive-at-rest
-          adapter support is available; startup unlock and storage migration are still pending.
+          encryption now writes an encrypted local archive, clears plaintext primary storage, and requires the archive passphrase after restart.
         </Text>
         <View style={styles.filterSection}>
           <Text style={styles.metadata}>Scope</Text>
@@ -3228,7 +3262,26 @@ function Settings(props: {
             }
           />
         </View>
-        <SecondaryButton label="Save encryption options" onPress={() => props.onSaveEncryptionSettings(encryptionDraft)} icon={<Save size={18} />} />
+        {archiveAtRestRequested ? (
+          <>
+            <TextInput
+              value={archivePassphrase}
+              onChangeText={setArchivePassphrase}
+              placeholder="Archive passphrase"
+              placeholderTextColor="#7b8178"
+              secureTextEntry
+              style={styles.tagInput}
+            />
+            <Text style={styles.metadata}>The passphrase is used now to migrate the current archive and is not stored.</Text>
+          </>
+        ) : null}
+        <SecondaryButton
+          label="Save encryption options"
+          onPress={saveEncryptionOptions}
+          disabled={archiveAtRestRequested && !archivePassphrase.trim()}
+          icon={<Save size={18} />}
+        />
+        {encryptionStatusMessage ? <Text style={styles.metadata}>{encryptionStatusMessage}</Text> : null}
       </SettingsSection>
 
       <SettingsSectionHeader title="Export and Import" description="Portable archive files you control." />

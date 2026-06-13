@@ -20,6 +20,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
 - The current app still needs the full physical Pixel 8 major-change gate before mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
+- Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; native device QA remains open.
 
 ### Needs Model or Provider Selection
 
@@ -67,6 +68,9 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8 target-device QA remains open.
 - Re-ran the current-app Pixel 8 gate on the available Pixel 8a: `npm run verify` and `npm run pixel8:preflight` passed, direct Gradle debug assembly and `adb install -r` passed, and Metro completed Android bundles. Full workflow QA remains deferred because the Expo development launcher reported `unexpected end of stream` when connecting to the local Metro server, and exact Pixel 8 hardware was not attached.
 - Ran web speech denied-permission QA on `http://localhost:8092`: New Memory and Voice rendered, no-audio-retention copy and ready status were visible, starting recording produced a visible `Microphone permission was denied.` state with a `Try again` recovery action, and no browser console errors appeared beyond existing style warnings. Accepted-microphone, iOS, Android native, and exact Pixel 8 speech QA remain open.
+- Wired archive-at-rest encryption into the Settings save flow: archive scope with user passphrase now requires a one-time archive passphrase, immediately writes the encrypted archive, clears plaintext primary storage, and disabling archive scope writes the current archive back to primary storage while clearing the encrypted record and in-memory archive passphrase.
+- Ran archive-at-rest web QA on `http://localhost:8093`: Settings showed the archive passphrase migration field, saving with a test passphrase showed encrypted-archive success copy, reload displayed the encrypted archive unlock screen, unlocking returned to Explore, and no console errors appeared beyond existing style warnings.
+- Ran `npm run verify` and `npm run pixel8:preflight` for the archive-at-rest Settings migration slice; both passed. Physical archive-at-rest device QA remains deferred because the available Pixel 8a development client did not complete the Metro connection in the prior device pass, and exact Pixel 8 hardware is not attached.
 
 ### 2026-06-12
 
@@ -480,7 +484,7 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
-3. Wire archive-at-rest encryption into native/web storage with unlock, key lifecycle, and migration UI.
+3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
 4. Add production local embedding/model adapters when target models are selected.
 5. Add opt-in sync/backup provider adapters when provider targets are selected.
 6. Run broader device QA across mobile, tablet, and web.
