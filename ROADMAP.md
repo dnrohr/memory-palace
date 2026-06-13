@@ -32,7 +32,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Run the Pixel 8 development-build checklist for the current app and record results in `docs/pixel-8-results/`.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
-- Milestone 3: iOS, Android, and web speech-recognition QA, including permission prompts, background interruption, and transcription fallback.
+- Milestone 3: iOS, Android, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`.
 
 ## Major Change Test Gate
 
@@ -66,6 +66,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Replaced the interactive `pixel8:build` script with a non-interactive wrapper that selects the first ADB-ready device and wires detected Java into the Expo Android build.
 - Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8 target-device QA remains open.
 - Re-ran the current-app Pixel 8 gate on the available Pixel 8a: `npm run verify` and `npm run pixel8:preflight` passed, direct Gradle debug assembly and `adb install -r` passed, and Metro completed Android bundles. Full workflow QA remains deferred because the Expo development launcher reported `unexpected end of stream` when connecting to the local Metro server, and exact Pixel 8 hardware was not attached.
+- Ran web speech denied-permission QA on `http://localhost:8092`: New Memory and Voice rendered, no-audio-retention copy and ready status were visible, starting recording produced a visible `Microphone permission was denied.` state with a `Try again` recovery action, and no browser console errors appeared beyond existing style warnings. Accepted-microphone, iOS, Android native, and exact Pixel 8 speech QA remain open.
 
 ### 2026-06-12
 
