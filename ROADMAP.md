@@ -75,6 +75,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added a BGE small English v1.5 ONNX embedding adapter with model metadata, query/passage prefix handling, masked mean pooling for token embeddings, and tests for the production embedding target. Hash embeddings remain the runtime fallback until model assets and device QA are wired.
 - Added a Qwen2.5 0.5B Instruct structured-extraction adapter for `llama.rn`, with chat prompt wrapping, deterministic local completion settings, optional grammar forwarding, and validation through the existing JSON structured-extraction contract. Rules remain the default until model assets and device QA are wired.
 - Added a tracked `patch-package` patch for `onnxruntime-react-native@1.24.3` so its Android Gradle script works under the current Gradle toolchain, ignored generated `llama.rn` Hexagon asset sync output, and confirmed direct Android debug assembly succeeds after adding the local model runtime dependencies.
+- Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full exact Pixel 8 model runtime QA remains open until model assets and dev-client workflow testing are complete.
 
 ### 2026-06-12
 
