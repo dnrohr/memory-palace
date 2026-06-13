@@ -8,6 +8,7 @@
     "build": "tsc --noEmit",
     "start": "expo start",
     "web": "expo start --web",
+    "verify": "npm run build && npm test && npx expo config --type public",
     "android": "expo start --android",
     "pixel8:build": "expo run:android --device",
     "pixel8": "expo start --dev-client --android",

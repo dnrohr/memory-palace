@@ -68,8 +68,7 @@ Use Expo Go only for flows that do not depend on native module behavior. Do not 
 Before marking a major mobile-facing change complete, run:
 
 ```bash
-npm test
-npm run build
+npm run verify
 ```
 
 Then run the relevant Pixel 8 development-build checks below. If Pixel 8 testing is not possible, record the reason in `ROADMAP.md` and keep the item marked as needing device QA.
@@ -109,7 +108,9 @@ Major changes include:
 
 ## Record Results
 
-Record these details in the implementation log or PR notes:
+Record results with `docs/pixel-8-result-template.md`. Copy the template into the implementation log, PR notes, or a dated QA result file.
+
+At minimum, record:
 
 - Pixel 8 Android version.
 - Whether LAN, tunnel, or USB was used.

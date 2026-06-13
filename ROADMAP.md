@@ -49,6 +49,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Promoted Pixel 8 testing to the top implementation priority: use an Expo development build, repeatable phone-start scripts, and a device-testing runbook rather than relying on Expo Go for the main app.
 - Added a major-change test gate requiring Pixel 8 development-build QA for substantial mobile, storage, encryption, speech, sync, navigation, and data-model changes before they are considered complete.
 - Added `expo-dev-client`, Pixel 8 start/build scripts, and `PIXEL_8_TEST.md` so Android device QA has a repeatable development-build path.
+- Added `npm run verify` and a Pixel 8 result template so the local gate and device evidence can be recorded consistently for major changes.
 - Made additive SQLite migrations idempotent when the latest schema already contains the target columns, reducing device-test failures on fresh or partially migrated local databases.
 - Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
 
