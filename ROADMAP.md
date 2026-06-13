@@ -74,6 +74,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Selected production local model targets in `docs/model-selection.md`: BGE small English v1.5 for embeddings, Qwen2.5 0.5B Instruct through a llama.cpp-compatible runtime for optional structured extraction, and WebDAV encrypted sync as the first production sync target.
 - Added a BGE small English v1.5 ONNX embedding adapter with model metadata, query/passage prefix handling, masked mean pooling for token embeddings, and tests for the production embedding target. Hash embeddings remain the runtime fallback until model assets and device QA are wired.
 - Added a Qwen2.5 0.5B Instruct structured-extraction adapter for `llama.rn`, with chat prompt wrapping, deterministic local completion settings, optional grammar forwarding, and validation through the existing JSON structured-extraction contract. Rules remain the default until model assets and device QA are wired.
+- Added a tracked `patch-package` patch for `onnxruntime-react-native@1.24.3` so its Android Gradle script works under the current Gradle toolchain, ignored generated `llama.rn` Hexagon asset sync output, and confirmed direct Android debug assembly succeeds after adding the local model runtime dependencies.
 
 ### 2026-06-12
 

@@ -1,0 +1,43 @@
+diff --git a/node_modules/onnxruntime-react-native/android/build.gradle b/node_modules/onnxruntime-react-native/android/build.gradle
+index 41b4359..b8cb3b3 100644
+--- a/node_modules/onnxruntime-react-native/android/build.gradle
++++ b/node_modules/onnxruntime-react-native/android/build.gradle
+@@ -33,6 +33,29 @@ def resolveBuildType() {
+   return tskReqStr.contains('Release') ? 'release' : 'debug'
+ }
+ 
++static def versionNumberParts(version) {
++  def matcher = (version =~ /(\d+)\.(\d+)(?:\.(\d+))?/)
++  if (!matcher.find()) {
++    return [0, 0, 0]
++  }
++  return [
++    matcher.group(1).toInteger(),
++    matcher.group(2).toInteger(),
++    matcher.group(3) ? matcher.group(3).toInteger() : 0
++  ]
++}
++
++static def isVersionLessThan(version, target) {
++  def left = versionNumberParts(version)
++  def right = versionNumberParts(target)
++  for (int index = 0; index < 3; index++) {
++    if (left[index] != right[index]) {
++      return left[index] < right[index]
++    }
++  }
++  return false
++}
++
+ static def findNodeModules(baseDir) {
+   def basePath = baseDir.toPath().normalize()
+   while (basePath) {
+@@ -247,7 +270,7 @@ dependencies {
+     extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
+   }
+ 
+-  if (VersionNumber.parse(REACT_NATIVE_VERSION) < VersionNumber.parse("0.71")) {
++  if (isVersionLessThan(REACT_NATIVE_VERSION, "0.71")) {
+     extractLibs "com.facebook.fbjni:fbjni:+:headers"
+     extractLibs "com.facebook.fbjni:fbjni:+"
+   }
