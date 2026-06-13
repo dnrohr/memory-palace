@@ -55,6 +55,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
 - Recorded the current-app Pixel 8 gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8 QA remains deferred because this environment has no attached device.
 - Ran the Pixel 8 preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
+- Added a GitHub Actions `Verify` workflow so the documented local gate (`npm ci` and `npm run verify`) runs on pushes to `main` and pull requests.
 
 ### 2026-06-12
 
