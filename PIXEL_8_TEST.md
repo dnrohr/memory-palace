@@ -32,7 +32,7 @@ Install a development build on the Pixel 8:
 npm run pixel8:build
 ```
 
-This runs `expo run:android --device`, builds the native Android app with `expo-dev-client`, and installs it on the selected connected device.
+This resolves the first ADB-ready Android device and runs `expo run:android --device <device name>`, builds the native Android app with `expo-dev-client`, and installs it on that connected device. If more than one Android device is connected, set `PIXEL8_DEVICE_ID` to the serial or model name shown by `adb devices -l`.
 
 Use this whenever native dependencies, app config, Android permissions, SQLite, SecureStore, speech recognition, document picking, or biometric lock behavior changes.
 

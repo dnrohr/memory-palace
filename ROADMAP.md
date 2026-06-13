@@ -18,7 +18,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 ### Ready to Continue Locally
 
 - None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
-- The current app still needs the physical Pixel 8 major-change gate before mobile-facing milestones can be treated as device-verified.
+- The current app still needs the full physical Pixel 8 major-change gate before mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
 
 ### Needs Model or Provider Selection
 
@@ -61,6 +61,9 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Ran `npm run verify` for the UI polish batch; build, all 102 tests, and Expo public config passed.
 - Ran local web visual QA on `http://localhost:8081`: wide Explore rendered as a two-pane layout, Settings rendered the new section surfaces, mobile-width Explore stayed stacked, and no horizontal overflow or console errors appeared.
 - Re-ran the Pixel 8 preflight for the UI polish batch; it still fails because `adb` is not available on PATH, so physical device QA remains deferred.
+- Improved Pixel 8 device readiness automation: preflight now discovers `adb` in PATH and standard Android SDK locations, checks for a Java runtime in `JAVA_HOME`, Android Studio JBR, and common JDK folders, distinguishes ready/offline/unauthorized devices, and has helper tests.
+- Replaced the interactive `pixel8:build` script with a non-interactive wrapper that selects the first ADB-ready device and wires detected Java into the Expo Android build.
+- Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8 target-device QA remains open.
 
 ### 2026-06-12
 
@@ -216,9 +219,10 @@ Done:
 - App shell, CRUD, export, restore, and permanent delete.
 - Native SQLite path, web fallback, and migration tracking.
 - Richer settings and storage diagnostics.
+- Partial Pixel 8a development-build smoke evidence for launch, Explore, save/detail, reconnect persistence, and Settings.
 
 Remaining:
-- Device-level QA.
+- Full target Pixel 8 device-level QA.
 
 ### 2. Manual Tags and Basic Search
 
@@ -228,9 +232,10 @@ Done:
 - Manual tag assignment, readable theme shelves, tag management, filters, tag type editing, and tag merge UI/operations.
 - Basic search, ranked portable search snippets, keyword highlighting, and matched-tag labels.
 - Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
+- Partial Pixel 8a keyboard/search-field focus evidence.
 
 Remaining:
-- Device-level search and keyboard QA.
+- Full device-level search result and keyboard QA.
 
 ### 3. Voice Capture and Transcription
 
