@@ -35,6 +35,7 @@
     "expo-local-authentication": "~56.0.4",
     "expo-secure-store": "~56.0.4",
     "expo-speech-recognition": "^56.0.1",
+    "expo-splash-screen": "~56.0.10",
     "expo-sqlite": "^56.0.5",
     "lucide-react-native": "^1.17.0",
     "react": "19.2.3",

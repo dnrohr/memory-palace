@@ -1,4 +1,5 @@
 import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cloneElement, isValidElement, useEffect, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
@@ -14,7 +15,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
+import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
 import type { ExportArtifact } from "../../../src/export/contracts";
@@ -113,12 +114,15 @@ import {
   type EmbeddingMaintenanceMode,
   type StructuredExtractionMode
 } from "./settingsStore";
+import { darkTheme, lightTheme } from "./designTokens";
 
 type ViewMode = "list" | "editor" | "detail" | "voice" | "timeline" | "review" | "context" | "tags" | "settings";
 type SearchMode = "keyword" | "semantic";
 type ExploreTab = "timeline" | "graph" | "clusters" | "chapters";
 type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
 type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
+
+const NEW_MEMORY_DRAFT_KEY = "memory-palace.new-memory-draft.v1";
 
 export default function App() {
   const { width } = useWindowDimensions();
@@ -432,13 +436,28 @@ export default function App() {
           />
         ) : null}
 
-        {mode === "editor" ? (
+        {mode === "editor" && !selectedMemory ? (
+          <NewMemoryCapture
+            onVoice={() => setMode("voice")}
+            onCancel={() => setMode("list")}
+            onSave={async (text) => {
+              const memory = createMemory(text);
+              await persist(upsertMemory(archive, memory));
+              await AsyncStorage.removeItem(NEW_MEMORY_DRAFT_KEY);
+              setSelectedId(memory.id);
+              setPostSaveMemoryId(memory.id);
+              setMode("detail");
+            }}
+          />
+        ) : null}
+
+        {mode === "editor" && selectedMemory ? (
           <MemoryEditor
             archive={archive}
             structuredExtractionMode={structuredExtractionMode}
-            {...(selectedMemory ? { memory: selectedMemory } : {})}
+            memory={selectedMemory}
             onVoice={() => setMode("voice")}
-            onCancel={() => setMode(selectedMemory ? "detail" : "list")}
+            onCancel={() => setMode("detail")}
             onSave={async (memory, tagText) => {
               const withMemory = upsertMemory(archive, memory);
               const withTags = replaceTags(
@@ -448,7 +467,6 @@ export default function App() {
               );
               await persist(withTags);
               setSelectedId(memory.id);
-              if (!selectedMemory) setPostSaveMemoryId(memory.id);
               setMode("detail");
             }}
           />
@@ -459,9 +477,7 @@ export default function App() {
             archive={archive}
             memory={selectedMemory}
             postSaveActive={postSaveMemoryId === selectedMemory.id}
-            postSaveItems={buildReviewInbox(archive)
-              .filter((item) => item.memoryId === selectedMemory.id && item.type !== "untagged_memory")
-              .slice(0, 4)}
+            postSaveItems={buildPostSaveItems(archive, selectedMemory.id)}
             onEdit={() => setMode("editor")}
             onBack={() => {
               setPostSaveMemoryId(undefined);
@@ -472,7 +488,10 @@ export default function App() {
               setSelectedId(id);
               setMode("detail");
             }}
-            onAcceptPostSave={async (item) => persist(acceptReviewItem(archive, item))}
+            onReviewPostSave={() => {
+              setPostSaveMemoryId(undefined);
+              setMode("review");
+            }}
             onDismissPostSave={() => setPostSaveMemoryId(undefined)}
             onAddendum={async (text) => persist(appendMemoryAddendum(archive, selectedMemory.id, text))}
             onUpdateSafety={async (safety) => persist(updateMemorySafety(archive, selectedMemory.id, safety))}
@@ -702,15 +721,16 @@ function BottomNavigation(props: {
 function CenterCaptureButton(props: { onPress: () => void }) {
   return (
     <Pressable accessibilityLabel="New memory" onPress={props.onPress} style={styles.captureButton}>
-      <Plus size={26} color="#ffffff" />
+      <Plus size={26} color={styles.captureButtonIcon.color} />
     </Pressable>
   );
 }
 
 function NavButton(props: { label: string; icon: ReactNode; active: boolean; onPress: () => void }) {
+  const iconColor = props.active ? styles.navIconActive.color : styles.navIcon.color;
   return (
     <Pressable onPress={props.onPress} style={[styles.navButton, props.active ? styles.navButtonActive : null]}>
-      {props.icon}
+      {renderIcon(props.icon, iconColor)}
       <Text style={[styles.navLabel, props.active ? styles.navLabelActive : null]}>{props.label}</Text>
     </Pressable>
   );
@@ -1301,6 +1321,17 @@ function lifeContextDetailPlaceholder(kind: LifeContextKind): string {
 }
 
 type ReviewInboxItem = ReturnType<typeof buildReviewInbox>[number];
+
+function buildPostSaveItems(archive: MemoryArchive, memoryId: string): ReviewInboxItem[] {
+  try {
+    const items = buildReviewInbox(archive).filter((item) => item.memoryId === memoryId && item.type !== "untagged_memory");
+    const dateSuggestion = items.find((item) => item.type === "date_suggestion");
+    const tagSuggestions = items.filter((item) => item.type === "tag_suggestion");
+    return dateSuggestion ? [dateSuggestion, ...tagSuggestions.slice(0, 3)] : tagSuggestions.slice(0, 4);
+  } catch {
+    return [];
+  }
+}
 
 function ReviewInboxView(props: {
   archive: MemoryArchive;
@@ -2338,6 +2369,69 @@ function themeTypeLabel(type: TagType): string {
   }
 }
 
+function NewMemoryCapture(props: {
+  onVoice: () => void;
+  onCancel: () => void;
+  onSave: (text: string) => Promise<void>;
+}) {
+  const [text, setText] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const canSave = text.trim().length > 0 && !isSaving;
+
+  useEffect(() => {
+    let isCurrent = true;
+    void AsyncStorage.getItem(NEW_MEMORY_DRAFT_KEY).then((draft) => {
+      if (!isCurrent) return;
+      if (draft) setText(draft);
+      setDraftLoaded(true);
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoaded || isSaving) return;
+    const nextDraft = text.trim() ? AsyncStorage.setItem(NEW_MEMORY_DRAFT_KEY, text) : AsyncStorage.removeItem(NEW_MEMORY_DRAFT_KEY);
+    void nextDraft;
+  }, [draftLoaded, isSaving, text]);
+
+  async function save() {
+    if (!canSave) return;
+    setIsSaving(true);
+    try {
+      await props.onSave(text.trim());
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <ScrollView contentContainerStyle={[styles.content, styles.newMemoryContent]}>
+      <View style={styles.capturePanel}>
+        <Text style={styles.capturePrompt}>What came back?</Text>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="A fragment, a sentence, a scene"
+          placeholderTextColor="#7b8178"
+          multiline
+          textAlignVertical="top"
+          autoFocus
+          style={styles.newMemoryInput}
+        />
+        <SecondaryButton label="Hold to speak" onPress={props.onVoice} icon={<Mic size={18} />} />
+        <Text style={styles.captureNote}>A fragment is enough. Dates and tags can wait.</Text>
+        <View style={styles.captureActions}>
+          <SecondaryButton label="Cancel" onPress={props.onCancel} icon={<X size={18} />} />
+          <PrimaryButton label="Save" onPress={save} disabled={!canSave} icon={<Save size={18} />} />
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
 function MemoryEditor(props: {
   archive: MemoryArchive;
   structuredExtractionMode: StructuredExtractionMode;
@@ -2517,7 +2611,7 @@ function MemoryDetail(props: {
   onBack: () => void;
   onDelete: () => Promise<void>;
   onSelect: (id: string) => void;
-  onAcceptPostSave: (item: ReviewInboxItem) => Promise<void>;
+  onReviewPostSave: () => void;
   onDismissPostSave: () => void;
   onAddendum: (text: string) => Promise<void>;
   onUpdateSafety: (safety: Pick<Memory, "isSensitive" | "excludeFromResurfacing" | "showLessLikeThis">) => Promise<void>;
@@ -2554,7 +2648,7 @@ function MemoryDetail(props: {
       {props.postSaveActive ? (
         <PostSaveSuggestionSheet
           items={props.postSaveItems}
-          onAccept={props.onAcceptPostSave}
+          onReviewNow={props.onReviewPostSave}
           onLater={props.onDismissPostSave}
         />
       ) : null}
@@ -2716,30 +2810,44 @@ function MemoryDetail(props: {
 
 function PostSaveSuggestionSheet(props: {
   items: ReviewInboxItem[];
-  onAccept: (item: ReviewInboxItem) => Promise<void>;
+  onReviewNow: () => void;
   onLater: () => void;
 }) {
+  const suggestedDate = props.items.find((item) => item.type === "date_suggestion");
+  const suggestedTags = props.items.filter((item) => item.type === "tag_suggestion").map((item) => item.label);
+
   return (
     <View style={styles.postSaveSheet}>
       <Text style={styles.panelTitle}>Saved privately</Text>
       {props.items.length > 0 ? (
         <>
           <Text style={styles.memoryPreview}>I found a few possible details.</Text>
-          {props.items.map((item) => (
-            <View key={item.id} style={styles.postSaveItem}>
-              <Text style={styles.reviewType}>{reviewTypeLabel(item.type)}</Text>
-              <Text style={styles.memoryTitle}>{item.label}</Text>
-              {"explanation" in item && item.explanation ? (
-                <Text style={styles.metadata}>{item.explanation}</Text>
+          {suggestedDate ? (
+            <View style={styles.postSaveItem}>
+              <Text style={styles.reviewType}>Suggested date</Text>
+              <Text style={styles.memoryTitle}>{suggestedDate.label}</Text>
+              {"explanation" in suggestedDate && suggestedDate.explanation ? (
+                <Text style={styles.metadata}>{suggestedDate.explanation}</Text>
               ) : null}
-              <PrimaryButton label="Accept" onPress={() => void props.onAccept(item)} icon={<Save size={18} />} />
             </View>
-          ))}
+          ) : null}
+          {suggestedTags.length > 0 ? (
+            <View style={styles.postSaveItem}>
+              <Text style={styles.reviewType}>Suggested tags</Text>
+              <TagRow labels={suggestedTags} />
+            </View>
+          ) : null}
+          <View style={styles.actionRow}>
+            <PrimaryButton label="Review now" onPress={props.onReviewNow} icon={<ClipboardList size={18} />} />
+            <SecondaryButton label="Later" onPress={props.onLater} icon={<X size={18} />} />
+          </View>
         </>
       ) : (
-        <Text style={styles.memoryPreview}>No possible details need review right now.</Text>
+        <>
+          <Text style={styles.memoryPreview}>No possible details need review right now.</Text>
+          <SecondaryButton label="Later" onPress={props.onLater} icon={<X size={18} />} />
+        </>
       )}
-      <SecondaryButton label={props.items.length > 0 ? "Later" : "Close"} onPress={props.onLater} icon={<X size={18} />} />
     </View>
   );
 }
@@ -3395,15 +3503,26 @@ function TagPill(props: { label: string; selected?: boolean; onPress?: () => voi
   return <View style={styles.tag}>{label}</View>;
 }
 
+function Card(props: { children: ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle> }) {
+  if (props.onPress) {
+    return (
+      <Pressable style={[styles.card, props.style]} onPress={props.onPress}>
+        {props.children}
+      </Pressable>
+    );
+  }
+  return <View style={[styles.card, props.style]}>{props.children}</View>;
+}
+
 function MemoryCard(props: { memory: Memory; onPress: () => void; children: ReactNode }) {
   return (
-    <Pressable style={styles.memoryCard} onPress={props.onPress}>
+    <Card style={styles.memoryCard} onPress={props.onPress}>
       <View style={styles.memoryCardHeader}>
         <Text style={styles.memoryCardTitle}>{props.memory.title}</Text>
         <DateCertaintyLabel memory={props.memory} />
       </View>
       {props.children}
-    </Pressable>
+    </Card>
   );
 }
 
@@ -3551,10 +3670,12 @@ function formatBytes(bytes: number): string {
   return `${(kilobytes / 1024).toFixed(1)} MB`;
 }
 
+const theme = lightTheme;
+
 const lightStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f6f2ea"
+    backgroundColor: theme.colors.background
   },
   shell: {
     flex: 1,
@@ -3571,34 +3692,34 @@ const lightStyles = StyleSheet.create({
     justifyContent: "center"
   },
   loadingText: {
-    color: "#41463f",
-    fontSize: 16
+    color: theme.colors.secondaryText,
+    fontSize: theme.typography.body.fontSize
   },
   lockScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
-    gap: 14
+    padding: theme.spacing.xxl,
+    gap: theme.spacing.lg - 2
   },
   header: {
     minHeight: 76,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd5c6",
-    backgroundColor: "#f8f5ee",
+    borderBottomColor: theme.colors.navBorder,
+    backgroundColor: theme.colors.shellSurface,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12
+    gap: theme.spacing.md
   },
   bottomNav: {
     minHeight: 74,
     borderTopWidth: 1,
-    borderTopColor: "#ddd5c6",
-    backgroundColor: "#f8f5ee",
-    paddingHorizontal: 18,
+    borderTopColor: theme.colors.navBorder,
+    backgroundColor: theme.colors.shellSurface,
+    paddingHorizontal: theme.spacing.xl,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -3608,70 +3729,77 @@ const lightStyles = StyleSheet.create({
   navButton: {
     minWidth: 72,
     minHeight: 50,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     alignItems: "center",
     justifyContent: "center",
     gap: 3
   },
   navButtonActive: {
-    backgroundColor: "#ebe4d5"
+    backgroundColor: theme.colors.accentSoft
+  },
+  navIcon: {
+    color: theme.colors.mutedText
+  },
+  navIconActive: {
+    color: theme.colors.primaryText
   },
   navLabel: {
-    color: "#697067",
-    fontSize: 12,
-    fontWeight: "700"
+    color: theme.colors.mutedText,
+    ...theme.typography.nav
   },
   navLabelActive: {
-    color: "#252925"
+    color: theme.colors.primaryText
   },
   captureButton: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#334f39",
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#252925",
+    shadowColor: theme.colors.primaryText,
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }
+  },
+  captureButtonIcon: {
+    color: theme.colors.accentText
   },
   pathBackButton: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#d6d9c8",
-    backgroundColor: "#f8f5ee",
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.shellSurface,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 9,
     gap: 7
   },
   pathBackText: {
-    color: "#51604f",
-    fontSize: 13,
+    color: theme.colors.connectionText,
+    fontSize: theme.typography.metadata.fontSize,
     fontWeight: "700"
   },
   brand: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#252925"
+    color: theme.colors.primaryText,
+    ...theme.typography.brand
   },
   subtle: {
     marginTop: 2,
-    color: "#697067",
-    fontSize: 13
+    color: theme.colors.mutedText,
+    fontSize: theme.typography.metadata.fontSize
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8
+    gap: theme.spacing.sm
   },
   content: {
-    padding: 18,
-    paddingBottom: 28,
-    gap: 16
+    padding: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxxl,
+    gap: theme.spacing.lg
   },
   exploreWideContent: {
     paddingHorizontal: 22
@@ -3693,11 +3821,11 @@ const lightStyles = StyleSheet.create({
   },
   capturePanel: {
     borderWidth: 1,
-    borderColor: "#d4c7b4",
-    backgroundColor: "#fffaf1",
-    borderRadius: 8,
-    padding: 18,
-    gap: 12,
+    borderColor: theme.colors.warmBorder,
+    backgroundColor: theme.colors.paper,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.xl,
+    gap: theme.spacing.md,
     shadowColor: "#4a3d2f",
     shadowOpacity: 0.06,
     shadowRadius: 18,
@@ -3705,20 +3833,39 @@ const lightStyles = StyleSheet.create({
   },
   captureEyebrow: {
     color: "#7b604f",
-    fontSize: 12,
-    fontWeight: "800",
+    ...theme.typography.label,
     textTransform: "uppercase"
   },
   capturePrompt: {
-    color: "#252925",
-    fontSize: 24,
-    fontWeight: "800",
-    lineHeight: 30
+    color: theme.colors.primaryText,
+    ...theme.typography.screenTitle
   },
   captureNote: {
     color: "#6c6257",
     fontSize: 14,
     lineHeight: 21
+  },
+  newMemoryContent: {
+    justifyContent: "center",
+    minHeight: 560
+  },
+  newMemoryInput: {
+    minHeight: 300,
+    borderWidth: 1,
+    borderColor: "#dacbb8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 14,
+    color: "#252925",
+    fontSize: 17,
+    lineHeight: 26,
+    outlineStyle: "none" as never
+  },
+  captureActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 10
   },
   voicePanel: {
     minHeight: 320,
@@ -3781,17 +3928,19 @@ const lightStyles = StyleSheet.create({
     gap: 14
   },
   emptyTitle: {
-    color: "#41463f",
+    color: theme.colors.secondaryText,
     fontSize: 20,
     fontWeight: "700"
   },
-  memoryCard: {
+  card: {
     borderWidth: 1,
-    borderColor: "#d8d4c8",
-    backgroundColor: "#fffdf8",
-    borderRadius: 8,
-    padding: 14,
-    gap: 8
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: 14
+  },
+  memoryCard: {
+    gap: theme.spacing.sm
   },
   memoryCardHeader: {
     flexDirection: "row",
@@ -3800,19 +3949,17 @@ const lightStyles = StyleSheet.create({
     gap: 10
   },
   memoryTitle: {
-    color: "#252925",
-    fontSize: 18,
-    fontWeight: "700"
+    color: theme.colors.primaryText,
+    ...theme.typography.title
   },
   memoryCardTitle: {
     flex: 1,
     minWidth: 0,
-    color: "#252925",
-    fontSize: 18,
-    fontWeight: "700"
+    color: theme.colors.primaryText,
+    ...theme.typography.title
   },
   memoryPreview: {
-    color: "#50564e",
+    color: theme.colors.secondaryText,
     fontSize: 15,
     lineHeight: 22
   },
@@ -4191,7 +4338,7 @@ const lightStyles = StyleSheet.create({
     gap: 8
   },
   detailTitle: {
-    color: "#252925",
+    color: theme.colors.primaryText,
     fontSize: 26,
     fontWeight: "800"
   },
@@ -4204,41 +4351,45 @@ const lightStyles = StyleSheet.create({
     gap: 14
   },
   memoryBody: {
-    color: "#252925",
-    fontSize: 18,
+    color: theme.colors.primaryText,
+    fontSize: theme.typography.title.fontSize,
     lineHeight: 30
   },
   metadata: {
-    color: "#697067",
-    fontSize: 13
+    color: theme.colors.metadataText,
+    fontSize: theme.typography.metadata.fontSize
+  },
+  mutedMetadata: {
+    color: theme.colors.metadataText,
+    ...theme.typography.metadata
   },
   connectionReason: {
-    color: "#596c55",
-    fontSize: 13,
+    color: theme.colors.connectionText,
+    fontSize: theme.typography.metadata.fontSize,
     fontWeight: "700",
-    lineHeight: 20
+    lineHeight: theme.typography.metadata.lineHeight
   },
   tags: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8
+    gap: theme.spacing.sm
   },
   tag: {
-    borderRadius: 999,
-    backgroundColor: "#e9eee4",
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.tagBackground,
     paddingHorizontal: 10,
     paddingVertical: 5
   },
   tagSelected: {
-    backgroundColor: "#38543c"
+    backgroundColor: theme.colors.tagSelectedBackground
   },
   tagLabel: {
-    color: "#374236",
-    fontSize: 13,
+    color: theme.colors.tagText,
+    fontSize: theme.typography.metadata.fontSize,
     fontWeight: "600"
   },
   tagLabelSelected: {
-    color: "#ffffff"
+    color: theme.colors.tagSelectedText
   },
   tagCard: {
     borderWidth: 1,
@@ -4282,13 +4433,12 @@ const lightStyles = StyleSheet.create({
     gap: 10
   },
   timelineBadge: {
-    color: "#4e554c",
-    backgroundColor: "#e9eee4",
-    borderRadius: 8,
+    color: theme.colors.dateBadgeText,
+    backgroundColor: theme.colors.dateBadgeBackground,
+    borderRadius: theme.radius.md,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    fontSize: 12,
-    fontWeight: "800",
+    ...theme.typography.label,
     overflow: "hidden"
   },
   deletedRow: {
@@ -4328,7 +4478,7 @@ const lightStyles = StyleSheet.create({
     textTransform: "uppercase"
   },
   errorText: {
-    color: "#9a3d2f",
+    color: theme.colors.dangerText,
     fontSize: 14,
     fontWeight: "700"
   },
@@ -4361,41 +4511,39 @@ const lightStyles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 44,
-    borderRadius: 8,
-    backgroundColor: "#38543c",
-    paddingHorizontal: 16,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.accentSage,
+    paddingHorizontal: theme.spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8
+    gap: theme.spacing.sm
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700"
+    color: theme.colors.accentSageText,
+    ...theme.typography.button
   },
   primaryButtonIcon: {
-    color: "#ffffff"
+    color: theme.colors.accentSageText
   },
   secondaryButton: {
     minHeight: 44,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: "#bfc5b9",
-    backgroundColor: "#fffdf8",
-    paddingHorizontal: 16,
+    borderColor: theme.colors.strongBorder,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8
+    gap: theme.spacing.sm
   },
   secondaryButtonText: {
-    color: "#30352f",
-    fontSize: 15,
-    fontWeight: "700"
+    color: theme.colors.secondaryText,
+    ...theme.typography.button
   },
   secondaryButtonIcon: {
-    color: "#30352f"
+    color: theme.colors.secondaryText
   },
   disabled: {
     opacity: 0.45
@@ -4478,23 +4626,29 @@ const lightStyles = StyleSheet.create({
 type AppStyle = ViewStyle | TextStyle | ImageStyle;
 type AppStyleKey = keyof typeof lightStyles;
 
+const darkColors = darkTheme.colors;
+
 const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
-  safeArea: { backgroundColor: "#171b18" },
-  header: { backgroundColor: "#20251f", borderBottomColor: "#343b33" },
-  bottomNav: { backgroundColor: "#20251f", borderTopColor: "#343b33" },
-  navButtonActive: { backgroundColor: "#2c382d" },
-  navLabel: { color: "#aab1a6" },
-  navLabelActive: { color: "#f3efe7" },
-  captureButton: { backgroundColor: "#66825f", shadowColor: "#000000" },
+  safeArea: { backgroundColor: darkColors.background },
+  header: { backgroundColor: darkColors.shellSurface, borderBottomColor: darkColors.navBorder },
+  bottomNav: { backgroundColor: darkColors.shellSurface, borderTopColor: darkColors.navBorder },
+  navButtonActive: { backgroundColor: darkColors.accentSoft },
+  navIcon: { color: darkColors.mutedText },
+  navIconActive: { color: darkColors.primaryText },
+  navLabel: { color: darkColors.mutedText },
+  navLabelActive: { color: darkColors.primaryText },
+  captureButton: { backgroundColor: darkColors.accent, shadowColor: "#000000" },
+  captureButtonIcon: { color: darkColors.accentText },
   pathBackButton: { backgroundColor: "#222821", borderColor: "#3a4338" },
   pathBackText: { color: "#cbd8c2" },
-  brand: { color: "#f3efe7" },
-  subtle: { color: "#aab1a6" },
-  loadingText: { color: "#d8d2c5" },
-  capturePanel: { backgroundColor: "#251f1b", borderColor: "#534235", shadowColor: "#000000" },
+  brand: { color: darkColors.primaryText },
+  subtle: { color: darkColors.mutedText },
+  loadingText: { color: darkColors.secondaryText },
+  capturePanel: { backgroundColor: darkColors.paper, borderColor: darkColors.warmBorder, shadowColor: "#000000" },
   captureEyebrow: { color: "#d7bca9" },
   capturePrompt: { color: "#f3efe7" },
   captureNote: { color: "#c2b8aa" },
+  newMemoryInput: { backgroundColor: "#20251f", borderColor: "#534235", color: "#f3efe7" },
   voicePanel: { backgroundColor: "#251f1b", borderColor: "#534235" },
   voiceTimer: { color: "#f3efe7" },
   waveformBar: { backgroundColor: "#8fa984" },
@@ -4502,9 +4656,11 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   searchRow: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   searchInput: { color: "#f3efe7" },
   emptyTitle: { color: "#f3efe7" },
-  memoryCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
-  memoryTitle: { color: "#f3efe7" },
-  memoryPreview: { color: "#d8d2c5" },
+  card: { backgroundColor: darkColors.surface, borderColor: darkColors.border },
+  memoryCard: { backgroundColor: darkColors.surface, borderColor: darkColors.border },
+  memoryTitle: { color: darkColors.primaryText },
+  memoryCardTitle: { color: darkColors.primaryText },
+  memoryPreview: { color: darkColors.secondaryText },
   highlightText: { color: "#f3efe7", backgroundColor: "#3f563b" },
   titleInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
   bodyInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
@@ -4551,35 +4707,36 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   detailTitle: { color: "#f3efe7" },
   memoryTextPanel: { backgroundColor: "#251f1b", borderColor: "#534235" },
   memoryBody: { color: "#f3efe7" },
-  metadata: { color: "#aab1a6" },
-  connectionReason: { color: "#b8c9b1" },
-  tag: { backgroundColor: "#30362f" },
-  tagSelected: { backgroundColor: "#6f8a68" },
-  tagLabel: { color: "#dbe1d7" },
-  tagLabelSelected: { color: "#111511" },
+  metadata: { color: darkColors.metadataText },
+  mutedMetadata: { color: darkColors.metadataText },
+  connectionReason: { color: darkColors.connectionText },
+  tag: { backgroundColor: darkColors.tagBackground },
+  tagSelected: { backgroundColor: darkColors.tagSelectedBackground },
+  tagLabel: { color: darkColors.tagText },
+  tagLabelSelected: { color: darkColors.tagSelectedText },
   tagCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   timelineYear: { color: "#f3efe7" },
   timelineItem: { backgroundColor: "#20251f", borderLeftColor: "#8fa984" },
   timelineItemInferred: { backgroundColor: "#28251d", borderLeftColor: "#c1aa63" },
   timelineItemUnknown: { backgroundColor: "#252822", borderLeftColor: "#80877d" },
-  timelineBadge: { color: "#dbe1d7", backgroundColor: "#30362f" },
+  timelineBadge: { color: darkColors.dateBadgeText, backgroundColor: darkColors.dateBadgeBackground },
   deletedRow: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   reviewIntro: { backgroundColor: "#202a1f", borderColor: "#3f4b39" },
   reviewItem: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   reviewDetail: { borderLeftColor: "#53624f" },
   reviewType: { color: "#b8c9b1" },
-  errorText: { color: "#eba18e" },
+  errorText: { color: darkColors.dangerText },
   iconButton: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   iconButtonActive: { backgroundColor: "#334832", borderColor: "#71906b" },
   iconButtonDanger: { backgroundColor: "#3b251f", borderColor: "#89513f" },
   iconButtonIcon: { color: "#d8d2c5" },
   iconButtonActiveIcon: { color: "#f3efe7" },
-  primaryButton: { backgroundColor: "#6f8a68" },
-  primaryButtonText: { color: "#111511" },
-  primaryButtonIcon: { color: "#111511" },
-  secondaryButton: { backgroundColor: "#20251f", borderColor: "#596454" },
-  secondaryButtonText: { color: "#f3efe7" },
-  secondaryButtonIcon: { color: "#f3efe7" },
+  primaryButton: { backgroundColor: darkColors.accentSage },
+  primaryButtonText: { color: darkColors.accentSageText },
+  primaryButtonIcon: { color: darkColors.accentSageText },
+  secondaryButton: { backgroundColor: darkColors.surface, borderColor: darkColors.strongBorder },
+  secondaryButtonText: { color: darkColors.primaryText },
+  secondaryButtonIcon: { color: darkColors.primaryText },
   trustItem: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
   trustValue: { color: "#f3efe7" },
   settingsSectionTitle: { color: "#f3efe7" },
