@@ -3,7 +3,8 @@ import { initialSchemaSql, schemaVersion } from "../core/schema";
 export type Migration = {
   id: string;
   version: string;
-  sql: string;
+  sql?: string;
+  apply?: (db: MigrationDatabase) => Promise<void>;
 };
 
 export type MigrationBindValue = string | number | boolean | null | Uint8Array;
@@ -17,9 +18,9 @@ export const migrations: Migration[] = [
   {
     id: "0002_embedding_input_hash",
     version: schemaVersion,
-    sql: `
-ALTER TABLE memory_embedding ADD COLUMN input_hash TEXT;
-`
+    apply: async (db) => {
+      await addColumnIfMissing(db, "memory_embedding", "input_hash", "input_hash TEXT");
+    }
   },
   {
     id: "0003_life_chapter_decisions",
@@ -36,26 +37,31 @@ CREATE TABLE IF NOT EXISTS life_chapter_decision (
   {
     id: "0004_life_chapter_merge_split",
     version: schemaVersion,
-    sql: `
-ALTER TABLE life_chapter_decision ADD COLUMN target_candidate_id TEXT;
-ALTER TABLE life_chapter_decision ADD COLUMN memory_ids_json TEXT;
-`
+    apply: async (db) => {
+      await addColumnIfMissing(db, "life_chapter_decision", "target_candidate_id", "target_candidate_id TEXT");
+      await addColumnIfMissing(db, "life_chapter_decision", "memory_ids_json", "memory_ids_json TEXT");
+    }
   },
   {
     id: "0005_memory_safety_controls",
     version: schemaVersion,
-    sql: `
-ALTER TABLE memory ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE memory ADD COLUMN exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;
-`
+    apply: async (db) => {
+      await addColumnIfMissing(db, "memory", "is_sensitive", "is_sensitive INTEGER NOT NULL DEFAULT 0");
+      await addColumnIfMissing(
+        db,
+        "memory",
+        "exclude_from_resurfacing",
+        "exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0"
+      );
+      await addColumnIfMissing(db, "memory", "show_less_like_this", "show_less_like_this INTEGER NOT NULL DEFAULT 0");
+    }
   },
   {
     id: "0006_memory_private_notes",
     version: schemaVersion,
-    sql: `
-ALTER TABLE memory ADD COLUMN private_notes TEXT;
-`
+    apply: async (db) => {
+      await addColumnIfMissing(db, "memory", "private_notes", "private_notes TEXT");
+    }
   },
   {
     id: "0007_life_context_relationships",
@@ -99,7 +105,11 @@ CREATE TABLE IF NOT EXISTS schema_migration (
 
   for (const migration of migrations) {
     if (appliedIds.has(migration.id)) continue;
-    await db.execAsync(migration.sql);
+    if (migration.apply) {
+      await migration.apply(db);
+    } else if (migration.sql) {
+      await db.execAsync(migration.sql);
+    }
     await db.runAsync("INSERT INTO schema_migration (id, version, applied_at) VALUES (?, ?, ?)", [
       migration.id,
       migration.version,
@@ -109,4 +119,15 @@ CREATE TABLE IF NOT EXISTS schema_migration (
   }
 
   return appliedNow;
+}
+
+async function addColumnIfMissing(
+  db: MigrationDatabase,
+  tableName: string,
+  columnName: string,
+  columnDefinition: string
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
+  if (columns.some((column) => column.name === columnName)) return;
+  await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition};`);
 }

@@ -4,12 +4,18 @@ import { applyMigrations, type MigrationDatabase } from "../src/storage/migratio
 class FakeMigrationDatabase implements MigrationDatabase {
   applied = new Set<string>();
   execStatements: string[] = [];
+  tableColumns = new Map<string, Set<string>>();
 
   async execAsync(sql: string): Promise<void> {
     this.execStatements.push(sql);
   }
 
-  async getAllAsync<T>(): Promise<T[]> {
+  async getAllAsync<T>(sql: string): Promise<T[]> {
+    const tableInfoMatch = sql.match(/^PRAGMA table_info\(([^)]+)\)/);
+    if (tableInfoMatch) {
+      const tableName = tableInfoMatch[1] ?? "";
+      return [...(this.tableColumns.get(tableName) ?? [])].map((name) => ({ name }) as T);
+    }
     return [...this.applied].map((id) => ({ id }) as T);
   }
 
@@ -35,5 +41,27 @@ describe("storage migrations", () => {
       "0007_life_context_relationships"
     ]);
     await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual([]);
+  });
+
+  it("skips additive column migrations when the latest schema already has those columns", async () => {
+    const db = new FakeMigrationDatabase();
+    db.tableColumns.set("memory_embedding", new Set(["input_hash"]));
+    db.tableColumns.set("life_chapter_decision", new Set(["target_candidate_id", "memory_ids_json"]));
+    db.tableColumns.set(
+      "memory",
+      new Set(["is_sensitive", "exclude_from_resurfacing", "show_less_like_this", "private_notes"])
+    );
+
+    await applyMigrations(db, "2026-06-11T00:00:00.000Z");
+
+    expect(db.execStatements).not.toContain("ALTER TABLE memory_embedding ADD COLUMN input_hash TEXT;");
+    expect(db.execStatements).not.toContain("ALTER TABLE life_chapter_decision ADD COLUMN target_candidate_id TEXT;");
+    expect(db.execStatements).not.toContain("ALTER TABLE life_chapter_decision ADD COLUMN memory_ids_json TEXT;");
+    expect(db.execStatements).not.toContain("ALTER TABLE memory ADD COLUMN is_sensitive INTEGER NOT NULL DEFAULT 0;");
+    expect(db.execStatements).not.toContain(
+      "ALTER TABLE memory ADD COLUMN exclude_from_resurfacing INTEGER NOT NULL DEFAULT 0;"
+    );
+    expect(db.execStatements).not.toContain("ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;");
+    expect(db.execStatements).not.toContain("ALTER TABLE memory ADD COLUMN private_notes TEXT;");
   });
 });

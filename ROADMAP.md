@@ -1,6 +1,6 @@
 # Memory Palace Roadmap
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 Memory Palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
 
@@ -17,7 +17,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Ready to Continue Locally
 
-- None currently. Remaining work depends on device QA or explicit model/provider choices.
+- Top priority: make Pixel 8 testing first-class with an Expo development build, repeatable phone-start scripts, and a short device-testing runbook.
+- Add a major-change test gate: before treating any substantial mobile, storage, encryption, speech, sync, navigation, or data-model change as done, verify it on the Pixel 8 development build or explicitly log why device QA was deferred.
 
 ### Needs Model or Provider Selection
 
@@ -27,11 +28,29 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Device QA
 
+- Pixel 8 development-build setup is the first device-QA milestone and blocks further major mobile-facing work.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
 - Milestone 3: iOS, Android, and web speech-recognition QA, including permission prompts, background interruption, and transcription fallback.
 
+## Major Change Test Gate
+
+Major changes must pass the normal local checks and a Pixel 8 device check before they are considered complete.
+
+- Local gate: `npm test` and `npm run build`.
+- Device gate: run the app on the Pixel 8 development build, exercise the affected workflow, and confirm startup, navigation, persistence, and visible error handling still work.
+- Required for: native mobile setup, SQLite/storage migrations, archive encryption/unlock, app lock, speech/audio capture, import/export, sync/backup, navigation shell changes, and major UI flows.
+- Deferral rule: if Pixel 8 testing is not possible, record the blocker in the implementation log and keep the affected work marked as needing device QA.
+
 ## Implementation Log
+
+### 2026-06-13
+
+- Promoted Pixel 8 testing to the top implementation priority: use an Expo development build, repeatable phone-start scripts, and a device-testing runbook rather than relying on Expo Go for the main app.
+- Added a major-change test gate requiring Pixel 8 development-build QA for substantial mobile, storage, encryption, speech, sync, navigation, and data-model changes before they are considered complete.
+- Added `expo-dev-client`, Pixel 8 start/build scripts, and `PIXEL_8_TEST.md` so Android device QA has a repeatable development-build path.
+- Made additive SQLite migrations idempotent when the latest schema already contains the target columns, reducing device-test failures on fresh or partially migrated local databases.
+- Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
 
 ### 2026-06-12
 
@@ -440,8 +459,10 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Run device-level speech QA across iOS, Android, and web voice flows.
-2. Wire archive-at-rest encryption into native/web storage with unlock, key lifecycle, and migration UI.
-3. Add production local embedding/model adapters when target models are selected.
-4. Add opt-in sync/backup provider adapters when provider targets are selected.
-5. Run device-level QA across mobile, tablet, and web.
+1. Make Pixel 8 testing first-class: add Expo development-build setup, phone-start scripts, and a short device-testing runbook.
+2. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
+3. Run device-level speech QA across iOS, Android, and web voice flows.
+4. Wire archive-at-rest encryption into native/web storage with unlock, key lifecycle, and migration UI.
+5. Add production local embedding/model adapters when target models are selected.
+6. Add opt-in sync/backup provider adapters when provider targets are selected.
+7. Run broader device QA across mobile, tablet, and web.

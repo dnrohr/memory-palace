@@ -9,21 +9,26 @@
     "start": "expo start",
     "web": "expo start --web",
     "android": "expo start --android",
+    "pixel8:build": "expo run:android --device",
+    "pixel8": "expo start --dev-client --android",
+    "pixel8:tunnel": "expo start --dev-client --tunnel",
     "ios": "expo start --ios",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@expo/ngrok": "^4.1.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
-    "typescript": "^5.8.3",
+    "typescript": "~6.0.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "@expo/metro-runtime": "^56.0.15",
-    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "^56.0.11",
     "expo-av": "^16.0.8",
+    "expo-dev-client": "~56.0.20",
     "expo-document-picker": "~56.0.4",
     "expo-file-system": "~56.0.8",
     "expo-local-authentication": "~56.0.4",
@@ -31,9 +36,10 @@
     "expo-speech-recognition": "^56.0.1",
     "expo-sqlite": "^56.0.5",
     "lucide-react-native": "^1.17.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-native": "^0.86.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2"
   }
 }

@@ -140,6 +140,7 @@ export default function App() {
   const [archiveAtRestPassphrase, setArchiveAtRestPassphrase] = useState("");
   const [archiveUnlockRequired, setArchiveUnlockRequired] = useState(false);
   const [archiveUnlockError, setArchiveUnlockError] = useState<string | undefined>();
+  const [archiveLoadError, setArchiveLoadError] = useState<string | undefined>();
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [mode, setMode] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -153,13 +154,7 @@ export default function App() {
   const [selectedDatePrecision, setSelectedDatePrecision] = useState<DatePrecision | undefined>();
 
   useEffect(() => {
-    void loadAppSettings().then(async (settings) => {
-      setEncryptionSettings(settings.encryptionSettings);
-      setStructuredExtractionMode(settings.structuredExtractionMode);
-      setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
-      setAppearanceMode(settings.appearanceMode);
-      await loadArchiveForSettings(settings.encryptionSettings);
-    });
+    void loadInitialArchive();
   }, []);
 
   useEffect(() => {
@@ -244,6 +239,7 @@ export default function App() {
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
   async function loadArchiveForSettings(settings: EncryptionSettings) {
+    setArchiveLoadError(undefined);
     if (settings.scope === "archive" && settings.keySource === "user_passphrase") {
       const encryptedRecord = await new AsyncStorageArchiveAtRestRecordStore().read();
       if (encryptedRecord?.format === "memory-palace.archive.encrypted.v1") {
@@ -253,6 +249,19 @@ export default function App() {
     }
 
     await loadAndIndexArchive(await loadArchive());
+  }
+
+  async function loadInitialArchive() {
+    try {
+      const settings = await loadAppSettings();
+      setEncryptionSettings(settings.encryptionSettings);
+      setStructuredExtractionMode(settings.structuredExtractionMode);
+      setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
+      setAppearanceMode(settings.appearanceMode);
+      await loadArchiveForSettings(settings.encryptionSettings);
+    } catch (error) {
+      setArchiveLoadError(error instanceof Error ? error.message : "Archive could not be loaded.");
+    }
   }
 
   async function loadAndIndexArchive(loadedArchive: MemoryArchive, passphraseOverride?: string) {
@@ -331,7 +340,9 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loading}>
-          <Text style={styles.loadingText}>Loading archive</Text>
+          <Text style={styles.loadingText}>{archiveLoadError ? "Archive could not be loaded" : "Loading archive"}</Text>
+          {archiveLoadError ? <Text style={styles.errorText}>{archiveLoadError}</Text> : null}
+          {archiveLoadError ? <SecondaryButton label="Try again" onPress={loadInitialArchive} icon={<RotateCcw size={18} />} /> : null}
         </View>
       </SafeAreaView>
     );
