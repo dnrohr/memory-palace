@@ -3277,13 +3277,16 @@ function Settings(props: {
                 key={scope}
                 label={scope}
                 selected={encryptionDraft.scope === scope}
-                onPress={() =>
+                onPress={() => {
+                  if (scope !== "archive") {
+                    setArchivePassphrase("");
+                  }
                   setEncryptionDraft((current) => ({
                     ...current,
                     scope,
                     keySource: scope === "disabled" ? "none" : current.keySource === "none" ? "user_passphrase" : current.keySource
-                  }))
-                }
+                  }));
+                }}
               />
             ))}
           </View>
@@ -3296,7 +3299,12 @@ function Settings(props: {
                 key={keySource}
                 label={keySource.replace(/_/g, " ")}
                 selected={encryptionDraft.keySource === keySource}
-                onPress={() => setEncryptionDraft((current) => ({ ...current, keySource }))}
+                onPress={() => {
+                  if (keySource !== "user_passphrase") {
+                    setArchivePassphrase("");
+                  }
+                  setEncryptionDraft((current) => ({ ...current, keySource }));
+                }}
               />
             ))}
           </View>
@@ -3318,17 +3326,21 @@ function Settings(props: {
               placeholder="Archive passphrase"
               placeholderTextColor="#7b8178"
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={saveEncryptionOptions}
               style={styles.tagInput}
+            />
+            <SecondaryButton
+              label="Save encryption options"
+              onPress={saveEncryptionOptions}
+              disabled={!archivePassphrase.trim()}
+              icon={<Save size={18} />}
             />
             <Text style={styles.metadata}>The passphrase is used now to migrate the current archive and is not stored.</Text>
           </>
-        ) : null}
-        <SecondaryButton
-          label="Save encryption options"
-          onPress={saveEncryptionOptions}
-          disabled={archiveAtRestRequested && !archivePassphrase.trim()}
-          icon={<Save size={18} />}
-        />
+        ) : (
+          <SecondaryButton label="Save encryption options" onPress={saveEncryptionOptions} icon={<Save size={18} />} />
+        )}
         {encryptionStatusMessage ? <Text style={styles.metadata}>{encryptionStatusMessage}</Text> : null}
       </SettingsSection>
 

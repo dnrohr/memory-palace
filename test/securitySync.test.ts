@@ -134,6 +134,47 @@ describe("security and sync seams", () => {
     await expect(provider.decryptText(envelope, "wrong passphrase")).rejects.toThrow();
   });
 
+  it("encrypts and decrypts export text when only secure random values are available", async () => {
+    let nextByte = 1;
+    vi.stubGlobal("crypto", {
+      getRandomValues(bytes: Uint8Array) {
+        for (let index = 0; index < bytes.length; index += 1) {
+          bytes[index] = nextByte;
+          nextByte = (nextByte % 250) + 1;
+        }
+        return bytes;
+      }
+    });
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "exports",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+
+    await expect(provider.getStatus()).resolves.toEqual(
+      expect.objectContaining({
+        available: true,
+        active: true
+      })
+    );
+
+    const envelope = await provider.encryptText("native private archive", "correct horse battery staple", {
+      fileName: "memory-palace-export.json",
+      mediaType: "application/json"
+    });
+
+    expect(envelope).toEqual(
+      expect.objectContaining({
+        algorithm: "AES-GCM",
+        kdf: "PBKDF2-SHA-256"
+      })
+    );
+    expect(envelope.ciphertext).not.toEqual([...new TextEncoder().encode("native private archive")]);
+    await expect(provider.decryptText(envelope, "correct horse battery staple")).resolves.toBe("native private archive");
+    await expect(provider.decryptText(envelope, "wrong passphrase")).rejects.toThrow();
+  });
+
   it("encrypts and decrypts an archive-at-rest record", async () => {
     const store = new InMemoryArchiveAtRestRecordStore();
     const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });

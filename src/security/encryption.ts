@@ -1,3 +1,7 @@
+import { gcm } from "@noble/ciphers/aes.js";
+import { pbkdf2 } from "@noble/hashes/pbkdf2.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+
 export type EncryptionScope = "disabled" | "exports" | "archive";
 
 export type EncryptionKeySource = "none" | "device_secure_store" | "user_passphrase";
@@ -101,25 +105,23 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
   }
 
   async getStatus(): Promise<EncryptionStatus> {
-    const available = Boolean(getWebCrypto()?.subtle);
+    const available = hasWebCryptoSubtle() || Boolean(getRandomValuesSource());
     const active = available && this.settings.scope !== "disabled" && this.settings.keySource === "user_passphrase";
     return {
       providerId: "web-crypto-export",
       available,
       active,
       settings: this.settings,
-      ...(!available ? { warning: "Web Crypto is unavailable in this runtime." } : {})
+      ...(!available ? { warning: "Encryption requires Web Crypto or secure random bytes in this runtime." } : {})
     };
   }
 
   async encryptText(text: string, passphrase: string, metadata: EncryptionInputMetadata): Promise<EncryptedTextEnvelope> {
-    const crypto = requireWebCrypto();
-    const salt = randomBytes(16, crypto);
-    const iv = randomBytes(12, crypto);
-    const key = await deriveAesKey(passphrase, salt, this.iterations, crypto);
-    const ciphertext = new Uint8Array(
-      await crypto.subtle.encrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, new TextEncoder().encode(text))
-    );
+    const salt = randomBytes(16);
+    const iv = randomBytes(12);
+    const ciphertext = hasWebCryptoSubtle()
+      ? await encryptTextWithWebCrypto(text, passphrase, salt, iv, this.iterations)
+      : encryptTextWithNoble(text, passphrase, salt, iv, this.iterations);
 
     return {
       format: "memory-palace.encrypted.v1",
@@ -136,6 +138,12 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
   }
 
   async decryptText(envelope: EncryptedTextEnvelope, passphrase: string): Promise<string> {
+    if (!passphrase.trim()) {
+      throw new Error("A passphrase is required for encrypted exports.");
+    }
+    if (!hasWebCryptoSubtle()) {
+      return decryptTextWithNoble(envelope, passphrase);
+    }
     const crypto = requireWebCrypto();
     const key = await deriveAesKey(passphrase, new Uint8Array(envelope.salt), envelope.iterations, crypto);
     const plaintext = await crypto.subtle.decrypt(
@@ -145,6 +153,36 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
     );
     return new TextDecoder().decode(plaintext);
   }
+}
+
+async function encryptTextWithWebCrypto(
+  text: string,
+  passphrase: string,
+  salt: Uint8Array,
+  iv: Uint8Array,
+  iterations: number
+): Promise<Uint8Array> {
+  const crypto = requireWebCrypto();
+  const key = await deriveAesKey(passphrase, salt, iterations, crypto);
+  return new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, new TextEncoder().encode(text))
+  );
+}
+
+function encryptTextWithNoble(
+  text: string,
+  passphrase: string,
+  salt: Uint8Array,
+  iv: Uint8Array,
+  iterations: number
+): Uint8Array {
+  return gcm(deriveAesKeyBytes(passphrase, salt, iterations), iv).encrypt(new TextEncoder().encode(text));
+}
+
+function decryptTextWithNoble(envelope: EncryptedTextEnvelope, passphrase: string): string {
+  const key = deriveAesKeyBytes(passphrase, new Uint8Array(envelope.salt), envelope.iterations);
+  const plaintext = gcm(key, new Uint8Array(envelope.iv)).decrypt(new Uint8Array(envelope.ciphertext));
+  return new TextDecoder().decode(plaintext);
 }
 
 async function deriveAesKey(
@@ -172,9 +210,20 @@ async function deriveAesKey(
   );
 }
 
-function randomBytes(length: number, crypto: Crypto): Uint8Array {
+function deriveAesKeyBytes(passphrase: string, salt: Uint8Array, iterations: number): Uint8Array {
+  if (!passphrase.trim()) {
+    throw new Error("A passphrase is required for encrypted exports.");
+  }
+  return pbkdf2(sha256, new TextEncoder().encode(passphrase), salt, { c: iterations, dkLen: 32 });
+}
+
+function randomBytes(length: number): Uint8Array {
+  const source = getRandomValuesSource();
+  if (!source) {
+    throw new Error("Secure random bytes are unavailable in this runtime.");
+  }
   const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
+  source.getRandomValues(bytes);
   return bytes;
 }
 
@@ -190,6 +239,15 @@ function requireWebCrypto(): Crypto {
     throw new Error("Web Crypto is unavailable in this runtime.");
   }
   return crypto;
+}
+
+function hasWebCryptoSubtle(): boolean {
+  return Boolean(getWebCrypto()?.subtle);
+}
+
+function getRandomValuesSource(): Pick<Crypto, "getRandomValues"> | undefined {
+  const crypto = getWebCrypto();
+  return typeof crypto?.getRandomValues === "function" ? crypto : undefined;
 }
 
 function getWebCrypto(): Crypto | undefined {
