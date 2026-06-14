@@ -23,11 +23,11 @@ Production target: `Qwen2.5-0.5B-Instruct` via a local llama.cpp-compatible runt
 
 - Purpose: optional, user-confirmed title/date/tag/context suggestions beyond the rules engine.
 - Current fallback: rules-based structured extraction.
-- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory now require the quantized GGUF file before creating the Qwen engine, with optional grammar support. The Expo app checks for these files under `models/qwen2.5-0.5b-instruct` in app document storage and keeps the rules fallback active when they are absent. Model weights are not bundled in the repository and the runtime should not be required at startup.
+- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory now require the quantized GGUF file before creating the Qwen engine, with optional grammar support. The Expo app checks for these files under `models/qwen2.5-0.5b-instruct` in app document storage and has a native `llama.rn` loader that initializes a context from the resolved GGUF URI. Model weights are not bundled in the repository and the runtime should not be required at startup.
 
 Remaining work:
 
-- Add native runtime loading that maps the checked GGUF asset URI into `llama.rn` context initialization.
+- Wire the native Qwen loader into an explicit user-facing local-model mode after device QA.
 - Keep rules as the default until device QA confirms acceptable latency, memory use, and recovery behavior.
 
 ## Sync

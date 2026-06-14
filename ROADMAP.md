@@ -24,7 +24,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, and Expo document-storage asset discovery are present. Native runtime loading plus device QA remain.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loader are present. Device QA and explicit user-facing mode wiring remain.
 - Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, and Expo document-storage asset discovery are present. Native/web runtime loading plus device QA remain.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
@@ -78,6 +78,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full exact Pixel 8 model runtime QA remains open until model assets and dev-client workflow testing are complete.
 - Added checked local-model asset manifests and guarded engine factories for BGE small English v1.5 and Qwen2.5 0.5B Instruct, so production local engines are created only when required asset files resolve and the app can keep using hash/rules fallbacks when files are absent.
 - Added Expo document-storage model asset discovery and Settings visibility for optional BGE/Qwen model files, including a refresh action and fallback status when required files are absent.
+- Added a Qwen `llama.rn` completion runtime shim plus an Expo/native loader that initializes a local llama context from the resolved GGUF asset URI and forwards deterministic JSON completion settings through the existing Qwen structured-extraction adapter.
 
 ### 2026-06-12
 
@@ -293,10 +294,10 @@ Status: In progress
 Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
 - Settings controls for local rules extraction.
-- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, guarded engine factory, and Expo document-storage asset discovery.
+- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loading.
 
 Remaining:
-- Native `llama.rn` asset URI loading, runtime initialization, and device QA.
+- Device QA with actual model assets, then explicit user-facing local-model mode wiring if latency, memory use, and recovery behavior are acceptable.
 
 ### 7. Semantic Search and Embeddings
 
@@ -494,6 +495,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
-4. Add native/web runtime loaders for the selected BGE and Qwen model assets, then keep hash/rules fallbacks active until device QA passes.
+4. Add native/web runtime loaders for the selected BGE embedding assets, then keep hash fallback active until device QA passes.
 5. Run WebDAV encrypted sync device QA.
 6. Run broader device QA across mobile, tablet, and web.

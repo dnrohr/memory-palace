@@ -19,6 +19,7 @@ import {
   QWEN_2_5_0_5B_STRUCTURED_EXTRACTION_MODEL,
   type LlamaCompletionRequest
 } from "../src/processing/qwenStructuredExtraction";
+import { createQwenLlamaCompletionRuntime, type LlamaCompletionContext } from "../src/processing/qwenLlamaRuntime";
 import {
   BGE_SMALL_EN_V15_ASSET_MANIFEST,
   checkLocalModelAvailability,
@@ -343,6 +344,38 @@ describe("optional AI adapter seams", () => {
       })
     );
     expect(validateStructuredExtractionResult(result)).toEqual({ valid: true, warnings: [] });
+  });
+
+  it("maps Qwen completion requests onto a llama context", async () => {
+    let cleared = false;
+    let completionRequest: Parameters<LlamaCompletionContext["completion"]>[0] | undefined;
+    const runtime = createQwenLlamaCompletionRuntime({
+      async clearCache(clearData) {
+        cleared = clearData === false;
+      },
+      async completion(request) {
+        completionRequest = request;
+        return { content: "{\"dates\":[],\"tags\":[],\"emotionalTone\":[]}" };
+      }
+    });
+
+    const output = await runtime.complete({
+      prompt: "prompt",
+      temperature: 0,
+      maxTokens: 128,
+      stop: ["</s>"],
+      grammar: "root ::= object"
+    });
+
+    expect(cleared).toBe(true);
+    expect(completionRequest).toEqual({
+      prompt: "prompt",
+      temperature: 0,
+      n_predict: 128,
+      stop: ["</s>"],
+      grammar: "root ::= object"
+    });
+    expect(output).toContain("dates");
   });
 
   it("creates a Qwen structured extraction engine from resolved local assets", async () => {
