@@ -917,11 +917,13 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
       setSession(undefined);
       setRecordingStartedAt(undefined);
       setStatus("transcribing");
-      let transcript = "";
-      try {
-        transcript = (await transcriptionEngine.transcribe(artifact)).text;
-      } catch (error) {
-        setError(formatAudioCaptureError(error, "Recording saved. Type or paste the transcript to continue."));
+      let transcript = artifact.transcript ?? "";
+      if (!transcript.trim()) {
+        try {
+          transcript = (await transcriptionEngine.transcribe(artifact)).text;
+        } catch (error) {
+          setError(formatAudioCaptureError(error, "Recording saved. Type or paste the transcript to continue."));
+        }
       }
       setDraft({ artifact, transcript, retainAudio: false });
       if (reason === "interruption") {

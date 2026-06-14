@@ -37,7 +37,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Run the Pixel 8 development-build checklist for the current app and record results in `docs/pixel-8-results/`.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
-- Milestone 3: iOS, Android, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`.
+- Milestone 3: iOS, exact Pixel 8, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
 
 ## Major Change Test Gate
 
@@ -57,6 +57,8 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Ran `npm run verify` and `npm run pixel8:preflight`; both passed.
 - Ran the standalone install path on the attached Pixel 8a running Android 16: the release APK built and installed, the package was present, the app process launched, Explore rendered, and recent logcat output showed no fatal exception in the captured launch window. Exact Pixel 8 hardware and full workflow QA remain open.
 - Ran a standalone major-gate smoke pass on the attached Pixel 8a: saved a typed memory, opened detail, force-stopped and relaunched to confirm persistence, searched for the saved text, verified Settings/local model fallback/diagnostics surfaces, confirmed export/import controls are present through UIAutomator evidence, and found no `FATAL EXCEPTION` in the final logcat check. Exact Pixel 8 hardware plus voice, app lock, archive encryption, share-sheet export/import, WebDAV, and actual model-asset QA remain open.
+- Replaced the Android audio-capture stub with a native `expo-speech-recognition` capture session, wired captured transcripts directly into the voice draft flow, and treated Android `no-speech` results as an editable empty transcript instead of a hard failure.
+- Ran Android standalone voice QA on the attached Pixel 8a: microphone permission was granted, voice recording started, Android speech recognition returned `no-speech` for the silent automated pass, the app recovered into `Status: draft ready` with an editable transcript field, and recent logcat output showed no `FATAL EXCEPTION`. Exact Pixel 8 hardware, audible transcription acceptance, background interruption, and iOS speech QA remain open.
 
 ### 2026-06-13
 
