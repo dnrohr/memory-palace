@@ -29,5 +29,5 @@
 
 - Native SQLite plaintext cleanup after archive-at-rest migration: not tested on device in this pass.
 - Android restart/unlock workflow: not tested because the available Pixel 8a development client did not complete the Metro connection in the previous device pass.
-- Exact Pixel 8 archive-at-rest workflow: not tested because exact Pixel 8 hardware was not attached.
+- Pixel 8a archive-at-rest workflow: not complete; see `2026-06-14-android-archive-native-crypto.md`.
 - iOS archive-at-rest workflow: not tested because no iOS device was attached.

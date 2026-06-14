@@ -1,11 +1,11 @@
-# Pixel 8 Device QA Result
+# Pixel 8a Device QA Result
 
 ## Build Under Test
 
 - Commit: 137b843
 - Date/time: 2026-06-13 19:56 -04:00
 - Tester: Codex
-- Pixel 8 Android version: Pixel 8a, Android 16 / API 36
+- Pixel 8a Android version: Pixel 8a, Android 16 / API 36
 - Development build install date/time: 2026-06-13 19:56 -04:00
 - Connection mode: USB
 
@@ -28,5 +28,5 @@
 ## Failures Or Deferrals
 
 - Failed checklist items: none for assemble/install.
-- Deferred device-QA items and reason: exact Pixel 8 hardware was not attached; the available device was a Pixel 8a. Full app workflow testing and local model runtime QA remain deferred until model assets are wired and the development-client connection can complete reliably.
-- Follow-up issue or roadmap item: run exact Pixel 8 model-load, embedding rebuild, semantic search, structured extraction, memory/latency, fallback, and startup QA after asset loading is implemented.
+- Deferred device-QA items and reason: the available Pixel 8a is the target device, but full app workflow testing and local model runtime QA remain deferred until model assets are wired and the development-client connection or standalone model workflow can complete reliably.
+- Follow-up issue or roadmap item: run Pixel 8a model-load, embedding rebuild, semantic search, structured extraction, memory/latency, fallback, and startup QA after asset loading is implemented.

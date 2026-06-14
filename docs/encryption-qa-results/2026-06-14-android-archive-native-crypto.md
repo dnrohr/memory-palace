@@ -40,4 +40,4 @@
 
 - Archive-at-rest Android device QA remains open.
 - Next pass should instrument the Settings save action or replace the archive migration control with a simpler Android-native interaction path before treating archive-at-rest as target-device verified.
-- Exact Pixel 8 hardware and iOS archive-at-rest QA remain open.
+- Pixel 8a archive-scope save/unlock and iOS archive-at-rest QA remain open.

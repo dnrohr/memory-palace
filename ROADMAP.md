@@ -17,13 +17,13 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Ready to Continue Locally
 
-- None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
-- The user-facing Pixel 8 run/install guide is in `docs/pixel-8-run-install-guide.md`; update it whenever Android run, build, install, or device-QA processes change.
-- The current app still needs the full physical Pixel 8 major-change gate before mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
+- None currently. The Pixel 8a development-build workflow, local verification script, and result template are in place. The `pixel8:*` script names are historical and currently target the attached Pixel 8a.
+- The user-facing Pixel 8a run/install guide is in `docs/pixel-8-run-install-guide.md`; update it whenever Android run, build, install, or device-QA processes change.
+- The current app has a Pixel 8a standalone major-gate smoke pass, but still needs full workflow QA before all mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
-- A local-model-runtime Pixel 8a pass is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-model-runtime-page-size.md`: preflight passed, a fresh debug APK installed, Android showed a 16 KB page-size compatibility warning for native libraries including `llama.rn`, ONNX Runtime, Expo SQLite, Expo modules, React Native, and Hermes, the dev launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture, and exact Pixel 8 hardware was not attached.
-- A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open, and exact Pixel 8 hardware was not attached.
-- A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Exact Pixel 8 hardware, voice, app lock, archive encryption, share-sheet exports/import, WebDAV, and actual model-asset QA remain open.
+- A local-model-runtime Pixel 8a pass is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-model-runtime-page-size.md`: preflight passed, a fresh debug APK installed, Android showed a 16 KB page-size compatibility warning for native libraries including `llama.rn`, ONNX Runtime, Expo SQLite, Expo modules, React Native, and Hermes, the dev launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture.
+- A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open.
+- A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Voice no-speech recovery also passed separately; app lock, archive encryption, share-sheet exports/import, WebDAV, audible speech, and actual model-asset QA remain open.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback for runtimes without Web Crypto `subtle`, but the Pixel 8a archive-scope Settings save action still does not dispatch successfully; evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`, and archive-at-rest native device QA remains open.
 
 ### Needs Model Runtime Wiring Or Device QA
@@ -34,69 +34,69 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Device QA
 
-- Run the Pixel 8 development-build checklist for the current app and record results in `docs/pixel-8-results/`.
+- Run the Pixel 8a development-build checklist for the current app and record results in `docs/pixel-8-results/`.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
-- Milestone 3: iOS, exact Pixel 8, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
+- Milestone 3: iOS, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
 
 ## Major Change Test Gate
 
-Major changes must pass the normal local checks and a Pixel 8 device check before they are considered complete.
+Major changes must pass the normal local checks and a Pixel 8a device check before they are considered complete.
 
 - Local gate: `npm test` and `npm run build`.
-- Device gate: run the app on the Pixel 8 development build, exercise the affected workflow, and confirm startup, navigation, persistence, and visible error handling still work.
+- Device gate: run the app on the Pixel 8a development build or standalone APK, exercise the affected workflow, and confirm startup, navigation, persistence, and visible error handling still work.
 - Required for: native mobile setup, SQLite/storage migrations, archive encryption/unlock, app lock, speech/audio capture, import/export, sync/backup, navigation shell changes, and major UI flows.
-- Deferral rule: if Pixel 8 testing is not possible, record the blocker in the implementation log and keep the affected work marked as needing device QA.
+- Deferral rule: if Pixel 8a testing is not possible, record the blocker in the implementation log and keep the affected work marked as needing device QA.
 
 ## Implementation Log
 
 ### 2026-06-14
 
-- Added a user-facing Pixel 8 run/install guide covering the development-client workflow for live testing near the computer and a standalone APK install path for away-from-computer testing.
+- Added a user-facing Pixel 8a run/install guide covering the development-client workflow for live testing near the computer and a standalone APK install path for away-from-computer testing.
 - Added `npm run pixel8:install-standalone`, which builds the Android release APK with the local debug keystore and installs it on the first ADB-ready Android device.
 - Ran `npm run verify` and `npm run pixel8:preflight`; both passed.
-- Ran the standalone install path on the attached Pixel 8a running Android 16: the release APK built and installed, the package was present, the app process launched, Explore rendered, and recent logcat output showed no fatal exception in the captured launch window. Exact Pixel 8 hardware and full workflow QA remain open.
-- Ran a standalone major-gate smoke pass on the attached Pixel 8a: saved a typed memory, opened detail, force-stopped and relaunched to confirm persistence, searched for the saved text, verified Settings/local model fallback/diagnostics surfaces, confirmed export/import controls are present through UIAutomator evidence, and found no `FATAL EXCEPTION` in the final logcat check. Exact Pixel 8 hardware plus voice, app lock, archive encryption, share-sheet export/import, WebDAV, and actual model-asset QA remain open.
+- Ran the standalone install path on the attached Pixel 8a running Android 16: the release APK built and installed, the package was present, the app process launched, Explore rendered, and recent logcat output showed no fatal exception in the captured launch window. Full workflow QA remains open.
+- Ran a standalone major-gate smoke pass on the attached Pixel 8a: saved a typed memory, opened detail, force-stopped and relaunched to confirm persistence, searched for the saved text, verified Settings/local model fallback/diagnostics surfaces, confirmed export/import controls are present through UIAutomator evidence, and found no `FATAL EXCEPTION` in the final logcat check. Voice no-speech recovery passed separately; app lock, archive encryption, share-sheet export/import, WebDAV, audible speech, and actual model-asset QA remain open.
 - Replaced the Android audio-capture stub with a native `expo-speech-recognition` capture session, wired captured transcripts directly into the voice draft flow, and treated Android `no-speech` results as an editable empty transcript instead of a hard failure.
-- Ran Android standalone voice QA on the attached Pixel 8a: microphone permission was granted, voice recording started, Android speech recognition returned `no-speech` for the silent automated pass, the app recovered into `Status: draft ready` with an editable transcript field, and recent logcat output showed no `FATAL EXCEPTION`. Exact Pixel 8 hardware, audible transcription acceptance, background interruption, and iOS speech QA remain open.
+- Ran Android standalone voice QA on the attached Pixel 8a: microphone permission was granted, voice recording started, Android speech recognition returned `no-speech` for the silent automated pass, the app recovered into `Status: draft ready` with an editable transcript field, and recent logcat output showed no `FATAL EXCEPTION`. Audible transcription acceptance, background interruption, and iOS speech QA remain open.
 - Added a native-compatible AES-GCM/PBKDF2 encryption fallback for Android runtimes with secure random bytes but without Web Crypto `subtle`, while preserving the existing encrypted envelope format.
 - Ran Android standalone archive-at-rest QA on the attached Pixel 8a: the release APK built and installed, local crypto tests passed, saving `disabled` encryption options succeeded, and final relaunch loaded Explore with no `FATAL EXCEPTION`. Attempting to save archive scope with a passphrase still did not dispatch the archive save action on-device, so archive-at-rest Android QA remains open and is documented in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 
 ### 2026-06-13
 
-- Promoted Pixel 8 testing to the top implementation priority: use an Expo development build, repeatable phone-start scripts, and a device-testing runbook rather than relying on Expo Go for the main app.
-- Added a major-change test gate requiring Pixel 8 development-build QA for substantial mobile, storage, encryption, speech, sync, navigation, and data-model changes before they are considered complete.
-- Added `expo-dev-client`, Pixel 8 start/build scripts, and `PIXEL_8_TEST.md` so Android device QA has a repeatable development-build path.
-- Added `npm run verify` and a Pixel 8 result template so the local gate and device evidence can be recorded consistently for major changes.
-- Added `npm run pixel8:preflight` to check Pixel 8 QA readiness before build/install: required scripts/docs, `adb` availability, and ADB-visible Android devices.
+- Promoted Pixel 8a testing to the top implementation priority: use an Expo development build, repeatable phone-start scripts, and a device-testing runbook rather than relying on Expo Go for the main app.
+- Added a major-change test gate requiring Pixel 8a development-build or standalone QA for substantial mobile, storage, encryption, speech, sync, navigation, and data-model changes before they are considered complete.
+- Added `expo-dev-client`, Pixel 8a start/build scripts, and `PIXEL_8_TEST.md` so Android device QA has a repeatable development-build path.
+- Added `npm run verify` and a Pixel 8a result template so the local gate and device evidence can be recorded consistently for major changes.
+- Added `npm run pixel8:preflight` to check Pixel 8a QA readiness before build/install: required scripts/docs, `adb` availability, and ADB-visible Android devices.
 - Made additive SQLite migrations idempotent when the latest schema already contains the target columns, reducing device-test failures on fresh or partially migrated local databases.
 - Added a visible archive-load failure state with retry so startup storage errors do not leave the app stuck on an indefinite loading screen.
-- Recorded the current-app Pixel 8 gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8 QA remains deferred because this environment has no attached device.
-- Ran the Pixel 8 preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
+- Recorded the current-app Pixel 8a gate status in `docs/pixel-8-results/2026-06-13-current-app-deferred.md`: local verification passed, but physical Pixel 8a QA was deferred at that time because the environment had no attached device.
+- Ran the Pixel 8a preflight locally; it failed with the actionable blocker that `adb` is not available on PATH in this environment.
 - Added a GitHub Actions `Verify` workflow so the documented local gate (`npm ci` and `npm run verify`) runs on pushes to `main` and pull requests.
-- Rechecked the Pixel 8 blocker: `adb` is not on PATH, no standard Windows Android SDK `adb.exe` path is present, and no physical Pixel 8 is attached in this environment.
+- Rechecked the Pixel 8a blocker: `adb` is not on PATH, no standard Windows Android SDK `adb.exe` path is present, and no physical Pixel 8a is attached in this environment.
 - Added a UI polish batch from `UI_DESIGN_DOCUMENT.md`: wide Explore now uses a two-pane composition, theme shelves use a reusable `ThemeClusterCard`, and core Settings trust/control areas use a reusable `SettingsSection` surface.
 - Ran `npm run verify` for the UI polish batch; build, all 102 tests, and Expo public config passed.
 - Ran local web visual QA on `http://localhost:8081`: wide Explore rendered as a two-pane layout, Settings rendered the new section surfaces, mobile-width Explore stayed stacked, and no horizontal overflow or console errors appeared.
-- Re-ran the Pixel 8 preflight for the UI polish batch; it still fails because `adb` is not available on PATH, so physical device QA remains deferred.
-- Improved Pixel 8 device readiness automation: preflight now discovers `adb` in PATH and standard Android SDK locations, checks for a Java runtime in `JAVA_HOME`, Android Studio JBR, and common JDK folders, distinguishes ready/offline/unauthorized devices, and has helper tests.
+- Re-ran the Pixel 8a preflight for the UI polish batch; it still fails because `adb` is not available on PATH, so physical device QA remains deferred.
+- Improved Pixel 8a device readiness automation: preflight now discovers `adb` in PATH and standard Android SDK locations, checks for a Java runtime in `JAVA_HOME`, Android Studio JBR, and common JDK folders, distinguishes ready/offline/unauthorized devices, and has helper tests.
 - Replaced the interactive `pixel8:build` script with a non-interactive wrapper that selects the first ADB-ready device and wires detected Java into the Expo Android build.
-- Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8 target-device QA remains open.
-- Re-ran the current-app Pixel 8 gate on the available Pixel 8a: `npm run verify` and `npm run pixel8:preflight` passed, direct Gradle debug assembly and `adb install -r` passed, and Metro completed Android bundles. Full workflow QA remains deferred because the Expo development launcher reported `unexpected end of stream` when connecting to the local Metro server, and exact Pixel 8 hardware was not attached.
-- Ran web speech denied-permission QA on `http://localhost:8092`: New Memory and Voice rendered, no-audio-retention copy and ready status were visible, starting recording produced a visible `Microphone permission was denied.` state with a `Try again` recovery action, and no browser console errors appeared beyond existing style warnings. Accepted-microphone, iOS, Android native, and exact Pixel 8 speech QA remain open.
+- Ran a partial physical-device development-build QA pass on an attached Pixel 8a running Android 16: preflight passed, the debug APK built/installed, the app bundle loaded through the dev client, Explore rendered, a text memory saved to detail, the saved memory reappeared after reconnecting post-restart, Settings rendered, and search field/keyboard focus worked. Full Pixel 8a workflow QA remains open.
+- Re-ran the current-app Pixel 8a gate on the available Pixel 8a: `npm run verify` and `npm run pixel8:preflight` passed, direct Gradle debug assembly and `adb install -r` passed, and Metro completed Android bundles. Full workflow QA remains deferred because the Expo development launcher reported `unexpected end of stream` when connecting to the local Metro server.
+- Ran web speech denied-permission QA on `http://localhost:8092`: New Memory and Voice rendered, no-audio-retention copy and ready status were visible, starting recording produced a visible `Microphone permission was denied.` state with a `Try again` recovery action, and no browser console errors appeared beyond existing style warnings. Accepted-microphone, iOS, and Android audible speech QA remain open.
 - Wired archive-at-rest encryption into the Settings save flow: archive scope with user passphrase now requires a one-time archive passphrase, immediately writes the encrypted archive, clears plaintext primary storage, and disabling archive scope writes the current archive back to primary storage while clearing the encrypted record and in-memory archive passphrase.
 - Ran archive-at-rest web QA on `http://localhost:8093`: Settings showed the archive passphrase migration field, saving with a test passphrase showed encrypted-archive success copy, reload displayed the encrypted archive unlock screen, unlocking returned to Explore, and no console errors appeared beyond existing style warnings.
-- Ran `npm run verify` and `npm run pixel8:preflight` for the archive-at-rest Settings migration slice; both passed. Physical archive-at-rest device QA remains deferred because the available Pixel 8a development client did not complete the Metro connection in the prior device pass, and exact Pixel 8 hardware is not attached.
+- Ran `npm run verify` and `npm run pixel8:preflight` for the archive-at-rest Settings migration slice; both passed. Physical archive-at-rest device QA remained deferred at that point because the available Pixel 8a development client did not complete the Metro connection in the prior device pass.
 - Selected production local model targets in `docs/model-selection.md`: BGE small English v1.5 for embeddings, Qwen2.5 0.5B Instruct through a llama.cpp-compatible runtime for optional structured extraction, and WebDAV encrypted sync as the first production sync target.
 - Added a BGE small English v1.5 ONNX embedding adapter with model metadata, query/passage prefix handling, masked mean pooling for token embeddings, and tests for the production embedding target. Hash embeddings remain the runtime fallback until model assets and device QA are wired.
 - Added a Qwen2.5 0.5B Instruct structured-extraction adapter for `llama.rn`, with chat prompt wrapping, deterministic local completion settings, optional grammar forwarding, and validation through the existing JSON structured-extraction contract. Rules remain the default until model assets and device QA are wired.
 - Added a tracked `patch-package` patch for `onnxruntime-react-native@1.24.3` so its Android Gradle script works under the current Gradle toolchain, ignored generated `llama.rn` Hexagon asset sync output, and confirmed direct Android debug assembly succeeds after adding the local model runtime dependencies.
-- Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full exact Pixel 8 model runtime QA remains open until model assets and dev-client workflow testing are complete.
+- Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full Pixel 8a model runtime QA remains open until model assets and dev-client or standalone workflow testing are complete.
 - Added checked local-model asset manifests and guarded engine factories for BGE small English v1.5 and Qwen2.5 0.5B Instruct, so production local engines are created only when required asset files resolve and the app can keep using hash/rules fallbacks when files are absent.
 - Added Expo document-storage model asset discovery and Settings visibility for optional BGE/Qwen model files, including a refresh action and fallback status when required files are absent.
 - Added a Qwen `llama.rn` completion runtime shim plus an Expo/native loader that initializes a local llama context from the resolved GGUF asset URI and forwards deterministic JSON completion settings through the existing Qwen structured-extraction adapter.
 - Added a BGE runtime loader that requires ONNX and tokenizer config assets, loads the model URI into ONNX Runtime, adapts Transformers.js tokenizer output into BGE feed arrays, and preserves the hash fallback until the loader is explicitly enabled after device QA.
-- Ran a local-model-runtime Pixel 8a device pass: preflight passed, a fresh debug APK installed, Android reported the debug app is not 16 KB page-size compatible across multiple native libraries, the Expo development launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture, model assets were not present, and exact Pixel 8 hardware was not attached.
+- Ran a local-model-runtime Pixel 8a device pass: preflight passed, a fresh debug APK installed, Android reported the debug app is not 16 KB page-size compatible across multiple native libraries, the Expo development launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture and model assets were not present.
 
 ### 2026-06-12
 
@@ -255,7 +255,7 @@ Done:
 - Partial Pixel 8a development-build smoke evidence for launch, Explore, save/detail, reconnect persistence, and Settings.
 
 Remaining:
-- Full target Pixel 8 device-level QA.
+- Full target Pixel 8a device-level QA.
 
 ### 2. Manual Tags and Basic Search
 
@@ -510,9 +510,9 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Run exact Pixel 8 hardware QA for the current app; the available Pixel 8a standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, but exact target hardware remains open.
+1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, but not every target workflow.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
-3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
+3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on Pixel 8a.
 4. Run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews.
 5. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
 6. Run WebDAV encrypted sync device QA.

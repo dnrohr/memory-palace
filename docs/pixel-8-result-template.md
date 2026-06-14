@@ -1,13 +1,13 @@
-# Pixel 8 Device QA Result
+# Pixel 8a Device QA Result
 
-Copy this template into the implementation log, PR notes, or a dated file when a major mobile-facing change is tested on the Pixel 8 development build.
+Copy this template into the implementation log, PR notes, or a dated file when a major mobile-facing change is tested on the Pixel 8a development build.
 
 ## Build Under Test
 
 - Commit:
 - Date/time:
 - Tester:
-- Pixel 8 Android version:
+- Pixel 8a Android version:
 - Development build install date/time:
 - Connection mode: LAN / tunnel / USB
 

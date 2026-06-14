@@ -34,7 +34,7 @@ npm install
 npm test
 ```
 
-For physical Pixel 8 testing and away-from-computer Android installs, see [docs/pixel-8-run-install-guide.md](docs/pixel-8-run-install-guide.md).
+For physical Pixel 8a testing and away-from-computer Android installs, see [docs/pixel-8-run-install-guide.md](docs/pixel-8-run-install-guide.md).
 
 ## Repository Layout
 

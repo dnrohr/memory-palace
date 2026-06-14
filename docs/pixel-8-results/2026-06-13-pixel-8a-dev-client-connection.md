@@ -1,11 +1,11 @@
-# Pixel 8 Device QA Result
+# Pixel 8a Device QA Result
 
 ## Build Under Test
 
 - Commit: 0951e94
 - Date/time: 2026-06-13 19:07 -04:00
 - Tester: Codex
-- Pixel 8 Android version: Pixel 8a, Android 16 / API 36
+- Pixel 8a Android version: Pixel 8a, Android 16 / API 36
 - Development build install date/time: 2026-06-13 18:57 -04:00
 - Connection mode: USB reverse to local Metro
 
@@ -44,8 +44,8 @@
 
 - Red screens, visible errors, or console errors: no Android runtime crash was observed in the filtered logcat slice; the Expo development launcher displayed `unexpected end of stream on http://127.0.0.1:8081/...` after selecting the recent local server.
 - Failed checklist items: full app UI workflow testing could not proceed because the development client did not complete the Metro connection from the launcher.
-- Deferred device-QA items and reason: exact Pixel 8 hardware was not attached; the available device was a Pixel 8a. Startup beyond the development launcher, navigation, persistence, search, export/import, app lock, encryption, and voice capture still need a successful development-client bundle connection and/or exact Pixel 8 hardware.
-- Follow-up issue or roadmap item: keep the current app marked as needing full target Pixel 8 device QA.
+- Deferred device-QA items and reason: the available Pixel 8a is the target device, but startup beyond the development launcher, navigation, persistence, search, export/import, app lock, encryption, and voice capture still need a successful development-client bundle connection or standalone workflow pass.
+- Follow-up issue or roadmap item: keep the current app marked as needing full target Pixel 8a workflow QA.
 
 ## Notes
 

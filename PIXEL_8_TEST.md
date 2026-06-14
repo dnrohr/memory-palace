@@ -1,14 +1,14 @@
-# Google Pixel 8 Development-Build Validation
+# Google Pixel 8a Development-Build Validation
 
-Use this checklist to run Memory Palace on a physical Google Pixel 8 with an Expo development build. This is the primary device-QA path for Android because the app uses native modules such as SQLite, SecureStore, document picking, local authentication, and speech recognition.
+Use this checklist to run Memory Palace on a physical Google Pixel 8a with an Expo development build. This is the primary device-QA path for Android because the app uses native modules such as SQLite, SecureStore, document picking, local authentication, and speech recognition.
 
 For user-facing run and install steps, including a standalone APK path for testing away from the computer, see `docs/pixel-8-run-install-guide.md`.
 
 ## Prerequisites
 
-- Google Pixel 8 with Developer options and USB debugging enabled.
+- Google Pixel 8a with Developer options and USB debugging enabled.
 - Android platform tools available through Android Studio or the Expo Android toolchain.
-- The Pixel 8 and this development machine are on the same Wi-Fi network for LAN loading, or USB is connected for the build/install step.
+- The Pixel 8a and this development machine are on the same Wi-Fi network for LAN loading, or USB is connected for the build/install step.
 - Node.js 22 or newer and npm are installed.
 - Repository dependencies are installed:
 
@@ -26,9 +26,9 @@ Before building, confirm this machine can see the phone:
 npm run pixel8:preflight
 ```
 
-This checks the local Pixel 8 QA scripts/docs and verifies that `adb devices` reports at least one connected Android device.
+This checks the local Pixel 8a QA scripts/docs and verifies that `adb devices` reports at least one connected Android device. The `pixel8:*` script names are historical and currently target the Pixel 8a workflow.
 
-Install a development build on the Pixel 8:
+Install a development build on the Pixel 8a:
 
 ```bash
 npm run pixel8:build
@@ -46,9 +46,9 @@ When the phone needs to work away from the computer without Metro, install a sta
 npm run pixel8:install-standalone
 ```
 
-This builds `android/app/build/outputs/apk/release/app-release.apk` with the local debug keystore and installs it on the connected Pixel 8. Use it for away-from-computer exploratory testing; keep using the development build path for live debugging and Metro logs.
+This builds `android/app/build/outputs/apk/release/app-release.apk` with the local debug keystore and installs it on the connected Pixel 8a. Use it for away-from-computer exploratory testing; keep using the development build path for live debugging and Metro logs.
 
-## Start The App For Pixel 8 Testing
+## Start The App For Pixel 8a Testing
 
 After the development build is installed, start the Metro server for the dev client:
 
@@ -58,7 +58,7 @@ npm run pixel8
 
 This runs `expo start --dev-client --android`.
 
-If the Pixel 8 cannot connect over LAN, start a tunnel:
+If the Pixel 8a cannot connect over LAN, start a tunnel:
 
 ```bash
 npm run pixel8:tunnel
@@ -66,9 +66,9 @@ npm run pixel8:tunnel
 
 This runs `expo start --dev-client --tunnel`.
 
-## Open On Pixel 8
+## Open On Pixel 8a
 
-1. Unlock the Pixel 8.
+1. Unlock the Pixel 8a.
 2. Open the installed Memory Palace development build.
 3. If prompted, connect to the running Metro server from the development-client launcher.
 4. Wait for the JavaScript bundle to finish loading.
@@ -91,7 +91,7 @@ Before marking a major mobile-facing change complete, run:
 npm run verify
 ```
 
-Then run the relevant Pixel 8 development-build checks below. If Pixel 8 testing is not possible, record the reason in `ROADMAP.md` and keep the item marked as needing device QA.
+Then run the relevant Pixel 8a development-build checks below. If Pixel 8a testing is not possible, record the reason in `ROADMAP.md` and keep the item marked as needing device QA.
 
 Major changes include:
 
@@ -132,7 +132,7 @@ Record results with `docs/pixel-8-result-template.md`. Copy the template into th
 
 At minimum, record:
 
-- Pixel 8 Android version.
+- Pixel 8a Android version.
 - Whether LAN, tunnel, or USB was used.
 - Development build install date/time.
 - Any permission prompts accepted or denied.

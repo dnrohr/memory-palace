@@ -5,7 +5,7 @@ Date: 2026-06-13
 Device:
 - Model: Pixel 8a (`akita`)
 - Serial: `47091JEKB05516`
-- Exact target Pixel 8 hardware: not attached
+- Target hardware: Pixel 8a
 
 Commands run:
 - `npm run verify`: pass earlier in this roadmap pass after BGE/Qwen runtime-loader updates
@@ -30,5 +30,5 @@ Evidence files:
 
 Status:
 - Partial Pixel 8a evidence only.
-- Exact Pixel 8 target-device QA remains open.
+- Full Pixel 8a model-runtime workflow QA remains open.
 - Local model runtime device QA remains blocked until the native dependency 16 KB page-size compatibility warning is resolved or accepted as an Android 16/debug-build testing limitation.

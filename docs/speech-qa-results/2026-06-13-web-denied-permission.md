@@ -32,4 +32,4 @@
 - Web transcription success path: not tested.
 - iOS speech recognition permission, interruption, and fallback QA: not tested because no iOS device was attached.
 - Android native speech recognition permission, interruption, and fallback QA: not tested because the available Pixel 8a development client did not complete the Metro connection in this pass.
-- Exact Pixel 8 speech QA: not tested because exact Pixel 8 hardware was not attached.
+- Pixel 8a audible speech QA remains open.

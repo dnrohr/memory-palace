@@ -1,11 +1,11 @@
-# Pixel 8 Device QA Result
+# Pixel 8a Device QA Result
 
 ## Build Under Test
 
 - Commit: `ab8ed3a`
 - Date/time: 2026-06-13
 - Tester: Codex local verification
-- Pixel 8 Android version: not tested
+- Pixel 8a Android version: not tested
 - Development build install date/time: not tested
 - Connection mode: not tested
 
@@ -13,7 +13,7 @@
 
 - `npm run verify`: pass
 - `npm run pixel8:preflight`: fail
-- Notes: Local verification passed. Pixel 8 preflight failed because `adb` is not available on PATH in this environment.
+- Notes: Local verification passed. Pixel 8a preflight failed because `adb` is not available on PATH in this environment.
 
 ## Device Gate
 
@@ -44,5 +44,5 @@
 
 - Red screens, visible errors, or console errors: none observed in local checks; physical-device runtime not tested.
 - Failed checklist items: none from local gate.
-- Deferred device-QA items and reason: the current Codex environment has no available `adb` command, no detected standard Windows Android SDK `adb.exe` path, and no attached Pixel 8, so the Pixel 8 development-build gate remains open.
-- Follow-up issue or roadmap item: run `npm run pixel8:build`, `npm run pixel8`, and the full `PIXEL_8_TEST.md` checklist on the physical Pixel 8.
+- Deferred device-QA items and reason: the earlier current Codex environment had no available `adb` command, no detected standard Windows Android SDK `adb.exe` path, and no attached Pixel 8a, so the Pixel 8a development-build gate remained open at that time.
+- Follow-up issue or roadmap item: run `npm run pixel8:build`, `npm run pixel8`, and the full `PIXEL_8_TEST.md` checklist on the physical Pixel 8a.

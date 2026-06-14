@@ -33,7 +33,7 @@
 
 ## Deferrals
 
-- Exact Pixel 8 hardware: not tested because the attached device identifies as Pixel 8a.
+- Audible transcription acceptance and background interruption remain open on the target Pixel 8a.
 - Audible speech transcription acceptance: not tested; this automated pass exercised the no-speech recovery path.
 - Background interruption during active recording: not tested in this pass.
 - iOS speech recognition permission, interruption, and fallback QA: not tested because no iOS device was attached.

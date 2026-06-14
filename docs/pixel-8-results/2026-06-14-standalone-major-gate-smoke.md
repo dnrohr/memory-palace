@@ -1,4 +1,4 @@
-# Pixel 8 Device QA Result - Standalone Major-Gate Smoke
+# Pixel 8a Device QA Result - Standalone Major-Gate Smoke
 
 ## Build Under Test
 
@@ -46,5 +46,5 @@
 
 ## Failures Or Deferrals
 
-- Exact Pixel 8 hardware was not attached; the connected device reported `Pixel 8a`.
+- The connected `Pixel 8a` is the target Android device; remaining work is workflow-specific rather than hardware-model-specific.
 - This pass used ADB coordinate/UIAutomator smoke testing, so workflows that require file pickers, share sheets, biometric prompts, or speech permissions remain open.

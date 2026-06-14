@@ -1,4 +1,4 @@
-# Pixel 8 Device QA Result - Standalone Install Launch
+# Pixel 8a Device QA Result - Standalone Install Launch
 
 ## Build Under Test
 
@@ -38,5 +38,5 @@
 
 ## Failures Or Deferrals
 
-- Exact Pixel 8 hardware was not attached; the connected device reported `Pixel 8a`.
+- The connected `Pixel 8a` is the target Android device; remaining work is workflow-specific rather than hardware-model-specific.
 - This was a launch/install validation for the new standalone testing path, not the full major-change device checklist.

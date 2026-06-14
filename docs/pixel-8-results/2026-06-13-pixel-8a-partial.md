@@ -46,5 +46,5 @@
 - Red screens, visible errors, or console errors: none observed on the tested Explore, save/detail, reconnect, and Settings surfaces.
 - Notable logcat entry: dev launcher reports `ClassNotFoundException: expo.modules.splashscreen.SplashScreenManager`; app surfaces still loaded after connecting to Metro.
 - Failed checklist items: none in the tested subset.
-- Deferred device-QA items and reason: exact Pixel 8 hardware was not attached; device was Pixel 8a. Search result verification, export/import, app lock, encryption, voice capture, delete/restore, and full checklist remain to be run by a human or unlocked interactive device session.
-- Follow-up roadmap item: run the full `PIXEL_8_TEST.md` checklist on the target physical Pixel 8 and record complete pass/fail evidence.
+- Deferred device-QA items and reason: search result verification, export/import, app lock, encryption, voice capture, delete/restore, and the full checklist remain to be run on the target Pixel 8a by a human or unlocked interactive device session.
+- Follow-up roadmap item: run the full `PIXEL_8_TEST.md` checklist on the target physical Pixel 8a and record complete pass/fail evidence.

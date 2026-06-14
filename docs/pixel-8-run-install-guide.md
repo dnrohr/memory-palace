@@ -1,12 +1,12 @@
-# Pixel 8 Run And Install Guide
+# Pixel 8a Run And Install Guide
 
-This is the user-facing Pixel 8 guide for Memory Palace. Keep it current whenever the Android run, build, install, or device-QA process changes.
+This is the user-facing Pixel 8a guide for Memory Palace. Keep it current whenever the Android run, build, install, or device-QA process changes. The `pixel8:*` command names are historical and currently target the Pixel 8a workflow.
 
 Use the development build when you are near the computer and want live reloads from Metro. Use the standalone install when you want to unplug the phone and test the app while away from the computer.
 
 ## Prepare The Phone
 
-1. On the Pixel 8, enable Developer options.
+1. On the Pixel 8a, enable Developer options.
 2. Enable USB debugging.
 3. Connect the phone over USB.
 4. Unlock the phone and accept the USB debugging prompt.
@@ -29,7 +29,7 @@ npm install
 npm run pixel8:preflight
 ```
 
-`pixel8:preflight` checks the local Pixel 8 scripts/docs, finds `adb`, finds Java for the Android build, and confirms an ADB-ready Android device is connected.
+`pixel8:preflight` checks the local Pixel 8a scripts/docs, finds `adb`, finds Java for the Android build, and confirms an ADB-ready Android device is connected.
 
 ## Run For Live Testing Near The Computer
 
@@ -45,7 +45,7 @@ Start Metro for the development client:
 npm run pixel8
 ```
 
-Then open Memory Palace on the Pixel 8. If the Expo development launcher appears, select the running local server or the most recent server entry and wait for the JavaScript bundle to load.
+Then open Memory Palace on the Pixel 8a. If the Expo development launcher appears, select the running local server or the most recent server entry and wait for the JavaScript bundle to load.
 
 If LAN loading fails, stop Metro and use the tunnel:
 
@@ -63,7 +63,7 @@ Install a standalone APK with the JavaScript bundle embedded:
 npm run pixel8:install-standalone
 ```
 
-This command builds `android/app/build/outputs/apk/release/app-release.apk` with the local debug keystore and installs it on the connected Pixel 8. It is for local testing only, not app-store distribution.
+This command builds `android/app/build/outputs/apk/release/app-release.apk` with the local debug keystore and installs it on the connected Pixel 8a. It is for local testing only, not app-store distribution.
 
 After the command succeeds:
 

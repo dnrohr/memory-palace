@@ -15,7 +15,7 @@ Production target: `BAAI/bge-small-en-v1.5`
 Remaining work:
 
 - Wire the BGE loader into an explicit embedding mode after device QA.
-- Run Pixel 8 device QA for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
+- Run Pixel 8a device QA for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
 
 ## Structured Extraction
 
