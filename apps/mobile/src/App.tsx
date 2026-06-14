@@ -7,14 +7,15 @@ import {
   AppState,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Text,
   TextInput,
   useWindowDimensions,
   View
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
 import type { AppLockSettings } from "../../../src/security/appLock";
@@ -132,6 +133,14 @@ type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
 const NEW_MEMORY_DRAFT_KEY = "memory-palace.new-memory-draft.v1";
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
   const { width } = useWindowDimensions();
   const appLockProvider = useMemo(() => new ExpoBiometricAppLockProvider(), []);
   const [archive, setArchive] = useState<MemoryArchive | undefined>();
@@ -213,6 +222,8 @@ export default function App() {
   const memories = searchMode === "semantic" && query.trim() ? semanticFilteredMemories : keywordMemories;
   const prompts = useMemo(() => (archive ? buildResurfacingPrompts(archive) : []), [archive]);
   styles = appearanceMode === "dark" ? darkStyles : lightStyles;
+  const statusBarStyle = appearanceMode === "dark" ? "light-content" : "dark-content";
+  const statusBarBackgroundColor = appearanceMode === "dark" ? darkColors.background : theme.colors.background;
 
   useEffect(() => {
     if (!query.trim()) {
@@ -352,26 +363,26 @@ export default function App() {
   if (!archive) {
     if (archiveUnlockRequired) {
       return (
-        <SafeAreaView style={styles.safeArea}>
+        <RootSafeArea statusBarStyle={statusBarStyle} statusBarBackgroundColor={statusBarBackgroundColor}>
           <ArchiveUnlockView error={archiveUnlockError} onUnlock={unlockEncryptedArchive} />
-        </SafeAreaView>
+        </RootSafeArea>
       );
     }
 
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <RootSafeArea statusBarStyle={statusBarStyle} statusBarBackgroundColor={statusBarBackgroundColor}>
         <View style={styles.loading}>
           <Text style={styles.loadingText}>{archiveLoadError ? "Archive could not be loaded" : "Loading archive"}</Text>
           {archiveLoadError ? <Text style={styles.errorText}>{archiveLoadError}</Text> : null}
           {archiveLoadError ? <SecondaryButton label="Try again" onPress={loadInitialArchive} icon={<RotateCcw size={18} />} /> : null}
         </View>
-      </SafeAreaView>
+      </RootSafeArea>
     );
   }
 
   if (isAppLocked) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <RootSafeArea statusBarStyle={statusBarStyle} statusBarBackgroundColor={statusBarBackgroundColor}>
         <UnlockView
           mode={appLockSettings.mode}
           onUnlock={async (secret) => {
@@ -380,7 +391,7 @@ export default function App() {
             return unlocked;
           }}
         />
-      </SafeAreaView>
+      </RootSafeArea>
     );
   }
 
@@ -388,6 +399,8 @@ export default function App() {
     <AppShell
       mode={mode}
       wide={width >= 900}
+      statusBarStyle={statusBarStyle}
+      statusBarBackgroundColor={statusBarBackgroundColor}
       onExplore={() => setMode("list")}
       onCapture={() => {
         setSelectedId(undefined);
@@ -689,6 +702,8 @@ export default function App() {
 function AppShell(props: {
   mode: ViewMode;
   wide: boolean;
+  statusBarStyle: "dark-content" | "light-content";
+  statusBarBackgroundColor: string;
   children: ReactNode;
   onExplore: () => void;
   onCapture: () => void;
@@ -696,7 +711,7 @@ function AppShell(props: {
   onSettings: () => void;
 }) {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <RootSafeArea statusBarStyle={props.statusBarStyle} statusBarBackgroundColor={props.statusBarBackgroundColor}>
       <View style={[styles.shell, props.wide ? styles.shellWide : null]}>
         <ScreenHeader mode={props.mode} onSettings={props.onSettings} />
         {props.children}
@@ -708,7 +723,26 @@ function AppShell(props: {
           onSettings={props.onSettings}
         />
       </View>
-    </SafeAreaView>
+    </RootSafeArea>
+  );
+}
+
+function RootSafeArea(props: {
+  children: ReactNode;
+  statusBarStyle: "dark-content" | "light-content";
+  statusBarBackgroundColor: string;
+}) {
+  return (
+    <>
+      <StatusBar
+        barStyle={props.statusBarStyle}
+        backgroundColor={props.statusBarBackgroundColor}
+        translucent={false}
+      />
+      <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.safeArea}>
+        {props.children}
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -1437,6 +1471,7 @@ function ReviewCard(props: {
 }) {
   const sourceText = "sourceText" in props.item ? props.item.sourceText : undefined;
   const explanation = "explanation" in props.item ? props.item.explanation : undefined;
+  const dateNeedsContext = props.item.type === "date_suggestion" && !props.item.startDate && !props.item.endDate;
 
   return (
     <Pressable style={styles.reviewItem} onPress={props.onOpen}>
@@ -1460,10 +1495,10 @@ function ReviewCard(props: {
       ) : null}
       {explanation ? <ConnectionReason label="Why it is here" reason={explanation} /> : null}
       <View style={styles.actionRow}>
-        {props.item.type !== "untagged_memory" ? (
+        {props.item.type !== "untagged_memory" && !dateNeedsContext ? (
           <PrimaryButton label="Accept" onPress={props.onAccept} icon={<Save size={18} />} />
         ) : null}
-        <SecondaryButton label="Edit" onPress={props.onOpen} icon={<Edit3 size={18} />} />
+        <SecondaryButton label={dateNeedsContext ? "Add date" : "Edit"} onPress={props.onOpen} icon={<Edit3 size={18} />} />
         <SecondaryButton label="Later" onPress={props.onLater} icon={<RotateCcw size={18} />} />
         {props.item.type === "tag_suggestion" ? (
           <SecondaryButton label="Dismiss" onPress={props.onReject} icon={<X size={18} />} />

@@ -61,6 +61,8 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Ran Android standalone voice QA on the attached Pixel 8a: microphone permission was granted, voice recording started, Android speech recognition returned `no-speech` for the silent automated pass, the app recovered into `Status: draft ready` with an editable transcript field, and recent logcat output showed no `FATAL EXCEPTION`. Audible transcription acceptance, background interruption, and iOS speech QA remain open.
 - Added a native-compatible AES-GCM/PBKDF2 encryption fallback for Android runtimes with secure random bytes but without Web Crypto `subtle`, while preserving the existing encrypted envelope format.
 - Ran Android standalone archive-at-rest QA on the attached Pixel 8a: the release APK built and installed, local crypto tests passed, saving `disabled` encryption options succeeded, and final relaunch loaded Explore with no `FATAL EXCEPTION`. Attempting to save archive scope with a passphrase still did not dispatch the archive save action on-device, so archive-at-rest Android QA remains open and is documented in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
+- Fixed Pixel 8a status-bar overlap by moving the app root to `react-native-safe-area-context`, setting an explicit Android status bar treatment, rebuilding and installing the standalone APK, and recording screenshot evidence in `docs/pixel-8-results/2026-06-14-safe-area-statusbar.png`.
+- Tightened grade/age date suggestions: without a birth year, Memory Palace now explains that grade or age mentions cannot be mapped to calendar dates, and review cannot accept those incomplete suggestions as confirmed dates.
 
 ### 2026-06-13
 

@@ -51,7 +51,21 @@ describe("rules date extraction", () => {
       expect.objectContaining({
         label: "4th grade",
         precision: "grade",
-        confidence: 0.55
+        confidence: 0.55,
+        inferenceExplanation: expect.stringContaining("need a birth year")
+      })
+    );
+  });
+
+  it("keeps age date uncertain without profile context", () => {
+    const candidates = extractDateCandidates("When I was 8, we moved.");
+
+    expect(candidates).toContainEqual(
+      expect.objectContaining({
+        label: "age 8",
+        precision: "age",
+        confidence: 0.52,
+        inferenceExplanation: expect.stringContaining("need a birth year")
       })
     );
   });

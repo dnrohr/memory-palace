@@ -88,6 +88,7 @@ describe("review inbox", () => {
       memoryId: "mem-1",
       type: "date_suggestion",
       label: "2004",
+      precision: "year",
       confidence: 0.9,
       startDate: "2004-01-01",
       endDate: "2004-12-31"
@@ -99,6 +100,43 @@ describe("review inbox", () => {
         userDateConfirmed: true
       })
     );
+  });
+
+  it("does not accept grade date suggestions without calendar dates", () => {
+    const archive: MemoryArchive = {
+      exportedAt: "2026-06-11T00:00:00.000Z",
+      schemaVersion: "0.1.0",
+      memories: [
+        {
+          id: "mem-1",
+          rawText: "When I was in 4th grade, my dog Patrick slept by the window.",
+          title: "Patrick",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          updatedAt: "2026-06-11T00:00:00.000Z",
+          sourceType: "typed",
+          isAudioRetained: false,
+          datePrecision: "unknown",
+          userDateConfirmed: false
+        }
+      ],
+      tags: [],
+      memoryTags: [],
+      people: [],
+      pets: [],
+      places: [],
+      lifePeriods: [],
+      processingRuns: []
+    };
+
+    const gradeSuggestion = buildReviewInbox(archive).find((item) => item.type === "date_suggestion" && item.label === "4th grade");
+
+    expect(gradeSuggestion).toEqual(
+      expect.objectContaining({
+        precision: "grade",
+        explanation: expect.stringContaining("need a birth year")
+      })
+    );
+    expect(acceptReviewItem(archive, gradeSuggestion!)).toBe(archive);
   });
 
   it("rejects tag suggestions and suppresses them from future inboxes", () => {

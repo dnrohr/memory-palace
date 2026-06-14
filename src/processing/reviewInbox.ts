@@ -1,4 +1,5 @@
 import type { MemoryArchive } from "../core/archive";
+import type { DatePrecision } from "../core/types";
 import { normalizeTagName } from "../core/archiveOperations";
 import { extractDateCandidates } from "./rules/dateExtraction";
 import { suggestTags } from "./rules/tagSuggestion";
@@ -18,6 +19,7 @@ export type ReviewItem =
       memoryId: string;
       type: "date_suggestion";
       label: string;
+      precision: DatePrecision;
       confidence: number;
       sourceText?: string;
       explanation?: string;
@@ -74,6 +76,7 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
           memoryId: memory.id,
           type: "date_suggestion",
           label: candidate.label,
+          precision: candidate.precision,
           confidence: candidate.confidence,
           sourceText: candidate.sourceText,
           ...(candidate.inferenceExplanation ? { explanation: candidate.inferenceExplanation } : {}),
@@ -127,6 +130,8 @@ export function acceptReviewItem(archive: MemoryArchive, item: ReviewItem): Memo
   }
 
   if (item.type === "date_suggestion") {
+    if (!item.startDate && !item.endDate) return archive;
+
     return {
       ...archive,
       memories: archive.memories.map((memory) =>
@@ -135,7 +140,7 @@ export function acceptReviewItem(archive: MemoryArchive, item: ReviewItem): Memo
               ...memory,
               ...(item.startDate ? { approximateStartDate: item.startDate } : {}),
               ...(item.endDate ? { approximateEndDate: item.endDate } : {}),
-              datePrecision: "year",
+              datePrecision: item.precision,
               dateConfidence: item.confidence,
               dateExplanation: `Accepted review suggestion "${item.label}".`,
               userDateConfirmed: true,
