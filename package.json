@@ -13,6 +13,7 @@
     "pixel8:build": "node scripts/pixel8-run-android.mjs",
     "pixel8": "expo start --dev-client --android",
     "pixel8:tunnel": "expo start --dev-client --tunnel",
+    "pixel8:install-standalone": "node scripts/pixel8-install-standalone.mjs",
     "pixel8:preflight": "node scripts/pixel8-preflight.mjs",
     "ios": "expo run:ios",
     "postinstall": "patch-package",

@@ -5,8 +5,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = new URL("..", import.meta.url);
 const rootPath = fileURLToPath(root);
-const requiredFiles = ["PIXEL_8_TEST.md", "docs/pixel-8-result-template.md"];
-const requiredScripts = ["verify", "pixel8:build", "pixel8", "pixel8:tunnel", "pixel8:preflight"];
+const requiredFiles = ["PIXEL_8_TEST.md", "docs/pixel-8-run-install-guide.md", "docs/pixel-8-result-template.md"];
+const requiredScripts = ["verify", "pixel8:build", "pixel8", "pixel8:tunnel", "pixel8:install-standalone", "pixel8:preflight"];
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));

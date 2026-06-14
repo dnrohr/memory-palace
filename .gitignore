@@ -6,3 +6,4 @@ coverage/
 *.log
 expo-web.err
 android/app/src/main/assets/ggml-hexagon/
+android/.kotlin/

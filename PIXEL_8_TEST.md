@@ -2,6 +2,8 @@
 
 Use this checklist to run Memory Palace on a physical Google Pixel 8 with an Expo development build. This is the primary device-QA path for Android because the app uses native modules such as SQLite, SecureStore, document picking, local authentication, and speech recognition.
 
+For user-facing run and install steps, including a standalone APK path for testing away from the computer, see `docs/pixel-8-run-install-guide.md`.
+
 ## Prerequisites
 
 - Google Pixel 8 with Developer options and USB debugging enabled.
@@ -35,6 +37,16 @@ npm run pixel8:build
 This resolves the first ADB-ready Android device and runs `expo run:android --device <device name>`, builds the native Android app with `expo-dev-client`, and installs it on that connected device. If more than one Android device is connected, set `PIXEL8_DEVICE_ID` to the serial or model name shown by `adb devices -l`.
 
 Use this whenever native dependencies, app config, Android permissions, SQLite, SecureStore, speech recognition, document picking, or biometric lock behavior changes.
+
+## Install A Standalone Test APK
+
+When the phone needs to work away from the computer without Metro, install a standalone APK:
+
+```bash
+npm run pixel8:install-standalone
+```
+
+This builds `android/app/build/outputs/apk/release/app-release.apk` with the local debug keystore and installs it on the connected Pixel 8. Use it for away-from-computer exploratory testing; keep using the development build path for live debugging and Metro logs.
 
 ## Start The App For Pixel 8 Testing
 

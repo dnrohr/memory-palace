@@ -1,6 +1,6 @@
 # Memory Palace Roadmap
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 Memory Palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
 
@@ -18,9 +18,11 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 ### Ready to Continue Locally
 
 - None currently. The Pixel 8 development-build workflow, local verification script, and result template are in place.
+- The user-facing Pixel 8 run/install guide is in `docs/pixel-8-run-install-guide.md`; update it whenever Android run, build, install, or device-QA processes change.
 - The current app still needs the full physical Pixel 8 major-change gate before mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
 - A local-model-runtime Pixel 8a pass is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-model-runtime-page-size.md`: preflight passed, a fresh debug APK installed, Android showed a 16 KB page-size compatibility warning for native libraries including `llama.rn`, ONNX Runtime, Expo SQLite, Expo modules, React Native, and Hermes, the dev launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture, and exact Pixel 8 hardware was not attached.
+- A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open, and exact Pixel 8 hardware was not attached.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; native device QA remains open.
 
 ### Needs Model Runtime Wiring Or Device QA
@@ -46,6 +48,13 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Deferral rule: if Pixel 8 testing is not possible, record the blocker in the implementation log and keep the affected work marked as needing device QA.
 
 ## Implementation Log
+
+### 2026-06-14
+
+- Added a user-facing Pixel 8 run/install guide covering the development-client workflow for live testing near the computer and a standalone APK install path for away-from-computer testing.
+- Added `npm run pixel8:install-standalone`, which builds the Android release APK with the local debug keystore and installs it on the first ADB-ready Android device.
+- Ran `npm run verify` and `npm run pixel8:preflight`; both passed.
+- Ran the standalone install path on the attached Pixel 8a running Android 16: the release APK built and installed, the package was present, the app process launched, Explore rendered, and recent logcat output showed no fatal exception in the captured launch window. Exact Pixel 8 hardware and full workflow QA remain open.
 
 ### 2026-06-13
 
