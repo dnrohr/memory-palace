@@ -10,11 +10,11 @@ Production target: `BAAI/bge-small-en-v1.5`
 - Dimensions: 384
 - Purpose: semantic search, nearby memories, related-memory drift, and future clustering.
 - Current fallback: deterministic local hash embeddings.
-- Integration posture: BGE-specific adapter code is present in the portable core and keeps query and passage inputs distinct. Model weights are not bundled in the repository.
+- Integration posture: BGE-specific adapter code is present in the portable core and keeps query and passage inputs distinct. A checked asset manifest and factory now require `model.onnx` plus `tokenizer.json` before creating the BGE engine. Model weights are not bundled in the repository.
 
 Remaining work:
 
-- Add native/web model asset loading and tokenizer wiring.
+- Add native/web runtime loaders that map the checked asset URIs into ONNX Runtime/Transformers.js sessions and tokenizer instances.
 - Run Pixel 8 device QA for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
 
 ## Structured Extraction
@@ -23,11 +23,11 @@ Production target: `Qwen2.5-0.5B-Instruct` via a local llama.cpp-compatible runt
 
 - Purpose: optional, user-confirmed title/date/tag/context suggestions beyond the rules engine.
 - Current fallback: rules-based structured extraction.
-- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present; model weights are not bundled in the repository and the runtime should not be required at startup.
+- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory now require the quantized GGUF file before creating the Qwen engine, with optional grammar support. Model weights are not bundled in the repository and the runtime should not be required at startup.
 
 Remaining work:
 
-- Add native model asset loading and runtime initialization.
+- Add native runtime loading that maps the checked GGUF asset URI into `llama.rn` context initialization.
 - Keep rules as the default until device QA confirms acceptable latency, memory use, and recovery behavior.
 
 ## Sync

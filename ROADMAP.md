@@ -24,8 +24,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter is present, and native model asset loading plus device QA remain.
-- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter is present, and native/web model asset loading plus device QA remain.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, and guarded engine factory are present. Native runtime loading plus device QA remain.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, and guarded engine factory are present. Native/web runtime loading plus device QA remain.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
 ### Needs Device QA
@@ -76,6 +76,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added a Qwen2.5 0.5B Instruct structured-extraction adapter for `llama.rn`, with chat prompt wrapping, deterministic local completion settings, optional grammar forwarding, and validation through the existing JSON structured-extraction contract. Rules remain the default until model assets and device QA are wired.
 - Added a tracked `patch-package` patch for `onnxruntime-react-native@1.24.3` so its Android Gradle script works under the current Gradle toolchain, ignored generated `llama.rn` Hexagon asset sync output, and confirmed direct Android debug assembly succeeds after adding the local model runtime dependencies.
 - Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full exact Pixel 8 model runtime QA remains open until model assets and dev-client workflow testing are complete.
+- Added checked local-model asset manifests and guarded engine factories for BGE small English v1.5 and Qwen2.5 0.5B Instruct, so production local engines are created only when required asset files resolve and the app can keep using hash/rules fallbacks when files are absent.
 
 ### 2026-06-12
 
@@ -291,10 +292,10 @@ Status: In progress
 Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
 - Settings controls for local rules extraction.
-- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter in the portable core.
+- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, and guarded engine factory in the portable core.
 
 Remaining:
-- Native model asset loading, runtime initialization, and device QA.
+- Native `llama.rn` asset URI loading, runtime initialization, and device QA.
 
 ### 7. Semantic Search and Embeddings
 
@@ -303,10 +304,10 @@ Status: In progress
 Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
-- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter in the portable core.
+- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, and guarded engine factory in the portable core.
 
 Remaining:
-- Native/web model asset loading, tokenizer wiring, and device QA.
+- Native/web runtime loading for ONNX sessions and tokenizer instances, plus device QA.
 
 ### 8. Timeline and Memory Visualization
 
@@ -492,6 +493,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
-4. Add production local embedding/model adapters when target models are selected.
-5. Add opt-in sync/backup provider adapters when provider targets are selected.
+4. Add native/web runtime loaders for the selected BGE and Qwen model assets, then keep hash/rules fallbacks active until device QA passes.
+5. Run WebDAV encrypted sync device QA.
 6. Run broader device QA across mobile, tablet, and web.

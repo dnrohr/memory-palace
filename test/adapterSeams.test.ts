@@ -19,6 +19,15 @@ import {
   QWEN_2_5_0_5B_STRUCTURED_EXTRACTION_MODEL,
   type LlamaCompletionRequest
 } from "../src/processing/qwenStructuredExtraction";
+import {
+  BGE_SMALL_EN_V15_ASSET_MANIFEST,
+  checkLocalModelAvailability,
+  createBgeEmbeddingEngineFromAssets,
+  createQwenStructuredExtractionEngineFromAssets,
+  QWEN_2_5_0_5B_ASSET_MANIFEST,
+  type ILocalModelAssetStore,
+  type LocalModelAsset
+} from "../src/processing/localModelAssets";
 
 describe("optional AI adapter seams", () => {
   it("keeps structured extraction optional", async () => {
@@ -155,6 +164,59 @@ describe("optional AI adapter seams", () => {
     expect(passageVector.values[0]).toBeCloseTo(1 / Math.sqrt(384));
   });
 
+  it("checks required local model assets without requiring bundled weights", async () => {
+    const store = assetStoreWith(["model.onnx"]);
+
+    const availability = await checkLocalModelAvailability(BGE_SMALL_EN_V15_ASSET_MANIFEST, store);
+
+    expect(availability.available).toBe(false);
+    expect(availability.assets.map((asset) => asset.fileName)).toEqual(["model.onnx"]);
+    expect(availability.missingAssetIds).toEqual(["tokenizer-json"]);
+  });
+
+  it("allows optional local model assets to be absent", async () => {
+    const store = assetStoreWith(["qwen2.5-0.5b-instruct-q4_k_m.gguf"]);
+
+    const availability = await checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, store);
+
+    expect(availability.available).toBe(true);
+    expect(availability.assets.map((asset) => asset.id)).toEqual(["gguf-model"]);
+    expect(availability.missingAssetIds).toEqual([]);
+  });
+
+  it("creates a BGE embedding engine only after required assets resolve", async () => {
+    const engine = await createBgeEmbeddingEngineFromAssets(assetStoreWith(["model.onnx", "tokenizer.json"]), async () => ({
+      tokenizer: {
+        async tokenize(texts) {
+          return {
+            inputIds: texts.map(() => [1]),
+            attentionMask: texts.map(() => [1])
+          };
+        }
+      },
+      session: {
+        async run() {
+          return {
+            last_hidden_state: {
+              dims: [1, 1, BGE_SMALL_EN_V15_MODEL.dimension],
+              data: Array.from({ length: BGE_SMALL_EN_V15_MODEL.dimension }, () => 1)
+            }
+          };
+        }
+      }
+    }));
+
+    const unavailable = await createBgeEmbeddingEngineFromAssets(assetStoreWith(["model.onnx"]), async () => {
+      throw new Error("Runtime should not load when assets are missing.");
+    });
+
+    expect(engine?.id).toBe("local-model-embedding-bge-small-en-v1.5");
+    await expect(engine?.embedText("memory")).resolves.toEqual(
+      expect.objectContaining({ modelId: "local-model-embedding-bge-small-en-v1.5" })
+    );
+    expect(unavailable).toBeUndefined();
+  });
+
   it("provides a local rules-backed structured extraction engine", async () => {
     const result = await new RulesStructuredExtractionEngine().extract({
       text: "In 2004 my dog Patrick died, but I loved him."
@@ -283,6 +345,38 @@ describe("optional AI adapter seams", () => {
     expect(validateStructuredExtractionResult(result)).toEqual({ valid: true, warnings: [] });
   });
 
+  it("creates a Qwen structured extraction engine from resolved local assets", async () => {
+    const engine = await createQwenStructuredExtractionEngineFromAssets(
+      assetStoreWith(["qwen2.5-0.5b-instruct-q4_k_m.gguf", "structured-extraction.gbnf"]),
+      async (assets) => {
+        const grammar = assets.find((asset) => asset.id === "json-grammar")?.uri;
+        return {
+          ...(grammar ? { grammar } : {}),
+          runtime: {
+            async complete() {
+              return JSON.stringify({
+                title: "Window memory",
+                dates: [],
+                tags: [],
+                emotionalTone: []
+              });
+            }
+          }
+        };
+      }
+    );
+
+    const unavailable = await createQwenStructuredExtractionEngineFromAssets(assetStoreWith([]), async () => {
+      throw new Error("Runtime should not load when assets are missing.");
+    });
+
+    expect(engine?.id).toBe("local-model-structured-qwen2.5-0.5b-instruct");
+    await expect(engine?.extract({ text: "A window memory." })).resolves.toEqual(
+      expect.objectContaining({ title: "Window memory" })
+    );
+    expect(unavailable).toBeUndefined();
+  });
+
   it("validates structured extraction result confidence ranges", () => {
     expect(
       validateStructuredExtractionResult({
@@ -299,3 +393,16 @@ describe("optional AI adapter seams", () => {
     });
   });
 });
+
+function assetStoreWith(fileNames: string[]): ILocalModelAssetStore {
+  const available = new Set(fileNames);
+  return {
+    async resolveAsset(asset: LocalModelAsset) {
+      if (!available.has(asset.fileName)) return undefined;
+      return {
+        uri: `file:///models/${asset.fileName}`,
+        byteLength: 1024
+      };
+    }
+  };
+}
