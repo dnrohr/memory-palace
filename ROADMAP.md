@@ -25,7 +25,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 ### Needs Model Runtime Wiring Or Device QA
 
 - Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loader are present. Device QA and explicit user-facing mode wiring remain.
-- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, and Expo document-storage asset discovery are present. Native/web runtime loading plus device QA remain.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, and ONNX Runtime loader are present. Device QA and explicit embedding-mode wiring remain.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
 ### Needs Device QA
@@ -79,6 +79,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added checked local-model asset manifests and guarded engine factories for BGE small English v1.5 and Qwen2.5 0.5B Instruct, so production local engines are created only when required asset files resolve and the app can keep using hash/rules fallbacks when files are absent.
 - Added Expo document-storage model asset discovery and Settings visibility for optional BGE/Qwen model files, including a refresh action and fallback status when required files are absent.
 - Added a Qwen `llama.rn` completion runtime shim plus an Expo/native loader that initializes a local llama context from the resolved GGUF asset URI and forwards deterministic JSON completion settings through the existing Qwen structured-extraction adapter.
+- Added a BGE runtime loader that requires ONNX and tokenizer config assets, loads the model URI into ONNX Runtime, adapts Transformers.js tokenizer output into BGE feed arrays, and preserves the hash fallback until the loader is explicitly enabled after device QA.
 
 ### 2026-06-12
 
@@ -306,10 +307,10 @@ Status: In progress
 Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
-- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, and Expo document-storage asset discovery.
+- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, and ONNX Runtime loader.
 
 Remaining:
-- Native/web runtime loading for ONNX sessions and tokenizer instances, plus device QA.
+- Device QA with actual model assets, then explicit user-facing embedding-mode wiring if latency, memory use, and recovery behavior are acceptable.
 
 ### 8. Timeline and Memory Visualization
 
@@ -495,6 +496,6 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
-4. Add native/web runtime loaders for the selected BGE embedding assets, then keep hash fallback active until device QA passes.
+4. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
 5. Run WebDAV encrypted sync device QA.
 6. Run broader device QA across mobile, tablet, and web.

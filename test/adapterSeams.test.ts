@@ -29,6 +29,7 @@ import {
   type ILocalModelAssetStore,
   type LocalModelAsset
 } from "../src/processing/localModelAssets";
+import { createTransformersJsBgeTokenizer } from "../src/processing/transformersBgeTokenizer";
 
 describe("optional AI adapter seams", () => {
   it("keeps structured extraction optional", async () => {
@@ -172,7 +173,7 @@ describe("optional AI adapter seams", () => {
 
     expect(availability.available).toBe(false);
     expect(availability.assets.map((asset) => asset.fileName)).toEqual(["model.onnx"]);
-    expect(availability.missingAssetIds).toEqual(["tokenizer-json"]);
+    expect(availability.missingAssetIds).toEqual(["tokenizer-json", "tokenizer-config"]);
   });
 
   it("allows optional local model assets to be absent", async () => {
@@ -186,7 +187,7 @@ describe("optional AI adapter seams", () => {
   });
 
   it("creates a BGE embedding engine only after required assets resolve", async () => {
-    const engine = await createBgeEmbeddingEngineFromAssets(assetStoreWith(["model.onnx", "tokenizer.json"]), async () => ({
+    const engine = await createBgeEmbeddingEngineFromAssets(assetStoreWith(["model.onnx", "tokenizer.json", "tokenizer_config.json"]), async () => ({
       tokenizer: {
         async tokenize(texts) {
           return {
@@ -216,6 +217,40 @@ describe("optional AI adapter seams", () => {
       expect.objectContaining({ modelId: "local-model-embedding-bge-small-en-v1.5" })
     );
     expect(unavailable).toBeUndefined();
+  });
+
+  it("adapts Transformers.js tokenizer output for BGE ONNX feeds", async () => {
+    const tokenizer = createTransformersJsBgeTokenizer(async (texts, options) => {
+      expect(options).toEqual({
+        padding: true,
+        truncation: true,
+        return_tensor: false,
+        return_token_type_ids: true
+      });
+      return {
+        input_ids: texts.map((_, index) => [101n, BigInt(index + 10), 102n]),
+        attention_mask: {
+          dims: [texts.length, 3],
+          data: [1, 1, 1, 1, 1, 0]
+        },
+        token_type_ids: texts.map(() => [0, 0, 0])
+      };
+    });
+
+    await expect(tokenizer.tokenize(["one", "two"])).resolves.toEqual({
+      inputIds: [
+        [101, 10, 102],
+        [101, 11, 102]
+      ],
+      attentionMask: [
+        [1, 1, 1],
+        [1, 1, 0]
+      ],
+      tokenTypeIds: [
+        [0, 0, 0],
+        [0, 0, 0]
+      ]
+    });
   });
 
   it("provides a local rules-backed structured extraction engine", async () => {

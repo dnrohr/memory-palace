@@ -49,6 +49,18 @@ export const BGE_SMALL_EN_V15_ASSET_MANIFEST: LocalModelManifest = {
       fileName: "tokenizer.json",
       description: "Tokenizer vocabulary and normalization rules compatible with the ONNX export.",
       required: true
+    },
+    {
+      id: "tokenizer-config",
+      fileName: "tokenizer_config.json",
+      description: "Tokenizer configuration used by Transformers.js when loading from local files.",
+      required: true
+    },
+    {
+      id: "special-tokens-map",
+      fileName: "special_tokens_map.json",
+      description: "Optional special-token metadata for the BGE tokenizer.",
+      required: false
     }
   ]
 };
