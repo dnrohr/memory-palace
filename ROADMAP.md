@@ -23,6 +23,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
 - A local-model-runtime Pixel 8a pass is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-model-runtime-page-size.md`: preflight passed, a fresh debug APK installed, Android showed a 16 KB page-size compatibility warning for native libraries including `llama.rn`, ONNX Runtime, Expo SQLite, Expo modules, React Native, and Hermes, the dev launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture, and exact Pixel 8 hardware was not attached.
 - A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open, and exact Pixel 8 hardware was not attached.
+- A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Exact Pixel 8 hardware, voice, app lock, archive encryption, share-sheet exports/import, WebDAV, and actual model-asset QA remain open.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; native device QA remains open.
 
 ### Needs Model Runtime Wiring Or Device QA
@@ -55,6 +56,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added `npm run pixel8:install-standalone`, which builds the Android release APK with the local debug keystore and installs it on the first ADB-ready Android device.
 - Ran `npm run verify` and `npm run pixel8:preflight`; both passed.
 - Ran the standalone install path on the attached Pixel 8a running Android 16: the release APK built and installed, the package was present, the app process launched, Explore rendered, and recent logcat output showed no fatal exception in the captured launch window. Exact Pixel 8 hardware and full workflow QA remain open.
+- Ran a standalone major-gate smoke pass on the attached Pixel 8a: saved a typed memory, opened detail, force-stopped and relaunched to confirm persistence, searched for the saved text, verified Settings/local model fallback/diagnostics surfaces, confirmed export/import controls are present through UIAutomator evidence, and found no `FATAL EXCEPTION` in the final logcat check. Exact Pixel 8 hardware plus voice, app lock, archive encryption, share-sheet export/import, WebDAV, and actual model-asset QA remain open.
 
 ### 2026-06-13
 
@@ -504,9 +506,10 @@ The prototype should not require internet, subscription, cloud storage, cloud LL
 
 ## Next Implementation Priorities
 
-1. Run the Pixel 8 major-change gate on the current app: startup, navigation, SQLite persistence, archive loading errors, voice capture fallback, settings, export/import, and encryption surfaces.
+1. Run exact Pixel 8 hardware QA for the current app; the available Pixel 8a standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, but exact target hardware remains open.
 2. Run device-level speech QA across iOS, Android, and web voice flows.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on exact Pixel 8 hardware.
-4. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
-5. Run WebDAV encrypted sync device QA.
-6. Run broader device QA across mobile, tablet, and web.
+4. Run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews.
+5. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
+6. Run WebDAV encrypted sync device QA.
+7. Run broader device QA across mobile, tablet, and web.
