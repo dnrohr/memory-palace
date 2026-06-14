@@ -24,8 +24,8 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 ### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, and guarded engine factory are present. Native runtime loading plus device QA remain.
-- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, and guarded engine factory are present. Native/web runtime loading plus device QA remain.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, and Expo document-storage asset discovery are present. Native runtime loading plus device QA remain.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, and Expo document-storage asset discovery are present. Native/web runtime loading plus device QA remain.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
 ### Needs Device QA
@@ -77,6 +77,7 @@ Major changes must pass the normal local checks and a Pixel 8 device check befor
 - Added a tracked `patch-package` patch for `onnxruntime-react-native@1.24.3` so its Android Gradle script works under the current Gradle toolchain, ignored generated `llama.rn` Hexagon asset sync output, and confirmed direct Android debug assembly succeeds after adding the local model runtime dependencies.
 - Installed the local-model-runtime debug APK on the attached Pixel 8a successfully; partial device evidence is recorded in `docs/pixel-8-results/2026-06-13-local-model-runtime-install.md`. Full exact Pixel 8 model runtime QA remains open until model assets and dev-client workflow testing are complete.
 - Added checked local-model asset manifests and guarded engine factories for BGE small English v1.5 and Qwen2.5 0.5B Instruct, so production local engines are created only when required asset files resolve and the app can keep using hash/rules fallbacks when files are absent.
+- Added Expo document-storage model asset discovery and Settings visibility for optional BGE/Qwen model files, including a refresh action and fallback status when required files are absent.
 
 ### 2026-06-12
 
@@ -292,7 +293,7 @@ Status: In progress
 Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
 - Settings controls for local rules extraction.
-- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, and guarded engine factory in the portable core.
+- Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, guarded engine factory, and Expo document-storage asset discovery.
 
 Remaining:
 - Native `llama.rn` asset URI loading, runtime initialization, and device QA.
@@ -304,7 +305,7 @@ Status: In progress
 Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
-- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, and guarded engine factory in the portable core.
+- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, and Expo document-storage asset discovery.
 
 Remaining:
 - Native/web runtime loading for ONNX sessions and tokenizer instances, plus device QA.

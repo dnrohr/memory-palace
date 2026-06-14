@@ -62,6 +62,12 @@ import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingInde
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
 import { searchArchive } from "../../../src/search/searchService";
 import {
+  BGE_SMALL_EN_V15_ASSET_MANIFEST,
+  checkLocalModelAvailability,
+  QWEN_2_5_0_5B_ASSET_MANIFEST,
+  type LocalModelAvailability
+} from "../../../src/processing/localModelAssets";
+import {
   buildDataAuditReport,
   clearDeletedMemoryArtifacts,
   clearProcessingRuns,
@@ -103,6 +109,7 @@ import {
 import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
+import { ExpoDocumentLocalModelAssetStore, localModelDirectoryHint } from "./localModelAssetStore";
 import {
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
@@ -140,6 +147,7 @@ export default function App() {
   const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>(
     DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
   );
+  const [localModelAvailability, setLocalModelAvailability] = useState<LocalModelAvailability[]>([]);
   const [appearanceMode, setAppearanceMode] = useState<AppearanceMode>(DEFAULT_APP_SETTINGS.appearanceMode);
   const [archiveAtRestPassphrase, setArchiveAtRestPassphrase] = useState("");
   const [archiveUnlockRequired, setArchiveUnlockRequired] = useState(false);
@@ -159,6 +167,7 @@ export default function App() {
 
   useEffect(() => {
     void loadInitialArchive();
+    void refreshLocalModelAvailability();
   }, []);
 
   useEffect(() => {
@@ -266,6 +275,14 @@ export default function App() {
     } catch (error) {
       setArchiveLoadError(error instanceof Error ? error.message : "Archive could not be loaded.");
     }
+  }
+
+  async function refreshLocalModelAvailability() {
+    const manifests = [BGE_SMALL_EN_V15_ASSET_MANIFEST, QWEN_2_5_0_5B_ASSET_MANIFEST];
+    const availability = await Promise.all(
+      manifests.map((manifest) => checkLocalModelAvailability(manifest, new ExpoDocumentLocalModelAssetStore(manifest)))
+    );
+    setLocalModelAvailability(availability);
   }
 
   async function loadAndIndexArchive(loadedArchive: MemoryArchive, passphraseOverride?: string) {
@@ -593,6 +610,7 @@ export default function App() {
             encryptionSettings={encryptionSettings}
             structuredExtractionMode={structuredExtractionMode}
             embeddingMaintenanceMode={embeddingMaintenanceMode}
+            localModelAvailability={localModelAvailability}
             appearanceMode={appearanceMode}
             onArchiveChange={persist}
             onImport={async (preview, options) => persist(applyArchiveImport(archive, preview, options))}
@@ -654,6 +672,7 @@ export default function App() {
               const savedSettings = await saveEmbeddingMaintenanceMode(mode);
               setEmbeddingMaintenanceMode(savedSettings.embeddingMaintenanceMode);
             }}
+            onRefreshLocalModels={refreshLocalModelAvailability}
             onAppearanceModeChange={async (mode) => {
               const savedSettings = await saveAppearanceMode(mode);
               setAppearanceMode(savedSettings.appearanceMode);
@@ -2872,6 +2891,7 @@ function Settings(props: {
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
+  localModelAvailability: LocalModelAvailability[];
   appearanceMode: AppearanceMode;
   onArchiveChange: (archive: MemoryArchive) => Promise<void>;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
@@ -2886,6 +2906,7 @@ function Settings(props: {
   onSaveEncryptionSettings: (settings: EncryptionSettings, passphrase?: string) => Promise<void>;
   onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
   onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
+  onRefreshLocalModels: () => Promise<void>;
   onAppearanceModeChange: (mode: AppearanceMode) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
@@ -3155,6 +3176,31 @@ function Settings(props: {
               onPress={() => void props.onEmbeddingMaintenanceModeChange(mode)}
             />
           ))}
+        </View>
+        <View style={styles.settingsDivider} />
+        <Text style={styles.panelTitle}>Local model assets</Text>
+        <Text style={styles.metadata}>Model files are optional and are never downloaded automatically.</Text>
+        <View style={styles.modelAssetList}>
+          {props.localModelAvailability.map((availability) => (
+            <View key={availability.manifest.id} style={styles.modelAssetRow}>
+              <View style={styles.modelAssetText}>
+                <Text style={styles.modelAssetTitle}>{availability.manifest.displayName}</Text>
+                <Text style={styles.metadata}>
+                  {availability.available
+                    ? `ready in ${localModelDirectoryHint(availability.manifest)}`
+                    : `missing ${availability.missingAssetIds.length} required file(s) in ${localModelDirectoryHint(
+                        availability.manifest
+                      )}`}
+                </Text>
+              </View>
+              <Text style={[styles.statusPill, availability.available ? styles.statusPillSuccess : styles.statusPillMuted]}>
+                {availability.available ? "ready" : "fallback"}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.actionRow}>
+          <SecondaryButton label="Refresh model files" onPress={props.onRefreshLocalModels} icon={<RotateCcw size={18} />} />
         </View>
       </SettingsSection>
       <View style={styles.diagnosticsPanel}>
@@ -4626,6 +4672,47 @@ const lightStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800"
   },
+  modelAssetList: {
+    gap: 8
+  },
+  modelAssetRow: {
+    minHeight: 64,
+    borderWidth: 1,
+    borderColor: "#e2ddcf",
+    backgroundColor: "#fffaf1",
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  modelAssetText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4
+  },
+  modelAssetTitle: {
+    color: "#252925",
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    fontSize: 12,
+    fontWeight: "800",
+    overflow: "hidden"
+  },
+  statusPillSuccess: {
+    color: "#263323",
+    backgroundColor: "#dae7d3"
+  },
+  statusPillMuted: {
+    color: "#596057",
+    backgroundColor: "#ece8de"
+  },
   settingsSectionHeader: {
     marginTop: 8,
     gap: 3
@@ -4792,6 +4879,10 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   secondaryButtonIcon: { color: darkColors.primaryText },
   trustItem: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
   trustValue: { color: "#f3efe7" },
+  modelAssetRow: { backgroundColor: "#251f1b", borderColor: "#4b3d32" },
+  modelAssetTitle: { color: "#f3efe7" },
+  statusPillSuccess: { color: "#f3efe7", backgroundColor: "#334832" },
+  statusPillMuted: { color: "#c7c1b5", backgroundColor: "#393a32" },
   settingsSectionTitle: { color: "#f3efe7" },
   settingsSection: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   settingsDivider: { backgroundColor: "#3a4338" },
