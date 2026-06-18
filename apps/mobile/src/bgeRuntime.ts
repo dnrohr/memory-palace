@@ -1,7 +1,8 @@
 import { createBgeSmallEnV15EmbeddingEngine, type BgeSmallEnV15ModelOptions, type IOnnxEmbeddingSession } from "../../../src/processing/bgeEmbeddings";
 import type { IEmbeddingEngine } from "../../../src/processing/embeddings";
 import type { ResolvedLocalModelAsset } from "../../../src/processing/localModelAssets";
-import { createTransformersJsBgeTokenizer } from "../../../src/processing/transformersBgeTokenizer";
+import { createWordPieceBgeTokenizerFromTokenizerJson } from "../../../src/processing/wordPieceBgeTokenizer";
+import { File } from "expo-file-system";
 
 export async function loadBgeEmbeddingEngineFromAssets(assets: ResolvedLocalModelAsset[]): Promise<IEmbeddingEngine> {
   const options = await loadBgeRuntimeOptionsFromAssets(assets);
@@ -11,18 +12,12 @@ export async function loadBgeEmbeddingEngineFromAssets(assets: ResolvedLocalMode
 export async function loadBgeRuntimeOptionsFromAssets(assets: ResolvedLocalModelAsset[]): Promise<BgeSmallEnV15ModelOptions> {
   const model = requiredAsset(assets, "onnx-model");
   const tokenizerJson = requiredAsset(assets, "tokenizer-json");
-  const tokenizerDirectory = parentUri(tokenizerJson.uri);
-  const [{ InferenceSession }, { AutoTokenizer }] = await Promise.all([
-    import("onnxruntime-react-native"),
-    import("@huggingface/transformers")
-  ]);
+  const { InferenceSession } = await import("onnxruntime-react-native");
   const session = await InferenceSession.create(model.uri);
-  const tokenizer = await AutoTokenizer.from_pretrained(tokenizerDirectory, {
-    local_files_only: true
-  });
+  const tokenizer = createWordPieceBgeTokenizerFromTokenizerJson(await new File(tokenizerJson.uri).text());
 
   return {
-    tokenizer: createTransformersJsBgeTokenizer(tokenizer),
+    tokenizer,
     session: toBgeOnnxSession(session)
   };
 }
@@ -47,13 +42,6 @@ function requiredAsset(assets: ResolvedLocalModelAsset[], id: string): ResolvedL
   const asset = assets.find((candidate) => candidate.id === id);
   if (!asset) throw new Error(`Required BGE asset "${id}" was not resolved.`);
   return asset;
-}
-
-function parentUri(uri: string): string {
-  const normalized = uri.endsWith("/") ? uri.slice(0, -1) : uri;
-  const separatorIndex = normalized.lastIndexOf("/");
-  if (separatorIndex < 0) return normalized;
-  return normalized.slice(0, separatorIndex + 1);
 }
 
 function isNumericArrayLike(value: unknown): value is ArrayLike<number> {

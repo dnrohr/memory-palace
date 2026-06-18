@@ -36,7 +36,7 @@ export interface ILocalModelAssetStore {
 export const BGE_SMALL_EN_V15_ASSET_MANIFEST: LocalModelManifest = {
   id: "bge-small-en-v1.5",
   displayName: "BGE small English v1.5",
-  runtime: "onnxruntime-react-native or Transformers.js",
+  runtime: "onnxruntime-react-native",
   assets: [
     {
       id: "onnx-model",
@@ -53,7 +53,7 @@ export const BGE_SMALL_EN_V15_ASSET_MANIFEST: LocalModelManifest = {
     {
       id: "tokenizer-config",
       fileName: "tokenizer_config.json",
-      description: "Tokenizer configuration used by Transformers.js when loading from local files.",
+      description: "Tokenizer configuration paired with tokenizer.json.",
       required: true
     },
     {

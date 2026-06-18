@@ -71,6 +71,7 @@ import { searchArchive } from "../../../src/search/searchService";
 import {
   BGE_SMALL_EN_V15_ASSET_MANIFEST,
   checkLocalModelAvailability,
+  createBgeEmbeddingEngineFromAssets,
   createQwenStructuredExtractionEngineFromAssets,
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type LocalModelAvailability
@@ -118,6 +119,7 @@ import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, 
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
 import { ExpoDocumentLocalModelAssetStore, localModelDirectoryHint } from "./localModelAssetStore";
+import { loadBgeRuntimeOptionsFromAssets } from "./bgeRuntime";
 import { loadQwenNativeRuntimeFromAssets } from "./qwenNativeRuntime";
 import {
   DEFAULT_APP_SETTINGS,
@@ -154,9 +156,15 @@ function createMobileEncryptionProvider() {
 
 async function createEmbeddingEngineForMode(mode: EmbeddingEngineMode): Promise<IEmbeddingEngine> {
   if (mode === "bge-small-en-v1.5") {
-    // BGE assets are discoverable, but the current Transformers.js tokenizer path pulls
-    // onnxruntime-web into Metro's native bundle. Keep release builds on the hash fallback
-    // until that packaging issue is solved.
+    try {
+      const engine = await createBgeEmbeddingEngineFromAssets(
+        new ExpoDocumentLocalModelAssetStore(BGE_SMALL_EN_V15_ASSET_MANIFEST),
+        loadBgeRuntimeOptionsFromAssets
+      );
+      if (engine) return engine;
+    } catch {
+      // Fall through to hash embeddings so optional model assets never block capture or search.
+    }
     return new HashEmbeddingEngine();
   }
 
@@ -3512,7 +3520,7 @@ function Settings(props: {
             {localModelModeStatus(
               props.localModelAvailability,
               BGE_SMALL_EN_V15_ASSET_MANIFEST.id,
-              "BGE remains on the hash fallback until the native tokenizer bundle is packaged safely."
+              "BGE will use the local ONNX engine when runtime loading succeeds; hash fallback remains available."
             )}
           </Text>
         ) : null}

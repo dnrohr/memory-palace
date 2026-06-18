@@ -18,11 +18,11 @@ This pass wired explicit user-facing local model modes while keeping current fal
 
 - First `npm run pixel8:install-standalone` attempt failed during Metro release bundling because statically importing the BGE runtime caused Metro to parse `onnxruntime-web` from Transformers.js:
   - `Invalid call ... ort.webgpu.bundle.min.mjs ... import(/*webpackIgnore:true*/ /*@vite-ignore*/a)`
-- The app now keeps BGE selectable and reports asset readiness, but stays on the hash fallback until the native tokenizer bundle is packaged safely.
+- The app initially kept BGE selectable while staying on the hash fallback. This was superseded by `docs/pixel-8-results/2026-06-18-bge-tokenizer-packaging.md`, which replaced the native Transformers.js tokenizer path and wired BGE mode back to the guarded ONNX engine factory.
 - Second `npm run pixel8:install-standalone` passed. The release APK built and installed on the attached Pixel 8a.
 
 ## Remaining Device QA
 
 - The Pixel 8a still opens to the encrypted archive unlock state from prior encryption QA, so I could not tap through Settings to verify the new model-mode controls on-device without manual unlock or approved app-data reset.
 - Qwen local structured extraction still needs actual GGUF asset QA.
-- BGE local embedding execution remains deferred behind the tokenizer/Metro packaging issue, even though the user-facing mode and asset readiness surface are now present.
+- BGE local embedding execution is no longer deferred behind the tokenizer/Metro packaging issue, but it still needs actual asset QA on target hardware.

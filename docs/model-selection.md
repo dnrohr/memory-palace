@@ -1,20 +1,19 @@
 # Local Model Selection
 
-Last updated: 2026-06-13
+Last updated: 2026-06-18
 
 ## Embeddings
 
 Production target: `BAAI/bge-small-en-v1.5`
 
-- Runtime target: ONNX Runtime on native mobile, Transformers.js/ONNX-compatible loading on web.
+- Runtime target: ONNX Runtime on native mobile, with tokenizer-json WordPiece parsing in the app bundle.
 - Dimensions: 384
 - Purpose: semantic search, nearby memories, related-memory drift, and future clustering.
 - Current fallback: deterministic local hash embeddings.
-- Integration posture: BGE-specific adapter code is present in the portable core and keeps query and passage inputs distinct. A checked asset manifest and factory now require `model.onnx`, `tokenizer.json`, and `tokenizer_config.json` before creating the BGE engine. The Expo app checks for these files under `models/bge-small-en-v1.5` in app document storage and has a runtime loader that maps the ONNX file into ONNX Runtime and the local tokenizer directory into Transformers.js. Model weights are not bundled in the repository.
+- Integration posture: BGE-specific adapter code is present in the portable core and keeps query and passage inputs distinct. A checked asset manifest and factory require `model.onnx`, `tokenizer.json`, and `tokenizer_config.json` before creating the BGE engine. The Expo app checks for these files under `models/bge-small-en-v1.5` in app document storage, maps the ONNX file into ONNX Runtime, and reads the local `tokenizer.json` with a bundled WordPiece tokenizer so native Metro builds do not pull `onnxruntime-web`. Model weights are not bundled in the repository.
 
 Remaining work:
 
-- Wire the BGE loader into an explicit embedding mode after device QA.
 - Run Pixel 8a device QA for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
 
 ## Structured Extraction
@@ -23,11 +22,10 @@ Production target: `Qwen2.5-0.5B-Instruct` via a local llama.cpp-compatible runt
 
 - Purpose: optional, user-confirmed title/date/tag/context suggestions beyond the rules engine.
 - Current fallback: rules-based structured extraction.
-- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory now require the quantized GGUF file before creating the Qwen engine, with optional grammar support. The Expo app checks for these files under `models/qwen2.5-0.5b-instruct` in app document storage and has a native `llama.rn` loader that initializes a context from the resolved GGUF URI. Model weights are not bundled in the repository and the runtime should not be required at startup.
+- Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory require the quantized GGUF file before creating the Qwen engine, with optional grammar support. The Expo app checks for these files under `models/qwen2.5-0.5b-instruct` in app document storage and has a native `llama.rn` loader that initializes a context from the resolved GGUF URI when Qwen local mode is selected. Model weights are not bundled in the repository and the runtime is not required at startup.
 
 Remaining work:
 
-- Wire the native Qwen loader into an explicit user-facing local-model mode after device QA.
 - Keep rules as the default until device QA confirms acceptable latency, memory use, and recovery behavior.
 
 ## Sync

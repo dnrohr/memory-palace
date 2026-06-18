@@ -30,6 +30,7 @@ import {
   type LocalModelAsset
 } from "../src/processing/localModelAssets";
 import { createTransformersJsBgeTokenizer } from "../src/processing/transformersBgeTokenizer";
+import { createWordPieceBgeTokenizerFromTokenizerJson } from "../src/processing/wordPieceBgeTokenizer";
 
 describe("optional AI adapter seams", () => {
   it("keeps structured extraction optional", async () => {
@@ -249,6 +250,44 @@ describe("optional AI adapter seams", () => {
       tokenTypeIds: [
         [0, 0, 0],
         [0, 0, 0]
+      ]
+    });
+  });
+
+  it("tokenizes BGE inputs from tokenizer.json without a Transformers.js runtime", async () => {
+    const tokenizer = createWordPieceBgeTokenizerFromTokenizerJson(
+      JSON.stringify({
+        model: {
+          unk_token: "[UNK]",
+          vocab: {
+            "[PAD]": 0,
+            "[UNK]": 100,
+            "[CLS]": 101,
+            "[SEP]": 102,
+            old: 201,
+            bed: 202,
+            "##room": 203,
+            "!": 204
+          }
+        },
+        normalizer: { lowercase: true },
+        truncation: { max_length: 8 },
+        padding: { pad_token: "[PAD]" }
+      })
+    );
+
+    await expect(tokenizer.tokenize(["Old bedroom!", "unknownword"])).resolves.toEqual({
+      inputIds: [
+        [101, 201, 202, 203, 204, 102],
+        [101, 100, 102, 0, 0, 0]
+      ],
+      attentionMask: [
+        [1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0]
+      ],
+      tokenTypeIds: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0]
       ]
     });
   });
