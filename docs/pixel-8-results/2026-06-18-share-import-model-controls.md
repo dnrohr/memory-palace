@@ -22,11 +22,12 @@ This pass used the standalone APK on the attached Pixel 8a after the prior encry
 - Markdown bundle export share handoff: passed. Android's chooser took foreground with `memory-palace-markdown-bundle-2026-06-18.txt`.
 - SQLite SQL export share handoff: passed. Android's chooser took foreground with `memory-palace-export.sql`.
 - Import handoff: passed. The Android document picker took foreground from the app's Import action.
+- PIN app-lock smoke: passed. Settings Security started at `Mode: disabled`; saving temporary PIN `4242` presented the app lock screen, unlocking with the same PIN returned to the app, and `Disable lock` restored `Mode: disabled` before ending the run.
 
 ## Remaining Device QA
 
 - Import preview/apply still needs a real JSON or Markdown artifact selection.
-- App lock PIN/biometric enable, lock, unlock, and disable still need device QA.
+- Biometric app-lock enable, lock, unlock, and disable still need device QA.
 - Archive-at-rest migration and restart unlock still need a fresh passphrase migration pass.
 - WebDAV sync still needs a configured test server.
 - Qwen and BGE still need actual model-asset QA on target hardware.
