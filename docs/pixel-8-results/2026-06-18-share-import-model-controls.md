@@ -30,6 +30,5 @@ This pass used the standalone APK on the attached Pixel 8a after the prior encry
 ## Remaining Device QA
 
 - Biometric app-lock enable, lock, unlock, and disable still need device QA.
-- Archive-at-rest migration and restart unlock still need a fresh passphrase migration pass.
 - WebDAV sync still needs a configured test server.
 - Qwen and BGE still need actual model-asset QA on target hardware.

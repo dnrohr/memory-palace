@@ -28,8 +28,8 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 - A 2026-06-18 Pixel 8a standalone workflow/encryption run is recorded in `docs/pixel-8-results/2026-06-18-standalone-workflow-encryption.md`: local verification passed, the release APK built and installed, the encrypted JSON export path no longer reports missing secure random bytes, and encrypted local backup synced on-device with `Pushed 4, pulled 0`. Native export sharing now uses Expo Sharing, but Pixel chooser verification is blocked until the encrypted archive unlock state is resolved or QA app data is reset with approval.
 - A 2026-06-18 local-model mode wiring pass is recorded in `docs/pixel-8-results/2026-06-18-local-model-mode-wiring.md`: Settings now exposes Qwen local structured extraction and BGE local embedding engine modes separately from embedding maintenance, with guarded fallback behavior. Local build/tests passed, the first Android release bundle exposed a Transformers.js/`onnxruntime-web` Metro packaging issue for BGE, and the final standalone APK build/install passed after keeping BGE execution on the hash fallback until tokenizer packaging is solved.
 - A 2026-06-18 BGE tokenizer packaging pass is recorded in `docs/pixel-8-results/2026-06-18-bge-tokenizer-packaging.md`: native BGE loading now uses a bundled tokenizer-json WordPiece parser instead of Transformers.js, the unused Transformers.js dependency and transitive `onnxruntime-web` package were removed, local build/tests passed, and the standalone Pixel 8a APK built/installed without the previous Metro parse failure. Actual BGE asset QA remains open.
-- A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock, archive migration/unlock, WebDAV, and actual model-asset QA remain open.
-- Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback and mobile secure-random injection, but the Pixel 8a archive-scope Settings save action still needs a fresh migration/unlock pass; older evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
+- A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock, WebDAV, and actual model-asset QA remain open.
+- Archive-at-rest encryption is now wired through the Settings save flow on web and Android: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; Pixel 8a migration/restart-unlock/cleanup evidence is recorded in `docs/encryption-qa-results/2026-06-18-android-archive-migration-unlock.md`. Older Android blocker evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 
 ### Needs Model Runtime Wiring Or Device QA
 
@@ -401,10 +401,11 @@ Done:
 - Pixel 8a standalone encrypted JSON export no longer hits the secure-random unavailable error; native sharing now uses Expo Sharing, and Android chooser verification passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports.
 - Pixel 8a standalone JSON and Markdown import preview/apply passed with selected artifacts from Android Downloads; malformed BOM JSON showed a parse error before the no-BOM artifact previewed/applied and appeared in Explore.
 - Pixel 8a standalone PIN app-lock smoke passed: saving a temporary PIN presented the lock screen, PIN unlock returned to the app, and disabling the lock restored `Mode: disabled`.
+- Pixel 8a standalone archive-at-rest migration/restart-unlock passed: archive scope saved with a temporary passphrase, relaunch required the encrypted archive unlock screen, correct passphrase unlocked the app, and cleanup restored a non-locked launch.
 - Compact Settings trust cards and visually separated advanced diagnostics.
 
 Remaining:
-- Device QA for biometric app lock and archive-at-rest unlock/migration paths.
+- Device QA for biometric app lock.
 
 ### 11. Optional Cloud and Sync Layer
 
@@ -559,9 +560,8 @@ Current prototype read: the typed-memory path meets this definition locally and 
 
 1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, and the 2026-06-18 development-client pass covers the revised New memory typed-save flow, but not every target workflow.
 2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
-3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on Pixel 8a.
-4. Run biometric app-lock QA and archive-at-rest migration/unlock QA on Pixel 8a.
-5. Run Qwen and BGE local-model asset QA on target hardware.
-6. Run WebDAV encrypted sync device QA.
-7. Run broader device QA across mobile, tablet, and web.
-8. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.
+3. Run biometric app-lock QA on Pixel 8a.
+4. Run Qwen and BGE local-model asset QA on target hardware.
+5. Run WebDAV encrypted sync device QA.
+6. Run broader device QA across mobile, tablet, and web.
+7. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.
