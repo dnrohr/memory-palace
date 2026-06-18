@@ -449,6 +449,46 @@ describe("security and sync seams", () => {
       })
     );
   });
+
+  it("reports WebDAV transport errors instead of masking them as encryption settings conflicts", async () => {
+    const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });
+    await provider.saveSettings({
+      scope: "archive",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("Network request failed");
+      })
+    );
+
+    const sync = new WebDAVSyncProvider({
+      async getLocalArchive() {
+        return archiveFixture;
+      },
+      async saveLocalArchive() {
+        return undefined;
+      },
+      encryptionProvider: provider,
+      url: "https://example.test/memory-palace.json",
+      passphrase: "correct horse battery staple"
+    });
+
+    await expect(sync.sync()).resolves.toEqual(
+      expect.objectContaining({
+        pushedCount: 0,
+        pulledCount: 0,
+        conflicts: [
+          expect.objectContaining({
+            id: "webdav-sync-error",
+            summary: "WebDAV sync failed: Network request failed"
+          })
+        ]
+      })
+    );
+  });
 });
 
 function response(status: number, body: string): Response {

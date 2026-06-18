@@ -28,14 +28,15 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 - A 2026-06-18 Pixel 8a standalone workflow/encryption run is recorded in `docs/pixel-8-results/2026-06-18-standalone-workflow-encryption.md`: local verification passed, the release APK built and installed, the encrypted JSON export path no longer reports missing secure random bytes, and encrypted local backup synced on-device with `Pushed 4, pulled 0`. Native export sharing now uses Expo Sharing, but Pixel chooser verification is blocked until the encrypted archive unlock state is resolved or QA app data is reset with approval.
 - A 2026-06-18 local-model mode wiring pass is recorded in `docs/pixel-8-results/2026-06-18-local-model-mode-wiring.md`: Settings now exposes Qwen local structured extraction and BGE local embedding engine modes separately from embedding maintenance, with guarded fallback behavior. Local build/tests passed, the first Android release bundle exposed a Transformers.js/`onnxruntime-web` Metro packaging issue for BGE, and the final standalone APK build/install passed after keeping BGE execution on the hash fallback until tokenizer packaging is solved.
 - A 2026-06-18 BGE tokenizer packaging pass is recorded in `docs/pixel-8-results/2026-06-18-bge-tokenizer-packaging.md`: native BGE loading now uses a bundled tokenizer-json WordPiece parser instead of Transformers.js, the unused Transformers.js dependency and transitive `onnxruntime-web` package were removed, local build/tests passed, and the standalone Pixel 8a APK built/installed without the previous Metro parse failure. Actual BGE asset QA remains open.
-- A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock, WebDAV, and actual model-asset QA remain open.
+- A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock and actual model-asset QA remain open.
 - Archive-at-rest encryption is now wired through the Settings save flow on web and Android: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; Pixel 8a migration/restart-unlock/cleanup evidence is recorded in `docs/encryption-qa-results/2026-06-18-android-archive-migration-unlock.md`. Older Android blocker evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
+- A 2026-06-18 Pixel 8a WebDAV loopback pass is recorded in `docs/sync-qa-results/2026-06-18-android-webdav-loopback.md`: the provider now reports real transport failures instead of masking them as encryption-settings conflicts, Android permits cleartext only for loopback QA hosts, and a first encrypted push to an `adb reverse` endpoint completed with `Pushed 3, pulled 0` and no visible plaintext in the stored remote record.
 
 ### Needs Model Runtime Wiring Or Device QA
 
 - Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, native `llama.rn` context loader, and guarded user-facing Qwen mode are present. Pixel 8a missing-asset fallback UI passed; actual model-asset QA remains open.
 - Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, tokenizer-json WordPiece parser, ONNX Runtime loader, and user-facing guarded BGE mode are present. Pixel 8a missing-asset fallback UI passed; actual asset QA remains open.
-- Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
+- Milestone 11: WebDAV encrypted sync is the first production sync provider target; Pixel 8a loopback first-push QA passed, while broader non-loopback provider and conflict QA remain open.
 
 ### Needs Device QA
 
@@ -415,9 +416,10 @@ Done:
 - Sync provider contract, disabled no-sync provider, conflict shape, and opt-in encrypted backup/sync provider backed by the archive-at-rest adapter.
 - WebDAV encrypted sync provider target, Settings UI for local encrypted backup sync with an explicit passphrase, and Settings UI for explicit WebDAV URL/credentials/passphrase sync.
 - Pixel 8a standalone encrypted local backup sync evidence.
+- Pixel 8a standalone WebDAV loopback first-push evidence with an encrypted remote record and no visible plaintext memory text in the stored payload.
 
 Remaining:
-- Device QA for WebDAV sync and any cloud-AI adapters behind explicit consent.
+- Broader WebDAV provider QA for non-loopback servers, credential failures, restart behavior, conflicts, and any cloud-AI adapters behind explicit consent.
 
 ### 12. Product Refinement and Habit Formation
 
@@ -554,7 +556,7 @@ The prototype is successful when a user can:
 
 The prototype should not require internet, subscription, cloud storage, cloud LLM, or a large local model.
 
-Current prototype read: the typed-memory path meets this definition locally and has Pixel 8a evidence for the revised New memory/save flow, share-sheet export handoff, JSON/Markdown import preview/apply, and PIN app lock. Voice capture, biometric app lock, optional local model assets, and sync still need fuller target-device QA before the app should be treated as broadly hardened.
+Current prototype read: the typed-memory path meets this definition locally and has Pixel 8a evidence for the revised New memory/save flow, share-sheet export handoff, JSON/Markdown import preview/apply, PIN app lock, and WebDAV loopback first push. Voice capture, biometric app lock, optional local model assets, and broader sync/provider conflict QA still need fuller target-device QA before the app should be treated as broadly hardened.
 
 ## Next Implementation Priorities
 
@@ -562,6 +564,6 @@ Current prototype read: the typed-memory path meets this definition locally and 
 2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
 3. Run biometric app-lock QA on Pixel 8a.
 4. Run Qwen and BGE local-model asset QA on target hardware.
-5. Run WebDAV encrypted sync device QA.
+5. Run broader WebDAV provider QA for non-loopback servers, credential failures, restart behavior, and conflicts.
 6. Run broader device QA across mobile, tablet, and web.
 7. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.

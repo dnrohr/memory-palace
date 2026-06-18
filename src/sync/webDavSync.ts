@@ -126,10 +126,19 @@ export class WebDAVSyncProvider implements ISyncProvider {
   }
 
   async sync(): Promise<SyncResult> {
-    const status = await this.getStatus();
-    if (!status.enabled) {
+    const encryptionStatus = await this.options.encryptionProvider.getStatus();
+    const encryptionReady =
+      encryptionStatus.available &&
+      encryptionStatus.settings.scope === "archive" &&
+      encryptionStatus.settings.keySource === "user_passphrase";
+
+    if (!encryptionReady) {
       return {
-        status,
+        status: {
+          providerId: this.id,
+          enabled: false,
+          pendingChangeCount: 0
+        },
         pushedCount: 0,
         pulledCount: 0,
         conflicts: [
@@ -144,7 +153,7 @@ export class WebDAVSyncProvider implements ISyncProvider {
 
     if (!this.options.passphrase) {
       return {
-        status,
+        status: await this.getStatus(),
         pushedCount: 0,
         pulledCount: 0,
         conflicts: [
@@ -156,6 +165,8 @@ export class WebDAVSyncProvider implements ISyncProvider {
         ]
       };
     }
+
+    const status = await this.getStatus();
 
     try {
       const localArchive = await this.options.getLocalArchive();

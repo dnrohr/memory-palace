@@ -33,8 +33,8 @@ Remaining work:
 Production target: WebDAV encrypted sync first.
 
 - Purpose: encrypted user-controlled backup/sync without app-owned cloud storage.
-- Current status: WebDAV provider, Settings controls, and encrypted archive transport are present.
+- Current status: WebDAV provider, Settings controls, encrypted archive transport, and Pixel 8a loopback first-push QA are present.
 
 Remaining work:
 
-- Device QA for WebDAV credentials, passphrase-gated sync, restart behavior, and conflict reporting.
+- Broader provider QA for non-loopback WebDAV servers, credential failure handling, restart behavior, and conflict reporting.
