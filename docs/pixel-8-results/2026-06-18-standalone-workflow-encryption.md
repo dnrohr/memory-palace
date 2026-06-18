@@ -64,4 +64,5 @@ The archive unlock, PIN, backup, WebDAV, export, and archive-migration secret fi
 - `npm run build`: passed.
 - `npm test`: passed, 26 files and 124 tests.
 - `npm run pixel8:install-standalone`: passed.
-- Pixel retest result: the encrypted archive screen still did not unlock or surface an error through ADB key/tap automation with the known QA passphrases. The app stayed stable and foregrounded, with no app fatal exception in filtered logcat. Further chooser/export QA still needs either manual interaction with the device or approval to reset the QA app data.
+- Pixel retest result: the encrypted archive screen still did not unlock or surface an error through ADB key/tap automation with the known QA passphrases. The app stayed stable and foregrounded, with no app fatal exception in filtered logcat. Further chooser/export QA still needed either manual interaction with the device or approval to reset the QA app data.
+- Superseded follow-up: `docs/pixel-8-results/2026-06-18-share-import-model-controls.md` records a later standalone pass where the app opened without the encrypted archive blocker and Android chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports.

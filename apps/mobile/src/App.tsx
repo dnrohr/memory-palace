@@ -406,7 +406,7 @@ function AppContent() {
       await loadAndIndexArchive(unlockedArchive, passphrase);
       return true;
     } catch (error) {
-      setArchiveUnlockError(error instanceof Error ? error.message : "Archive unlock failed.");
+      setArchiveUnlockError(error instanceof SyntaxError ? "Encrypted archive opened but could not be parsed." : "Archive passphrase did not unlock this archive.");
       return false;
     }
   }
@@ -986,6 +986,7 @@ function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: 
 function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passphrase: string) => Promise<boolean> }) {
   const [passphrase, setPassphrase] = useState("");
   const [localError, setLocalError] = useState<string | undefined>();
+  const [unlocking, setUnlocking] = useState(false);
 
   async function unlock() {
     setLocalError(undefined);
@@ -993,8 +994,12 @@ function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passph
       setLocalError("Archive passphrase is required.");
       return;
     }
-    const unlocked = await props.onUnlock(passphrase);
-    if (!unlocked) setLocalError("Archive unlock was not completed.");
+    setUnlocking(true);
+    try {
+      await props.onUnlock(passphrase);
+    } finally {
+      setUnlocking(false);
+    }
   }
 
   return (
@@ -1016,7 +1021,12 @@ function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passph
       />
       {props.error ? <Text style={styles.errorText}>{props.error}</Text> : null}
       {localError ? <Text style={styles.errorText}>{localError}</Text> : null}
-      <PrimaryButton label="Unlock archive" onPress={unlock} disabled={!passphrase.trim()} icon={<Lock size={18} />} />
+      <PrimaryButton
+        label={unlocking ? "Unlocking..." : "Unlock archive"}
+        onPress={unlock}
+        disabled={!passphrase.trim() || unlocking}
+        icon={<Lock size={18} />}
+      />
     </View>
   );
 }
