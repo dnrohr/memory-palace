@@ -24,11 +24,11 @@ This pass used the standalone APK on the attached Pixel 8a after the prior encry
 - Import handoff: passed. The Android document picker took foreground from the app's Import action.
 - JSON import preview/apply: passed. A one-memory JSON archive was pushed to Android Downloads, selected from the document picker, previewed as `1 new memories, 0 duplicates, 1 new tags`, applied, and then appeared in Explore as `Revisit "Pixel 8a import QA memory"`. The temporary picker artifact was removed from Downloads afterward.
 - Import error handling: passed for malformed leading bytes. The first artifact was written with a UTF-8 BOM and the app showed `JSON Parse error: Unexpected character: ï»¿`; replacing it with no-BOM UTF-8 allowed preview/apply.
+- Markdown import preview/apply: passed. A one-memory Markdown artifact with front matter was pushed to Android Downloads, selected from the document picker, previewed as `1 new memories, 0 duplicates, 1 new tags`, applied, and then appeared in Explore as `Revisit "Pixel 8a Markdown import QA memory"`. The temporary picker artifact was removed from Downloads afterward.
 - PIN app-lock smoke: passed. Settings Security started at `Mode: disabled`; saving temporary PIN `4242` presented the app lock screen, unlocking with the same PIN returned to the app, and `Disable lock` restored `Mode: disabled` before ending the run.
 
 ## Remaining Device QA
 
-- Markdown import preview/apply still needs a real Markdown artifact selection.
 - Biometric app-lock enable, lock, unlock, and disable still need device QA.
 - Archive-at-rest migration and restart unlock still need a fresh passphrase migration pass.
 - WebDAV sync still needs a configured test server.
