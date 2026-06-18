@@ -43,7 +43,7 @@ export class ExpoBiometricAppLockProvider implements IAppLockProvider {
     if (!hasHardware || !enrolled) return false;
 
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Unlock Memory Palace",
+      promptMessage: "Unlock memory palace",
       cancelLabel: "Cancel",
       disableDeviceFallback: false
     });

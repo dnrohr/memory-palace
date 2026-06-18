@@ -1,6 +1,6 @@
-# Memory Palace
+# memory palace
 
-Memory Palace is an offline-first, cross-platform app for capturing, organizing, searching, and exporting personal memories.
+memory palace is an offline-first, cross-platform app for capturing, organizing, searching, and exporting personal memories.
 
 The durable product is the user-owned archive: local text, structured metadata, confirmed tags, searchable indexes, approximate dates, and exportable data. AI features should remain optional, modular, and unable to corrupt canonical user data.
 

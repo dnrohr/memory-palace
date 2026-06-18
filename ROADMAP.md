@@ -1,8 +1,8 @@
-# Memory Palace Roadmap
+# memory palace roadmap
 
-Last updated: 2026-06-14
+Last updated: 2026-06-18
 
-Memory Palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
+memory palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
 
 ## Status Snapshot
 
@@ -19,11 +19,12 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 
 - None currently. The Pixel 8a development-build workflow, local verification script, and result template are in place. The `pixel8:*` script names are historical and currently target the attached Pixel 8a.
 - The user-facing Pixel 8a run/install guide is in `docs/pixel-8-run-install-guide.md`; update it whenever Android run, build, install, or device-QA processes change.
-- The current app has a Pixel 8a standalone major-gate smoke pass, but still needs full workflow QA before all mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
+- The current app has a Pixel 8a standalone major-gate smoke pass, plus a 2026-06-18 development-client pass for the revised new-memory and typed-save flow. Full workflow QA is still required before all mobile-facing milestones can be treated as target-device verified. A partial Pixel 8a development-build run is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-partial.md`.
 - A follow-up Pixel 8a development-build attempt is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-dev-client-connection.md`: local verification and preflight passed, the debug APK assembled and installed, and Metro bundled Android JS, but the Expo development launcher reported an `unexpected end of stream` before the app UI could be exercised.
 - A local-model-runtime Pixel 8a pass is recorded in `docs/pixel-8-results/2026-06-13-pixel-8a-model-runtime-page-size.md`: preflight passed, a fresh debug APK installed, Android showed a 16 KB page-size compatibility warning for native libraries including `llama.rn`, ONNX Runtime, Expo SQLite, Expo modules, React Native, and Hermes, the dev launcher rendered after dismissing the warning, and Metro completed Android bundling after selecting the recent server. Full app UI workflow QA remains open because ADB became unreliable during follow-up capture.
 - A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open.
 - A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Voice no-speech recovery also passed separately; app lock, archive encryption, share-sheet exports/import, WebDAV, audible speech, and actual model-asset QA remain open.
+- A 2026-06-18 Pixel 8a development-client retry passed for the changed capture flow after fixing local Metro routing and a runtime dynamic-import failure in `expo-file-system`: the app opened on New memory, the text box stayed hidden until `Type instead`, the keyboard stayed down on entry, a typed memory saved successfully, and the app returned to Explore with the saved memory visible. The Android 16 KB native-library compatibility warning still appears, and audible hold-to-speak transcription remains open.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback for runtimes without Web Crypto `subtle`, but the Pixel 8a archive-scope Settings save action still does not dispatch successfully; evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`, and archive-at-rest native device QA remains open.
 
 ### Needs Model Runtime Wiring Or Device QA
@@ -37,7 +38,7 @@ Memory Palace is an offline-first, cross-platform memory archive. The durable pr
 - Run the Pixel 8a development-build checklist for the current app and record results in `docs/pixel-8-results/`.
 - Milestone 1: mobile/tablet/web smoke QA on real target devices.
 - Milestone 2: device-level search and keyboard QA.
-- Milestone 3: iOS, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
+- Milestone 3: iOS, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, long pauses, hold-to-speak behavior, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
 
 ## Major Change Test Gate
 
@@ -47,8 +48,21 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Device gate: run the app on the Pixel 8a development build or standalone APK, exercise the affected workflow, and confirm startup, navigation, persistence, and visible error handling still work.
 - Required for: native mobile setup, SQLite/storage migrations, archive encryption/unlock, app lock, speech/audio capture, import/export, sync/backup, navigation shell changes, and major UI flows.
 - Deferral rule: if Pixel 8a testing is not possible, record the blocker in the implementation log and keep the affected work marked as needing device QA.
+- Screenshot hygiene: disposable screenshots created during device or browser QA should be written under `.codex-screenshots/<task-name>/` and removed with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes` before finishing. Durable QA screenshots belong in `docs/` and should be mentioned in the result notes.
 
 ## Implementation Log
+
+### 2026-06-18
+
+- Revised the capture-first app startup: the app now opens on New memory, presents voice capture first, keeps the typed text box hidden until the user chooses `Type instead`, and avoids raising the keyboard on entry.
+- Changed memory saves to show a visible `Memory saved.` notice and return to Explore, reducing accidental duplicate saves from repeated save taps.
+- Improved speech capture for longer pauses by enabling continuous recognition and preserving final plus interim transcript chunks; updated the voice control so the primary recording interaction behaves as hold-to-speak with a fallback stop action while recording.
+- Improved tag handling by adding shared tag parsing for comma, semicolon, hashtag, newline, and double-space separated input; normalized manual tags; expanded rule-based everyday tag suggestions; and added tests for tag parsing and hashtag suggestions.
+- Standardized current user-facing app naming to lower-case `memory palace` across app config, Android strings, lock copy, date-extraction copy, and README text.
+- Fixed a Pixel 8a development-client runtime failure caused by dynamically importing `expo-file-system` from the local model asset store; switched it to a static import.
+- Retried the changed flow on the attached Pixel 8a: `npm run pixel8:preflight` passed, Metro routing was repaired with ADB reverse, the Android 16 KB native-library compatibility warning was dismissed, the app opened on New memory, the text field stayed hidden until requested, and a typed memory saved back to Explore with the new memory visible. Audible speech capture QA remains open.
+- Added `AGENTS.md`, `.codex-screenshots/` gitignore coverage, and `npm run screenshots:cleanup` so future agents have a safe dry-run-first path for deleting only disposable screenshots they created.
+- Ran `npm run build` and `npm test`; both passed after the capture, tag, speech, and naming changes.
 
 ### 2026-06-14
 
@@ -62,7 +76,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Added a native-compatible AES-GCM/PBKDF2 encryption fallback for Android runtimes with secure random bytes but without Web Crypto `subtle`, while preserving the existing encrypted envelope format.
 - Ran Android standalone archive-at-rest QA on the attached Pixel 8a: the release APK built and installed, local crypto tests passed, saving `disabled` encryption options succeeded, and final relaunch loaded Explore with no `FATAL EXCEPTION`. Attempting to save archive scope with a passphrase still did not dispatch the archive save action on-device, so archive-at-rest Android QA remains open and is documented in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 - Fixed Pixel 8a status-bar overlap by moving the app root to `react-native-safe-area-context`, setting an explicit Android status bar treatment, rebuilding and installing the standalone APK, and recording screenshot evidence in `docs/pixel-8-results/2026-06-14-safe-area-statusbar.png`.
-- Tightened grade/age date suggestions: without a birth year, Memory Palace now explains that grade or age mentions cannot be mapped to calendar dates, and review cannot accept those incomplete suggestions as confirmed dates.
+- Tightened grade/age date suggestions: without a birth year, memory palace now explains that grade or age mentions cannot be mapped to calendar dates, and review cannot accept those incomplete suggestions as confirmed dates.
 
 ### 2026-06-13
 
@@ -255,6 +269,7 @@ Done:
 - Native SQLite path, web fallback, and migration tracking.
 - Richer settings and storage diagnostics.
 - Partial Pixel 8a development-build smoke evidence for launch, Explore, save/detail, reconnect persistence, and Settings.
+- Pixel 8a development-client evidence for the revised New memory startup, hidden typed-entry field, typed-save return to Explore, and visible saved-memory persistence in the list.
 
 Remaining:
 - Full target Pixel 8a device-level QA.
@@ -265,6 +280,7 @@ Status: In progress
 
 Done:
 - Manual tag assignment, readable theme shelves, tag management, filters, tag type editing, and tag merge UI/operations.
+- Shared manual tag parsing now supports comma, semicolon, hashtag, newline, and double-space separated input with normalized lower-case tag names.
 - Basic search, ranked portable search snippets, keyword highlighting, and matched-tag labels.
 - Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
 - Partial Pixel 8a keyboard/search-field focus evidence.
@@ -279,10 +295,10 @@ Status: In progress
 Done:
 - Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and typed recording errors.
 - Capture status/retry states, private-listening voice UI, transcript draft flow, optional `expo-speech-recognition` native speech-to-text adapter, and native speech permissions config.
-- Editable manual fallback on recognition errors and AppState interruption/background handling.
+- Continuous recognition support for longer pauses, hold-to-speak interaction wiring, editable manual fallback on recognition errors, and AppState interruption/background handling.
 
 Remaining:
-- Device-level speech QA.
+- Device-level speech QA for audible Android transcription, iOS, web accepted-permission flow, long pauses, and hold-to-speak behavior.
 
 ### 4. Rules-Based Metadata Suggestions
 
@@ -290,6 +306,7 @@ Status: Done
 
 Done:
 - Date/tag suggestion prototypes, broader month/year and everyday-theme rules, review inbox generation, and review UI with source/explanation provenance.
+- Expanded explicit hashtag and everyday-theme tag suggestions.
 - Accept/reject actions, optional-review summary/cards, edit/defer/dismiss affordances, and rejected-tag feedback for future suggestions.
 
 Remaining:
@@ -382,7 +399,8 @@ Status: Done
 
 Done:
 - Review inbox data/UI, quiet optional-review surface with accept/edit/dismiss/defer actions, gentle resurfacing prompt data/UI, private voice-capture polish, related-memory prompts, memory addendum flow, durable private notes, fast capture mode, and memory split/merge flows.
-- Explore-first header, bottom navigation with central capture, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
+- Explore-first header, bottom navigation with central capture, app startup on New memory, Explore path cards including unknown dates, readable theme shelves, continue-from language, lower-pressure voice-first new-memory capture, warmer private-notebook capture styling, clearer `Ways in` hierarchy, and low-saturation varied path cards.
+- Save feedback now confirms `Memory saved.` and returns to Explore to reduce duplicate saves.
 - Post-save suggestion sheet, museum-label memory detail composition, original-memory reading panel, constellation-style entity cards, possible/accepted chapter card polish, explicit back-to-Explore affordances, persisted light/dark appearance, shared app-shell, screen-header, center-capture, breadcrumb, memory-card, tag-pill, date-certainty, connection-reason, review-card, entity-card, and chapter-card UI primitives, Settings information architecture and trust-card polish, emotional-safety controls for sensitive/excluded memories, calmer search/review wording, and responsive shell polish.
 - Wide Explore two-pane layout, reusable `ThemeClusterCard`, and reusable `SettingsSection` surfaces for calmer desktop/tablet browsing and trust controls.
 
@@ -391,7 +409,7 @@ Remaining:
 
 ## Design North Star
 
-Memory Palace should feel like a private notebook at capture time, an archive box for storage and trust, a museum label on memory detail screens, and a quiet memory palace during exploration.
+memory palace should feel like a private notebook at capture time, an archive box for storage and trust, a museum label on memory detail screens, and a quiet memory palace during exploration.
 
 The main product contrast is:
 
@@ -510,12 +528,15 @@ The prototype is successful when a user can:
 
 The prototype should not require internet, subscription, cloud storage, cloud LLM, or a large local model.
 
+Current prototype read: the typed-memory path meets this definition locally and has Pixel 8a evidence for the revised New memory/save flow. Voice capture, security flows, share-sheet import/export actions, optional local model assets, and sync still need fuller target-device QA before the app should be treated as broadly hardened.
+
 ## Next Implementation Priorities
 
-1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, but not every target workflow.
-2. Run device-level speech QA across iOS, Android, and web voice flows.
+1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, and the 2026-06-18 development-client pass covers the revised New memory typed-save flow, but not every target workflow.
+2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on Pixel 8a.
 4. Run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews.
 5. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
 6. Run WebDAV encrypted sync device QA.
 7. Run broader device QA across mobile, tablet, and web.
+8. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.

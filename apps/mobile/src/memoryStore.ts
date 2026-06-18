@@ -3,6 +3,7 @@ import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import type { MemoryArchive } from "../../../src/core/archive";
 import { normalizeTagName, tagsForMemoryArchive } from "../../../src/core/archiveOperations";
+import { parseTagNames } from "../../../src/core/tagParsing";
 import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
@@ -252,7 +253,7 @@ export function upsertMemory(archive: MemoryArchive, memory: Memory): MemoryArch
 
 export function replaceTags(archive: MemoryArchive, memoryId: string, tagNames: string[]): MemoryArchive {
   const now = new Date().toISOString();
-  const uniqueNames = [...new Set(tagNames.map((tag) => tag.trim()).filter(Boolean))];
+  const uniqueNames = [...new Set(tagNames.flatMap(parseTagNames))];
   const existingTags = new Map(archive.tags.map((tag) => [tag.normalizedName, tag]));
   const tags = [...archive.tags];
   const links: MemoryTag[] = archive.memoryTags.filter((link) => link.memoryId !== memoryId);

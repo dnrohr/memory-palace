@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Memory Palace",
+    "name": "memory palace",
     "slug": "memory-palace",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -12,8 +12,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Allow Memory Palace to transcribe voice memories.",
-        "NSMicrophoneUsageDescription": "Allow Memory Palace to use the microphone for voice memories."
+        "NSSpeechRecognitionUsageDescription": "Allow memory palace to transcribe voice memories.",
+        "NSMicrophoneUsageDescription": "Allow memory palace to use the microphone for voice memories."
       }
     },
     "android": {
@@ -35,8 +35,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow Memory Palace to use the microphone for voice memories.",
-          "speechRecognitionPermission": "Allow Memory Palace to transcribe voice memories.",
+          "microphonePermission": "Allow memory palace to use the microphone for voice memories.",
+          "speechRecognitionPermission": "Allow memory palace to transcribe voice memories.",
           "androidSpeechServicePackages": [
             "com.google.android.googlequicksearchbox",
             "com.google.android.as"

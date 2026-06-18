@@ -86,7 +86,8 @@ export async function startAudioCapture(): Promise<AudioCaptureSession> {
 
   const startedAt = new Date().toISOString();
   const subscriptions: SpeechRecognitionSubscription[] = [];
-  let transcript = "";
+  const finalTranscriptParts: string[] = [];
+  let interimTranscript = "";
   let confidence: number | undefined;
   let recognitionError: string | undefined;
   let resolveEnd: (() => void) | undefined;
@@ -106,7 +107,15 @@ export async function startAudioCapture(): Promise<AudioCaptureSession> {
       const resultEvent = event as SpeechRecognitionResultEvent | null;
       const result = resultEvent?.results[0];
       if (!result?.transcript) return;
-      transcript = result.transcript;
+      if (resultEvent?.isFinal) {
+        const nextTranscript = result.transcript.trim();
+        if (nextTranscript && finalTranscriptParts[finalTranscriptParts.length - 1] !== nextTranscript) {
+          finalTranscriptParts.push(nextTranscript);
+        }
+        interimTranscript = "";
+      } else {
+        interimTranscript = result.transcript.trim();
+      }
       if (typeof result.confidence === "number" && result.confidence >= 0) confidence = result.confidence;
     })
   );
@@ -123,7 +132,7 @@ export async function startAudioCapture(): Promise<AudioCaptureSession> {
     module.start({
       lang: "en-US",
       interimResults: true,
-      continuous: false,
+      continuous: true,
       requiresOnDeviceRecognition: false,
       addsPunctuation: true
     });
@@ -144,7 +153,9 @@ export async function startAudioCapture(): Promise<AudioCaptureSession> {
       await Promise.race([endedPromise, wait(2500)]);
       cleanup();
 
-      if (recognitionError && !transcript.trim() && !isNoSpeechError(recognitionError)) {
+      const transcript = [...finalTranscriptParts, interimTranscript].filter(Boolean).join(" ").trim();
+
+      if (recognitionError && !transcript && !isNoSpeechError(recognitionError)) {
         throw new AudioCaptureError("stop_failed", recognitionError);
       }
 

@@ -31,4 +31,11 @@ describe("rules tag suggestion", () => {
 
     expect(names).toEqual(expect.arrayContaining(["family", "health", "moving", "school", "wedding"]));
   });
+
+  it("recognizes explicit hashtags without sentence-start false positives", () => {
+    const names = suggestTags("Today I remembered #summer-camp with Patrick.").map((suggestion) => suggestion.name);
+
+    expect(names).toEqual(expect.arrayContaining(["summer camp", "Patrick"]));
+    expect(names).not.toContain("Today");
+  });
 });

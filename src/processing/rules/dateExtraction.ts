@@ -73,7 +73,7 @@ export function extractDateCandidates(text: string, userProfile?: UserProfile): 
       candidate.endDate = `${year}-12-31`;
       candidate.inferenceExplanation = `Inferred from age ${age} and birth year ${userProfile.birthYear}.`;
     } else {
-      candidate.inferenceExplanation = `Age mentions need a birth year before Memory Palace can map "${match[0]}" to a calendar year.`;
+      candidate.inferenceExplanation = `Age mentions need a birth year before memory palace can map "${match[0]}" to a calendar year.`;
     }
 
     candidates.push(candidate);
@@ -94,7 +94,7 @@ export function extractDateCandidates(text: string, userProfile?: UserProfile): 
       candidate.endDate = `${schoolStartYear + 1}-06-30`;
       candidate.inferenceExplanation = `Inferred from grade ${grade} and birth year ${userProfile.birthYear}.`;
     } else {
-      candidate.inferenceExplanation = `Grade mentions need a birth year before Memory Palace can map "${match[0]}" to a school-year range.`;
+      candidate.inferenceExplanation = `Grade mentions need a birth year before memory palace can map "${match[0]}" to a school-year range.`;
     }
 
     candidates.push(candidate);

@@ -15,6 +15,7 @@
     "pixel8:tunnel": "expo start --dev-client --tunnel",
     "pixel8:install-standalone": "node scripts/pixel8-install-standalone.mjs",
     "pixel8:preflight": "node scripts/pixel8-preflight.mjs",
+    "screenshots:cleanup": "node scripts/cleanup-screenshots.mjs",
     "ios": "expo run:ios",
     "postinstall": "patch-package",
     "test": "vitest run",

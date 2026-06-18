@@ -1,10 +1,13 @@
 import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { cloneElement, isValidElement, useEffect, useMemo, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
   Alert,
   AppState,
+  Button,
+  Keyboard,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -57,6 +60,7 @@ import {
 import { createLifeContextId, findLifeContextMatches, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
+import { parseTagNames } from "../../../src/core/tagParsing";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
 import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
 import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
@@ -163,9 +167,10 @@ function AppContent() {
   const [archiveUnlockError, setArchiveUnlockError] = useState<string | undefined>();
   const [archiveLoadError, setArchiveLoadError] = useState<string | undefined>();
   const [isAppLocked, setIsAppLocked] = useState(false);
-  const [mode, setMode] = useState<ViewMode>("list");
+  const [mode, setMode] = useState<ViewMode>("editor");
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [postSaveMemoryId, setPostSaveMemoryId] = useState<string | undefined>();
+  const [saveNotice, setSaveNotice] = useState<string | undefined>();
   const [query, setQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
   const [semanticMemories, setSemanticMemories] = useState<Memory[]>([]);
@@ -178,6 +183,12 @@ function AppContent() {
     void loadInitialArchive();
     void refreshLocalModelAvailability();
   }, []);
+
+  useEffect(() => {
+    if (!saveNotice) return undefined;
+    const timeout = setTimeout(() => setSaveNotice(undefined), 3000);
+    return () => clearTimeout(timeout);
+  }, [saveNotice]);
 
   useEffect(() => {
     void appLockProvider.getSettings().then(async (settings) => {
@@ -401,6 +412,7 @@ function AppContent() {
       wide={width >= 900}
       statusBarStyle={statusBarStyle}
       statusBarBackgroundColor={statusBarBackgroundColor}
+      saveNotice={saveNotice}
       onExplore={() => setMode("list")}
       onCapture={() => {
         setSelectedId(undefined);
@@ -459,9 +471,10 @@ function AppContent() {
             onFastCapture={async (text) => {
               const memory = createMemory(text);
               await persist(upsertMemory(archive, memory));
-              setSelectedId(memory.id);
-              setPostSaveMemoryId(memory.id);
-              setMode("detail");
+              setSelectedId(undefined);
+              setPostSaveMemoryId(undefined);
+              setSaveNotice("Memory saved.");
+              setMode("list");
             }}
           />
         ) : null}
@@ -474,9 +487,10 @@ function AppContent() {
               const memory = createMemory(text);
               await persist(upsertMemory(archive, memory));
               await AsyncStorage.removeItem(NEW_MEMORY_DRAFT_KEY);
-              setSelectedId(memory.id);
-              setPostSaveMemoryId(memory.id);
-              setMode("detail");
+              setSelectedId(undefined);
+              setPostSaveMemoryId(undefined);
+              setSaveNotice("Memory saved.");
+              setMode("list");
             }}
           />
         ) : null}
@@ -493,7 +507,7 @@ function AppContent() {
               const withTags = replaceTags(
                 withMemory,
                 memory.id,
-                tagText.split(",").map((tag) => tag.trim())
+                parseTagNames(tagText)
               );
               await persist(withTags);
               setSelectedId(memory.id);
@@ -548,9 +562,10 @@ function AppContent() {
               };
               const nextArchive = upsertMemory(archive, memory);
               await persist(nextArchive);
-              setSelectedId(memory.id);
-              setPostSaveMemoryId(memory.id);
-              setMode("detail");
+              setSelectedId(undefined);
+              setPostSaveMemoryId(undefined);
+              setSaveNotice("Memory saved.");
+              setMode("list");
             }}
           />
         ) : null}
@@ -704,6 +719,7 @@ function AppShell(props: {
   wide: boolean;
   statusBarStyle: "dark-content" | "light-content";
   statusBarBackgroundColor: string;
+  saveNotice?: string | undefined;
   children: ReactNode;
   onExplore: () => void;
   onCapture: () => void;
@@ -714,6 +730,11 @@ function AppShell(props: {
     <RootSafeArea statusBarStyle={props.statusBarStyle} statusBarBackgroundColor={props.statusBarBackgroundColor}>
       <View style={[styles.shell, props.wide ? styles.shellWide : null]}>
         <ScreenHeader mode={props.mode} onSettings={props.onSettings} />
+        {props.saveNotice ? (
+          <View style={styles.saveNotice} accessibilityLiveRegion="polite">
+            <Text style={styles.saveNoticeText}>{props.saveNotice}</Text>
+          </View>
+        ) : null}
         {props.children}
         <BottomNavigation
           mode={props.mode}
@@ -806,7 +827,7 @@ function NavButton(props: { label: string; icon: ReactNode; active: boolean; onP
 function screenTitle(mode: ViewMode): string {
   switch (mode) {
     case "editor":
-      return "New Memory";
+      return "New memory";
     case "voice":
       return "Voice";
     case "detail":
@@ -858,7 +879,7 @@ function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: 
   return (
     <View style={styles.lockScreen}>
       <Lock size={32} color="#374236" />
-      <Text style={styles.detailTitle}>Memory Palace is locked</Text>
+      <Text style={styles.detailTitle}>memory palace is locked</Text>
       {props.mode === "pin" ? (
         <TextInput
           value={pin}
@@ -918,8 +939,11 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "transcribing" | "draft_ready">("idle");
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | undefined>();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const pendingStopRef = useRef(false);
 
   async function start() {
+    if (status !== "idle" && status !== "draft_ready") return;
+    pendingStopRef.current = false;
     setError(undefined);
     setStatus("requesting_permission");
     try {
@@ -930,24 +954,33 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
         return;
       }
 
-      setSession(await startAudioCapture());
+      const nextSession = await startAudioCapture();
+      setSession(nextSession);
       setDraft(undefined);
       const startedAt = Date.now();
       setRecordingStartedAt(startedAt);
       setElapsedSeconds(0);
       setStatus("recording");
+      if (pendingStopRef.current) {
+        pendingStopRef.current = false;
+        await stop("user", nextSession);
+      }
     } catch (error) {
       setError(formatAudioCaptureError(error, "Recording could not be started."));
       setStatus("idle");
     }
   }
 
-  async function stop(reason: "user" | "interruption" = "user") {
-    if (!session) return;
+  async function stop(reason: "user" | "interruption" = "user", sessionOverride?: AudioCaptureSession) {
+    const sessionToStop = sessionOverride ?? session;
+    if (!sessionToStop) {
+      if (status === "requesting_permission") pendingStopRef.current = true;
+      return;
+    }
     setError(undefined);
     setStatus("stopping");
     try {
-      const artifact = await stopAudioCapture(session);
+      const artifact = await stopAudioCapture(sessionToStop);
       setSession(undefined);
       setRecordingStartedAt(undefined);
       setStatus("transcribing");
@@ -961,7 +994,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
       }
       setDraft({ artifact, transcript, retainAudio: false });
       if (reason === "interruption") {
-        setError("Recording stopped because Memory Palace moved to the background. Review the transcript before saving.");
+        setError("Recording stopped because memory palace moved to the background. Review the transcript before saving.");
       }
       setStatus("draft_ready");
     } catch (error) {
@@ -1010,16 +1043,26 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
         <Text style={styles.captureNote}>No audio is kept unless you choose. You can type or edit the transcript before saving.</Text>
         <Text style={styles.metadata}>Status: {voiceCaptureStatusLabel(status)}</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {session ? (
-          <PrimaryButton label="Stop recording" onPress={stop} icon={<Square size={18} />} />
-        ) : (
-          <PrimaryButton
-            label={status === "requesting_permission" ? "Requesting permission" : "Start recording"}
-            onPress={start}
-            disabled={status === "requesting_permission" || status === "stopping"}
-            icon={<Mic size={18} />}
-          />
-        )}
+        <Pressable
+          onPressIn={() => void start()}
+          onPressOut={() => void stop()}
+          disabled={status === "stopping" || status === "transcribing"}
+          style={[
+            styles.holdToSpeakButton,
+            status === "recording" ? styles.holdToSpeakButtonActive : null,
+            status === "stopping" || status === "transcribing" ? styles.disabled : null
+          ]}
+        >
+          {renderIcon(status === "recording" ? <Square size={20} /> : <Mic size={20} />, styles.primaryButtonIcon.color)}
+          <Text style={styles.primaryButtonText}>
+            {status === "requesting_permission"
+              ? "Requesting permission"
+              : status === "recording"
+                ? "Release to stop"
+                : "Hold to speak"}
+          </Text>
+        </Pressable>
+        {session ? <SecondaryButton label="Stop recording" onPress={() => void stop()} icon={<Square size={18} />} /> : null}
         {error ? <SecondaryButton label="Try again" onPress={start} icon={<RotateCcw size={18} />} /> : null}
       </View>
       {draft ? (
@@ -2447,13 +2490,17 @@ function NewMemoryCapture(props: {
   const [text, setText] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [textEntryVisible, setTextEntryVisible] = useState(false);
   const canSave = text.trim().length > 0 && !isSaving;
 
   useEffect(() => {
     let isCurrent = true;
     void AsyncStorage.getItem(NEW_MEMORY_DRAFT_KEY).then((draft) => {
       if (!isCurrent) return;
-      if (draft) setText(draft);
+      if (draft) {
+        setText(draft);
+        setTextEntryVisible(true);
+      }
       setDraftLoaded(true);
     });
     return () => {
@@ -2481,17 +2528,20 @@ function NewMemoryCapture(props: {
     <ScrollView contentContainerStyle={[styles.content, styles.newMemoryContent]}>
       <View style={styles.capturePanel}>
         <Text style={styles.capturePrompt}>What came back?</Text>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="A fragment, a sentence, a scene"
-          placeholderTextColor="#7b8178"
-          multiline
-          textAlignVertical="top"
-          autoFocus
-          style={styles.newMemoryInput}
-        />
-        <SecondaryButton label="Hold to speak" onPress={props.onVoice} icon={<Mic size={18} />} />
+        <PrimaryButton label="Record by voice" onPress={props.onVoice} icon={<Mic size={18} />} />
+        {!textEntryVisible ? (
+          <SecondaryButton label="Type instead" onPress={() => setTextEntryVisible(true)} icon={<Edit3 size={18} />} />
+        ) : (
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="A fragment, a sentence, a scene"
+            placeholderTextColor="#7b8178"
+            multiline
+            textAlignVertical="top"
+            style={styles.newMemoryInput}
+          />
+        )}
         <Text style={styles.captureNote}>A fragment is enough. Dates and tags can wait.</Text>
         <View style={styles.captureActions}>
           <SecondaryButton label="Cancel" onPress={props.onCancel} icon={<X size={18} />} />
@@ -2563,9 +2613,9 @@ function MemoryEditor(props: {
     setTagSuggestions(nextTagSuggestions);
     setDateSuggestions(nextDateSuggestions);
 
-    const existingTags = new Set(tagText.split(",").map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean));
+    const existingTags = new Set(parseTagNames(tagText));
     const mergedTags = [
-      ...tagText.split(",").map((tag) => tag.trim()).filter(Boolean),
+      ...parseTagNames(tagText),
       ...nextTagSuggestions.filter((tag) => !existingTags.has(tag.name.toLocaleLowerCase())).map((tag) => tag.name)
     ];
     setTagText(mergedTags.join(", "));
@@ -2648,7 +2698,7 @@ function MemoryEditor(props: {
       ) : (
         <View style={styles.filterPanel}>
           <Text style={styles.panelTitle}>Optional</Text>
-          <Text style={styles.metadata}>Dates, tags, and title can wait. Memory Palace will suggest possible details after saving.</Text>
+          <Text style={styles.metadata}>Dates, tags, and title can wait. memory palace will suggest possible details after saving.</Text>
           <SecondaryButton label="Use voice instead" onPress={props.onVoice} icon={<Mic size={18} />} />
         </View>
       )}
@@ -2961,7 +3011,12 @@ function Settings(props: {
   const [tagTypeResolution, setTagTypeResolution] = useState<NonNullable<ArchiveMergeOptions["tagTypeConflict"]>>("keep_existing");
   const [encryptionDraft, setEncryptionDraft] = useState<EncryptionSettings>(props.encryptionSettings);
   const [archivePassphrase, setArchivePassphrase] = useState("");
+  const [archivePassphraseDialogVisible, setArchivePassphraseDialogVisible] = useState(false);
   const [encryptionStatusMessage, setEncryptionStatusMessage] = useState<string | undefined>();
+  const [encryptionSaving, setEncryptionSaving] = useState(false);
+  const encryptionSavingRef = useRef(false);
+  const archiveAutoSavePassphraseRef = useRef<string | undefined>(undefined);
+  const archiveAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [exportPassphrase, setExportPassphrase] = useState("");
   const [backupPassphrase, setBackupPassphrase] = useState("");
   const [backupStatus, setBackupStatus] = useState<string | undefined>();
@@ -2974,22 +3029,129 @@ function Settings(props: {
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
   const archiveAtRestRequested = encryptionDraft.scope === "archive" && encryptionDraft.keySource === "user_passphrase";
+  const archiveSaveDisabled = !archivePassphrase.trim() || encryptionSaving;
 
-  async function saveEncryptionOptions() {
+  async function saveEncryptionOptions(passphraseOverride = archivePassphrase) {
+    if (encryptionSavingRef.current) return;
+    encryptionSavingRef.current = true;
+    Keyboard.dismiss();
     setPortabilityError(undefined);
-    setEncryptionStatusMessage(undefined);
+    setEncryptionStatusMessage("Saving encryption options...");
+    setEncryptionSaving(true);
 
     try {
-      await props.onSaveEncryptionSettings(encryptionDraft, archivePassphrase);
+      await props.onSaveEncryptionSettings(encryptionDraft, passphraseOverride);
       if (archiveAtRestRequested) {
         setEncryptionStatusMessage("Archive-at-rest encryption is on. Plaintext primary storage was cleared after the encrypted archive was written.");
+        archiveAutoSavePassphraseRef.current = undefined;
         setArchivePassphrase("");
+        setArchivePassphraseDialogVisible(false);
         return;
       }
       setEncryptionStatusMessage("Encryption options saved. Archive-at-rest encryption is off, so the local archive remains in primary storage.");
     } catch (error) {
+      setEncryptionStatusMessage(undefined);
       setPortabilityError(error instanceof Error ? error.message : "Encryption settings could not be saved.");
+    } finally {
+      encryptionSavingRef.current = false;
+      setEncryptionSaving(false);
     }
+  }
+
+  async function saveArchiveEncryption(passphraseOverride = archivePassphrase) {
+    if (encryptionSavingRef.current) return;
+    encryptionSavingRef.current = true;
+    Keyboard.dismiss();
+    const archiveSettings: EncryptionSettings = {
+      ...encryptionDraft,
+      scope: "archive",
+      keySource: "user_passphrase"
+    };
+    setEncryptionDraft(archiveSettings);
+    setPortabilityError(undefined);
+    setEncryptionStatusMessage("Saving archive-at-rest encryption...");
+    setEncryptionSaving(true);
+
+    try {
+      await props.onSaveEncryptionSettings(archiveSettings, passphraseOverride);
+      setEncryptionStatusMessage("Archive-at-rest encryption is on. Plaintext primary storage was cleared after the encrypted archive was written.");
+      archiveAutoSavePassphraseRef.current = undefined;
+      clearArchiveAutoSaveTimer();
+      setArchivePassphrase("");
+      setArchivePassphraseDialogVisible(false);
+    } catch (error) {
+      setEncryptionStatusMessage(undefined);
+      setPortabilityError(error instanceof Error ? error.message : "Archive-at-rest encryption could not be saved.");
+    } finally {
+      encryptionSavingRef.current = false;
+      setEncryptionSaving(false);
+    }
+  }
+
+  function saveArchivePassphraseFromEditing(passphrase: string) {
+    if (encryptionDraft.scope === "archive" && passphrase.trim()) {
+      void saveArchiveEncryption(passphrase);
+    }
+  }
+
+  function clearArchiveAutoSaveTimer() {
+    if (archiveAutoSaveTimerRef.current) {
+      clearTimeout(archiveAutoSaveTimerRef.current);
+      archiveAutoSaveTimerRef.current = undefined;
+    }
+  }
+
+  function updateArchivePassphrase(passphrase: string) {
+    setArchivePassphrase(passphrase);
+    clearArchiveAutoSaveTimer();
+    const trimmedPassphrase = passphrase.trim();
+    if (!trimmedPassphrase || archiveAutoSavePassphraseRef.current === trimmedPassphrase) return;
+    archiveAutoSaveTimerRef.current = setTimeout(() => {
+      archiveAutoSavePassphraseRef.current = trimmedPassphrase;
+      void saveArchiveEncryption(passphrase);
+    }, 900);
+  }
+
+  function selectEncryptionScope(scope: EncryptionScope) {
+    if (scope !== "archive") {
+      setArchivePassphrase("");
+      archiveAutoSavePassphraseRef.current = undefined;
+      clearArchiveAutoSaveTimer();
+      setArchivePassphraseDialogVisible(false);
+    }
+    setEncryptionDraft((current) => ({
+      ...current,
+      scope,
+      keySource: scope === "disabled" ? "none" : current.keySource === "none" ? "user_passphrase" : current.keySource
+    }));
+    if (scope === "archive") {
+      archiveAutoSavePassphraseRef.current = undefined;
+      clearArchiveAutoSaveTimer();
+      setArchivePassphraseDialogVisible(true);
+    }
+  }
+
+  function selectEncryptionKeySource(keySource: EncryptionKeySource) {
+    if (keySource !== "user_passphrase") {
+      setArchivePassphrase("");
+      archiveAutoSavePassphraseRef.current = undefined;
+      clearArchiveAutoSaveTimer();
+      setArchivePassphraseDialogVisible(false);
+    }
+    setEncryptionDraft((current) => ({ ...current, keySource }));
+    if (encryptionDraft.scope === "archive" && keySource === "user_passphrase") {
+      archiveAutoSavePassphraseRef.current = undefined;
+      clearArchiveAutoSaveTimer();
+      setArchivePassphraseDialogVisible(true);
+    }
+  }
+
+  function cancelArchivePassphraseDialog() {
+    if (encryptionSaving) return;
+    archiveAutoSavePassphraseRef.current = undefined;
+    clearArchiveAutoSaveTimer();
+    setArchivePassphrase("");
+    setArchivePassphraseDialogVisible(false);
   }
 
   async function sharePossiblyEncrypted(artifact: ExportArtifact) {
@@ -3142,7 +3304,8 @@ function Settings(props: {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
       <SettingsSection title="Privacy" description="Memory text stays local unless you explicitly export it.">
         <Text style={styles.panelTitle}>Local state</Text>
         <Text style={styles.metadata}>A quick map of what can leave this device.</Text>
@@ -3312,16 +3475,7 @@ function Settings(props: {
                 key={scope}
                 label={scope}
                 selected={encryptionDraft.scope === scope}
-                onPress={() => {
-                  if (scope !== "archive") {
-                    setArchivePassphrase("");
-                  }
-                  setEncryptionDraft((current) => ({
-                    ...current,
-                    scope,
-                    keySource: scope === "disabled" ? "none" : current.keySource === "none" ? "user_passphrase" : current.keySource
-                  }));
-                }}
+                onPress={() => selectEncryptionScope(scope)}
               />
             ))}
           </View>
@@ -3334,12 +3488,7 @@ function Settings(props: {
                 key={keySource}
                 label={keySource.replace(/_/g, " ")}
                 selected={encryptionDraft.keySource === keySource}
-                onPress={() => {
-                  if (keySource !== "user_passphrase") {
-                    setArchivePassphrase("");
-                  }
-                  setEncryptionDraft((current) => ({ ...current, keySource }));
-                }}
+                onPress={() => selectEncryptionKeySource(keySource)}
               />
             ))}
           </View>
@@ -3355,26 +3504,21 @@ function Settings(props: {
         </View>
         {archiveAtRestRequested ? (
           <>
-            <TextInput
-              value={archivePassphrase}
-              onChangeText={setArchivePassphrase}
-              placeholder="Archive passphrase"
-              placeholderTextColor="#7b8178"
-              secureTextEntry
-              returnKeyType="done"
-              onSubmitEditing={saveEncryptionOptions}
-              style={styles.tagInput}
-            />
             <SecondaryButton
-              label="Save encryption options"
-              onPress={saveEncryptionOptions}
-              disabled={!archivePassphrase.trim()}
-              icon={<Save size={18} />}
+              label="Enter archive passphrase"
+              onPress={() => setArchivePassphraseDialogVisible(true)}
+              disabled={encryptionSaving}
+              icon={<Lock size={18} />}
             />
             <Text style={styles.metadata}>The passphrase is used now to migrate the current archive and is not stored.</Text>
           </>
         ) : (
-          <SecondaryButton label="Save encryption options" onPress={saveEncryptionOptions} icon={<Save size={18} />} />
+          <SecondaryButton
+            label={encryptionSaving ? "Saving encryption options" : "Save encryption options"}
+            onPress={saveEncryptionOptions}
+            disabled={encryptionSaving}
+            icon={<Save size={18} />}
+          />
         )}
         {encryptionStatusMessage ? <Text style={styles.metadata}>{encryptionStatusMessage}</Text> : null}
       </SettingsSection>
@@ -3558,7 +3702,45 @@ function Settings(props: {
         ))}
       </View>
       <Text style={styles.privacy}>Processing: on-device. Internet required: no. Memory text leaves device: no.</Text>
-    </ScrollView>
+      </ScrollView>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={archivePassphraseDialogVisible}
+        onRequestClose={cancelArchivePassphraseDialog}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalPanel}>
+            <Text style={styles.panelTitle}>Archive passphrase</Text>
+            <Text style={styles.metadata}>
+              This passphrase encrypts the local archive now and is required after relaunch.
+            </Text>
+            <TextInput
+              value={archivePassphrase}
+              onChangeText={updateArchivePassphrase}
+              placeholder="Archive passphrase"
+              placeholderTextColor="#7b8178"
+              secureTextEntry={Platform.OS !== "android"}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={(event) => void saveArchiveEncryption(event.nativeEvent.text)}
+              onEndEditing={(event) => {
+                saveArchivePassphraseFromEditing(event.nativeEvent.text);
+              }}
+              style={styles.tagInput}
+            />
+            <View style={styles.modalActions}>
+              <Button title="Cancel" onPress={cancelArchivePassphraseDialog} disabled={encryptionSaving} />
+              <Button
+                title={encryptionSaving ? "Saving..." : "Save archive encryption"}
+                onPress={() => void saveArchiveEncryption()}
+                disabled={archiveSaveDisabled}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -3979,6 +4161,21 @@ const lightStyles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 }
   },
+  saveNotice: {
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: "#cfd8c8",
+    backgroundColor: "#f4f8f0",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  saveNoticeText: {
+    color: "#263323",
+    fontSize: 14,
+    fontWeight: "800"
+  },
   captureEyebrow: {
     color: "#7b604f",
     ...theme.typography.label,
@@ -4024,6 +4221,19 @@ const lightStyles = StyleSheet.create({
     padding: 20,
     gap: 14,
     alignItems: "center"
+  },
+  holdToSpeakButton: {
+    minHeight: 54,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.accentSage,
+    paddingHorizontal: theme.spacing.xl,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.sm
+  },
+  holdToSpeakButtonActive: {
+    backgroundColor: "#6f8f65"
   },
   voiceTimer: {
     color: "#30352f",
@@ -4179,6 +4389,29 @@ const lightStyles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(21, 24, 20, 0.42)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24
+  },
+  modalPanel: {
+    width: "100%",
+    maxWidth: 440,
+    borderWidth: 1,
+    borderColor: "#d8d4c8",
+    backgroundColor: "#fffdf8",
+    borderRadius: 8,
+    padding: 18,
+    gap: 12
+  },
+  modalActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 12
   },
   datePanel: {
     borderWidth: 1,
@@ -4834,11 +5067,15 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   subtle: { color: darkColors.mutedText },
   loadingText: { color: darkColors.secondaryText },
   capturePanel: { backgroundColor: darkColors.paper, borderColor: darkColors.warmBorder, shadowColor: "#000000" },
+  saveNotice: { backgroundColor: "#20301f", borderColor: "#40513d" },
+  saveNoticeText: { color: "#f3efe7" },
   captureEyebrow: { color: "#d7bca9" },
   capturePrompt: { color: "#f3efe7" },
   captureNote: { color: "#c2b8aa" },
   newMemoryInput: { backgroundColor: "#20251f", borderColor: "#534235", color: "#f3efe7" },
   voicePanel: { backgroundColor: "#251f1b", borderColor: "#534235" },
+  holdToSpeakButton: { backgroundColor: darkColors.accentSage },
+  holdToSpeakButtonActive: { backgroundColor: "#48633f" },
   voiceTimer: { color: "#f3efe7" },
   waveformBar: { backgroundColor: "#8fa984" },
   transcriptPanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
