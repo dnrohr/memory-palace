@@ -175,6 +175,38 @@ describe("security and sync seams", () => {
     await expect(provider.decryptText(envelope, "wrong passphrase")).rejects.toThrow();
   });
 
+  it("uses an injected secure random source when global crypto is unavailable", async () => {
+    vi.stubGlobal("crypto", undefined);
+    let calls = 0;
+    const provider = new WebCryptoExportEncryptionProvider({
+      iterations: 1_000,
+      randomValuesSource: {
+        getRandomValues(bytes) {
+          calls += 1;
+          bytes.fill(calls);
+          return bytes;
+        }
+      }
+    });
+    await provider.saveSettings({
+      scope: "exports",
+      keySource: "user_passphrase",
+      requireUnlockForExport: true
+    });
+
+    await expect(provider.getStatus()).resolves.toEqual(expect.objectContaining({ available: true, active: true }));
+
+    const envelope = await provider.encryptText("native injected random archive", "correct horse battery staple", {
+      fileName: "memory-palace-export.json",
+      mediaType: "application/json"
+    });
+
+    expect(calls).toBe(2);
+    expect(envelope.salt).toEqual(new Array(16).fill(1));
+    expect(envelope.iv).toEqual(new Array(12).fill(2));
+    await expect(provider.decryptText(envelope, "correct horse battery staple")).resolves.toBe("native injected random archive");
+  });
+
   it("encrypts and decrypts an archive-at-rest record", async () => {
     const store = new InMemoryArchiveAtRestRecordStore();
     const provider = new WebCryptoExportEncryptionProvider({ iterations: 1_000 });

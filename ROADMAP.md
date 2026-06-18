@@ -25,7 +25,8 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 - A standalone-install launch pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-install-launch.md`: local verification and preflight passed, the release APK built and installed on the attached Pixel 8a, and the app launched directly into Explore without Metro or the development launcher. Full workflow QA remains open.
 - A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Voice no-speech recovery also passed separately; app lock, archive encryption, share-sheet exports/import, WebDAV, audible speech, and actual model-asset QA remain open.
 - A 2026-06-18 Pixel 8a development-client retry passed for the changed capture flow after fixing local Metro routing and a runtime dynamic-import failure in `expo-file-system`: the app opened on New memory, the text box stayed hidden until `Type instead`, the keyboard stayed down on entry, a typed memory saved successfully, and the app returned to Explore with the saved memory visible. The Android 16 KB native-library compatibility warning still appears, and audible hold-to-speak transcription remains open.
-- Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback for runtimes without Web Crypto `subtle`, but the Pixel 8a archive-scope Settings save action still does not dispatch successfully; evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`, and archive-at-rest native device QA remains open.
+- A 2026-06-18 Pixel 8a standalone workflow/encryption run is recorded in `docs/pixel-8-results/2026-06-18-standalone-workflow-encryption.md`: local verification passed, the release APK built and installed, the encrypted JSON export path no longer reports missing secure random bytes, and encrypted local backup synced on-device with `Pushed 4, pulled 0`. Android share-sheet handoff still needs explicit follow-up.
+- Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback and mobile secure-random injection, but the Pixel 8a archive-scope Settings save action still needs a fresh migration/unlock pass; older evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 
 ### Needs Model Runtime Wiring Or Device QA
 
@@ -63,6 +64,10 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Retried the changed flow on the attached Pixel 8a: `npm run pixel8:preflight` passed, Metro routing was repaired with ADB reverse, the Android 16 KB native-library compatibility warning was dismissed, the app opened on New memory, the text field stayed hidden until requested, and a typed memory saved back to Explore with the new memory visible. Audible speech capture QA remains open.
 - Added `AGENTS.md`, `.codex-screenshots/` gitignore coverage, and `npm run screenshots:cleanup` so future agents have a safe dry-run-first path for deleting only disposable screenshots they created.
 - Ran `npm run build` and `npm test`; both passed after the capture, tag, speech, and naming changes.
+- Fixed standalone Android encrypted-export randomness by adding an injectable secure-random source to `WebCryptoExportEncryptionProvider` and wiring mobile encryption flows to `expo-crypto`.
+- Added regression coverage for injected secure random values when global Web Crypto is unavailable.
+- Ran `npm run verify` and `npm run pixel8:install-standalone`; both passed after the mobile secure-random fix.
+- Re-ran Pixel 8a standalone encryption QA: encrypted JSON export no longer shows `Secure random bytes are unavailable in this runtime`, and encrypted local backup synced on-device with `Encrypted backup synced. Pushed 4, pulled 0.` Android share-sheet handoff still needs explicit follow-up because the chooser did not visibly take foreground focus under ADB.
 
 ### 2026-06-14
 
@@ -284,6 +289,7 @@ Done:
 - Basic search, ranked portable search snippets, keyword highlighting, and matched-tag labels.
 - Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
 - Partial Pixel 8a keyboard/search-field focus evidence.
+- Pixel 8a standalone keyword search evidence for a saved typed memory using `searchtoken`.
 
 Remaining:
 - Full device-level search result and keyboard QA.
@@ -377,10 +383,13 @@ Done:
 - Local processing disclosure, deleted-memory controls, archive audit counts, data audit report, storage estimates, processing-log cleanup, retained-audio reference cleanup, and deleted-artifact cleanup for audio references and stale embeddings.
 - App-lock contract, Expo biometric lock provider and UI, SecureStore-backed PIN lock, encryption options contract/UI, and persisted encryption/local-processing preferences.
 - Web Crypto AES-GCM encrypted export provider, portable archive-at-rest encryption adapter, startup unlock for encrypted archive records, encrypted save path after archive unlock, and plaintext primary-storage cleanup after encrypted saves.
+- Mobile encryption now injects Expo Crypto secure random values into encrypted export, backup, sync, and archive adapter flows for Android runtimes without global Web Crypto random support.
+- Pixel 8a standalone encrypted-local-backup QA passed with `Encrypted backup synced. Pushed 4, pulled 0.`
+- Pixel 8a standalone encrypted JSON export no longer hits the secure-random unavailable error; Android share-sheet handoff remains a separate follow-up.
 - Compact Settings trust cards and visually separated advanced diagnostics.
 
 Remaining:
-- Device QA for app lock, encrypted exports, encrypted backup, and archive-at-rest unlock/migration paths.
+- Device QA for app lock, Android share-sheet export/import handoff, and archive-at-rest unlock/migration paths.
 
 ### 11. Optional Cloud and Sync Layer
 
@@ -389,6 +398,7 @@ Status: In progress
 Done:
 - Sync provider contract, disabled no-sync provider, conflict shape, and opt-in encrypted backup/sync provider backed by the archive-at-rest adapter.
 - WebDAV encrypted sync provider target, Settings UI for local encrypted backup sync with an explicit passphrase, and Settings UI for explicit WebDAV URL/credentials/passphrase sync.
+- Pixel 8a standalone encrypted local backup sync evidence.
 
 Remaining:
 - Device QA for WebDAV sync and any cloud-AI adapters behind explicit consent.
@@ -535,7 +545,7 @@ Current prototype read: the typed-memory path meets this definition locally and 
 1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, and the 2026-06-18 development-client pass covers the revised New memory typed-save flow, but not every target workflow.
 2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on Pixel 8a.
-4. Run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews.
+4. Run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews; encrypted JSON now clears the prior secure-random failure, but chooser handoff still needs explicit verification.
 5. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
 6. Run WebDAV encrypted sync device QA.
 7. Run broader device QA across mobile, tablet, and web.

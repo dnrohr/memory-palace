@@ -1,5 +1,6 @@
 import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ExpoCrypto from "expo-crypto";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import {
@@ -135,6 +136,16 @@ type TimelineCertaintyFilter = "all" | "confirmed" | "inferred" | "unknown";
 type TimelineSpanFilter = "all" | "point" | "range" | "unknown";
 
 const NEW_MEMORY_DRAFT_KEY = "memory-palace.new-memory-draft.v1";
+
+function createMobileEncryptionProvider() {
+  return new WebCryptoExportEncryptionProvider({
+    randomValuesSource: {
+      getRandomValues(bytes) {
+        return ExpoCrypto.getRandomValues(bytes);
+      }
+    }
+  });
+}
 
 export default function App() {
   return (
@@ -335,7 +346,7 @@ function AppContent() {
   }
 
   async function createArchiveAtRestAdapter(passphrase: string): Promise<EncryptedArchiveAtRestAdapter> {
-    const provider = new WebCryptoExportEncryptionProvider();
+    const provider = createMobileEncryptionProvider();
     await provider.saveSettings({
       scope: "archive",
       keySource: "user_passphrase",
@@ -3025,7 +3036,7 @@ function Settings(props: {
   const [webDavPassword, setWebDavPassword] = useState("");
   const [webDavPassphrase, setWebDavPassphrase] = useState("");
   const [webDavStatus, setWebDavStatus] = useState<string | undefined>();
-  const encryptionProvider = useMemo(() => new WebCryptoExportEncryptionProvider(), []);
+  const encryptionProvider = useMemo(() => createMobileEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
   const archiveAtRestRequested = encryptionDraft.scope === "archive" && encryptionDraft.keySource === "user_passphrase";
@@ -3189,7 +3200,7 @@ function Settings(props: {
     }
 
     try {
-      const provider = new WebCryptoExportEncryptionProvider();
+      const provider = createMobileEncryptionProvider();
       await provider.saveSettings({
         scope: "archive",
         keySource: "user_passphrase",
@@ -3228,7 +3239,7 @@ function Settings(props: {
     }
 
     try {
-      const provider = new WebCryptoExportEncryptionProvider();
+      const provider = createMobileEncryptionProvider();
       await provider.saveSettings({
         scope: "archive",
         keySource: "user_passphrase",

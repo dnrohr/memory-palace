@@ -38,6 +38,10 @@ export type EncryptedTextEnvelope = {
   createdAt: string;
 };
 
+export type SecureRandomValuesSource = {
+  getRandomValues(bytes: Uint8Array): Uint8Array;
+};
+
 export interface IEncryptionProvider {
   getSettings(): Promise<EncryptionSettings>;
   saveSettings(settings: EncryptionSettings): Promise<void>;
@@ -88,9 +92,11 @@ export class NoEncryptionProvider implements IEncryptionProvider {
 export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
   private settings: EncryptionSettings = DISABLED_ENCRYPTION_SETTINGS;
   private readonly iterations: number;
+  private readonly randomValuesSource: SecureRandomValuesSource | undefined;
 
-  constructor(options: { iterations?: number } = {}) {
+  constructor(options: { iterations?: number; randomValuesSource?: SecureRandomValuesSource } = {}) {
     this.iterations = options.iterations ?? 310_000;
+    this.randomValuesSource = options.randomValuesSource;
   }
 
   async getSettings(): Promise<EncryptionSettings> {
@@ -105,7 +111,7 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
   }
 
   async getStatus(): Promise<EncryptionStatus> {
-    const available = hasWebCryptoSubtle() || Boolean(getRandomValuesSource());
+    const available = hasWebCryptoSubtle() || Boolean(this.getRandomValuesSource());
     const active = available && this.settings.scope !== "disabled" && this.settings.keySource === "user_passphrase";
     return {
       providerId: "web-crypto-export",
@@ -117,8 +123,8 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
   }
 
   async encryptText(text: string, passphrase: string, metadata: EncryptionInputMetadata): Promise<EncryptedTextEnvelope> {
-    const salt = randomBytes(16);
-    const iv = randomBytes(12);
+    const salt = randomBytes(16, this.getRandomValuesSource());
+    const iv = randomBytes(12, this.getRandomValuesSource());
     const ciphertext = hasWebCryptoSubtle()
       ? await encryptTextWithWebCrypto(text, passphrase, salt, iv, this.iterations)
       : encryptTextWithNoble(text, passphrase, salt, iv, this.iterations);
@@ -152,6 +158,10 @@ export class WebCryptoExportEncryptionProvider implements IEncryptionProvider {
       new Uint8Array(envelope.ciphertext)
     );
     return new TextDecoder().decode(plaintext);
+  }
+
+  private getRandomValuesSource(): SecureRandomValuesSource | undefined {
+    return this.randomValuesSource ?? getGlobalRandomValuesSource();
   }
 }
 
@@ -217,8 +227,7 @@ function deriveAesKeyBytes(passphrase: string, salt: Uint8Array, iterations: num
   return pbkdf2(sha256, new TextEncoder().encode(passphrase), salt, { c: iterations, dkLen: 32 });
 }
 
-function randomBytes(length: number): Uint8Array {
-  const source = getRandomValuesSource();
+function randomBytes(length: number, source: SecureRandomValuesSource | undefined): Uint8Array {
   if (!source) {
     throw new Error("Secure random bytes are unavailable in this runtime.");
   }
@@ -245,9 +254,18 @@ function hasWebCryptoSubtle(): boolean {
   return Boolean(getWebCrypto()?.subtle);
 }
 
-function getRandomValuesSource(): Pick<Crypto, "getRandomValues"> | undefined {
+function getGlobalRandomValuesSource(): SecureRandomValuesSource | undefined {
   const crypto = getWebCrypto();
-  return typeof crypto?.getRandomValues === "function" ? crypto : undefined;
+  return typeof crypto?.getRandomValues === "function"
+    ? {
+        getRandomValues(bytes) {
+          const target = new Uint8Array(bytes.byteLength);
+          crypto.getRandomValues(target);
+          bytes.set(target);
+          return bytes;
+        }
+      }
+    : undefined;
 }
 
 function getWebCrypto(): Crypto | undefined {
