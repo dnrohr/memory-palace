@@ -26,12 +26,13 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 - A standalone major-gate smoke pass is recorded in `docs/pixel-8-results/2026-06-14-standalone-major-gate-smoke.md`: on the attached Pixel 8a, startup, Explore, text memory save/detail, force-stop persistence, keyword search, Settings visibility, local model fallback visibility, and export/import surface presence passed. Voice no-speech recovery also passed separately; app lock, archive encryption, share-sheet exports/import, WebDAV, audible speech, and actual model-asset QA remain open.
 - A 2026-06-18 Pixel 8a development-client retry passed for the changed capture flow after fixing local Metro routing and a runtime dynamic-import failure in `expo-file-system`: the app opened on New memory, the text box stayed hidden until `Type instead`, the keyboard stayed down on entry, a typed memory saved successfully, and the app returned to Explore with the saved memory visible. The Android 16 KB native-library compatibility warning still appears, and audible hold-to-speak transcription remains open.
 - A 2026-06-18 Pixel 8a standalone workflow/encryption run is recorded in `docs/pixel-8-results/2026-06-18-standalone-workflow-encryption.md`: local verification passed, the release APK built and installed, the encrypted JSON export path no longer reports missing secure random bytes, and encrypted local backup synced on-device with `Pushed 4, pulled 0`. Native export sharing now uses Expo Sharing, but Pixel chooser verification is blocked until the encrypted archive unlock state is resolved or QA app data is reset with approval.
+- A 2026-06-18 local-model mode wiring pass is recorded in `docs/pixel-8-results/2026-06-18-local-model-mode-wiring.md`: Settings now exposes Qwen local structured extraction and BGE local embedding engine modes separately from embedding maintenance, with guarded fallback behavior. Local build/tests passed, the first Android release bundle exposed a Transformers.js/`onnxruntime-web` Metro packaging issue for BGE, and the final standalone APK build/install passed after keeping BGE execution on the hash fallback until tokenizer packaging is solved.
 - Archive-at-rest encryption is now wired through the Settings save flow on web: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`. Android now has a native-compatible AES-GCM/PBKDF2 fallback and mobile secure-random injection, but the Pixel 8a archive-scope Settings save action still needs a fresh migration/unlock pass; older evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 
 ### Needs Model Runtime Wiring Or Device QA
 
-- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loader are present. Device QA is blocked by the Pixel 8a 16 KB native-library compatibility warning, and explicit user-facing mode wiring remains deferred.
-- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, and ONNX Runtime loader are present. Device QA is blocked by the Pixel 8a 16 KB native-library compatibility warning, and explicit embedding-mode wiring remains deferred.
+- Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, native `llama.rn` context loader, and guarded user-facing Qwen mode are present. Device QA with actual model assets is still blocked by the Pixel 8a encrypted-archive state and the Android 16 KB native-library compatibility warning.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, ONNX Runtime loader, and user-facing BGE mode are present. BGE execution remains on the hash fallback until the Transformers.js tokenizer path can be packaged without pulling `onnxruntime-web` into the native Metro bundle, and actual asset QA remains open.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; device QA remains before treating it as complete.
 
 ### Needs Device QA
@@ -71,6 +72,9 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Switched native export handoff from React Native `Share.share` with a file URL to Expo `Sharing.shareAsync` with a cache-file URI and media type, keeping the web/text fallback.
 - Rebuilt and installed the standalone APK with `expo-sharing`; local build/tests passed, and the Pixel install passed. Chooser verification remains open because the device now starts on the encrypted archive unlock screen from the prior encryption run, and ADB unlock attempts did not dispatch a success or visible error state.
 - Hardened PIN and passphrase inputs by disabling autocapitalization/autocorrect, and added keyboard Done submission for archive unlock. Local build/tests and Pixel standalone install passed; the existing encrypted archive still could not be unlocked through ADB automation with the known QA passphrases, so manual device interaction or approved QA app-data reset is needed before more chooser/export QA.
+- Added explicit local-model mode wiring: Settings now separates structured extraction mode (`off`, local rules, Qwen local), embedding engine mode (hash local, BGE local), and embedding maintenance mode (automatic/manual). Qwen attempts the local model only when selected and falls back to rules if assets/runtime are unavailable; BGE remains visibly selectable but continues using hash embeddings until the native tokenizer packaging issue is solved.
+- Added settings-store regression tests for older settings defaulting to hash embeddings and for persisted Qwen/BGE mode choices.
+- Ran `npm run build`, `npm test`, and `npm run pixel8:install-standalone` for the local-model mode wiring. The first standalone build exposed a Metro failure from `onnxruntime-web` when BGE runtime loading was statically imported; after moving BGE execution back behind the hash fallback, the standalone APK built and installed successfully.
 
 ### 2026-06-14
 
@@ -339,11 +343,11 @@ Status: In progress
 
 Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
-- Settings controls for local rules extraction.
+- Settings controls for local rules extraction and a guarded Qwen local mode.
 - Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loading.
 
 Remaining:
-- Device QA with actual model assets, then explicit user-facing local-model mode wiring if latency, memory use, and recovery behavior are acceptable.
+- Device QA with actual Qwen model assets, including latency, memory use, fallback, and recovery behavior.
 
 ### 7. Semantic Search and Embeddings
 
@@ -352,10 +356,10 @@ Status: In progress
 Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
-- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, and ONNX Runtime loader.
+- Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, Expo document-storage asset discovery, Transformers.js tokenizer adapter, ONNX Runtime loader, and a user-facing BGE mode that stays on hash fallback until tokenizer packaging is safe.
 
 Remaining:
-- Device QA with actual model assets, then explicit user-facing embedding-mode wiring if latency, memory use, and recovery behavior are acceptable.
+- Package the BGE tokenizer/runtime path without pulling `onnxruntime-web` into the native Metro bundle, then run device QA with actual model assets and acceptable latency, memory use, fallback, and recovery behavior.
 
 ### 8. Timeline and Memory Visualization
 
@@ -549,7 +553,7 @@ Current prototype read: the typed-memory path meets this definition locally and 
 2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
 3. Run device QA for archive-at-rest encryption migration, unlock, and plaintext cleanup on Pixel 8a.
 4. Resolve the Pixel 8a encrypted archive unlock state with manual device interaction, or reset QA app data with approval, then run share-sheet export/import action QA on Android for JSON, Markdown, Markdown bundle, SQLite SQL, and import previews.
-5. Run local-model asset QA on target hardware, then wire explicit user-facing BGE/Qwen modes only if latency, memory use, and recovery behavior are acceptable.
+5. Run Qwen local-model asset QA on target hardware, and solve BGE tokenizer packaging before BGE asset QA.
 6. Run WebDAV encrypted sync device QA.
 7. Run broader device QA across mobile, tablet, and web.
 8. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.

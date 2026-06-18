@@ -61,6 +61,7 @@ import {
 import { createLifeContextId, findLifeContextMatches, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
 import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
+import { HashEmbeddingEngine, type IEmbeddingEngine } from "../../../src/processing/embeddings";
 import { parseTagNames } from "../../../src/core/tagParsing";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
 import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
@@ -70,6 +71,7 @@ import { searchArchive } from "../../../src/search/searchService";
 import {
   BGE_SMALL_EN_V15_ASSET_MANIFEST,
   checkLocalModelAvailability,
+  createQwenStructuredExtractionEngineFromAssets,
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type LocalModelAvailability
 } from "../../../src/processing/localModelAssets";
@@ -116,14 +118,17 @@ import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, 
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
 import { ExpoDocumentLocalModelAssetStore, localModelDirectoryHint } from "./localModelAssetStore";
+import { loadQwenNativeRuntimeFromAssets } from "./qwenNativeRuntime";
 import {
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
   saveAppearanceMode,
+  saveEmbeddingEngineMode,
   saveEmbeddingMaintenanceMode,
   saveEncryptionSettings,
   saveStructuredExtractionMode,
   type AppearanceMode,
+  type EmbeddingEngineMode,
   type EmbeddingMaintenanceMode,
   type StructuredExtractionMode
 } from "./settingsStore";
@@ -147,6 +152,49 @@ function createMobileEncryptionProvider() {
   });
 }
 
+async function createEmbeddingEngineForMode(mode: EmbeddingEngineMode): Promise<IEmbeddingEngine> {
+  if (mode === "bge-small-en-v1.5") {
+    // BGE assets are discoverable, but the current Transformers.js tokenizer path pulls
+    // onnxruntime-web into Metro's native bundle. Keep release builds on the hash fallback
+    // until that packaging issue is solved.
+    return new HashEmbeddingEngine();
+  }
+
+  return new HashEmbeddingEngine();
+}
+
+async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMode, text: string) {
+  if (mode === "none") {
+    return {
+      title: undefined,
+      dates: [],
+      tags: [],
+      emotionalTone: [],
+      engineId: "none"
+    };
+  }
+
+  if (mode === "qwen2.5-0.5b") {
+    try {
+      const engine = await createQwenStructuredExtractionEngineFromAssets(
+        new ExpoDocumentLocalModelAssetStore(QWEN_2_5_0_5B_ASSET_MANIFEST),
+        loadQwenNativeRuntimeFromAssets
+      );
+      if (engine) return engine.extract({ text });
+    } catch {
+      // Fall through to local rules so unavailable optional models never block capture.
+    }
+  }
+
+  return {
+    title: undefined,
+    dates: extractDateCandidates(text),
+    tags: suggestTags(text),
+    emotionalTone: [],
+    engineId: "rules-structured"
+  };
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -168,6 +216,7 @@ function AppContent() {
   const [structuredExtractionMode, setStructuredExtractionMode] = useState<StructuredExtractionMode>(
     DEFAULT_APP_SETTINGS.structuredExtractionMode
   );
+  const [embeddingEngineMode, setEmbeddingEngineMode] = useState<EmbeddingEngineMode>(DEFAULT_APP_SETTINGS.embeddingEngineMode);
   const [embeddingMaintenanceMode, setEmbeddingMaintenanceMode] = useState<EmbeddingMaintenanceMode>(
     DEFAULT_APP_SETTINGS.embeddingMaintenanceMode
   );
@@ -271,7 +320,10 @@ function AppContent() {
 
     let isCurrent = true;
     setSemanticSearchPending(true);
-    void searchEmbeddingIndex(archive, query, { limit: 50 }).then((results) => {
+    void createEmbeddingEngineForMode(embeddingEngineMode)
+      .then((engine) => searchEmbeddingIndex(archive, query, { engine, limit: 50 }))
+      .catch(() => searchEmbeddingIndex(archive, query, { limit: 50 }))
+      .then((results) => {
       if (!isCurrent) return;
       setSemanticMemories(results.map((result) => result.memory));
       setSemanticSearchPending(false);
@@ -280,11 +332,11 @@ function AppContent() {
     return () => {
       isCurrent = false;
     };
-  }, [archive, query, searchMode]);
+  }, [archive, embeddingEngineMode, query, searchMode]);
 
   const selectedMemory = archive?.memories.find((memory) => memory.id === selectedId);
 
-  async function loadArchiveForSettings(settings: EncryptionSettings) {
+  async function loadArchiveForSettings(settings: EncryptionSettings, engineMode: EmbeddingEngineMode = embeddingEngineMode) {
     setArchiveLoadError(undefined);
     if (settings.scope === "archive" && settings.keySource === "user_passphrase") {
       const encryptedRecord = await new AsyncStorageArchiveAtRestRecordStore().read();
@@ -294,7 +346,7 @@ function AppContent() {
       }
     }
 
-    await loadAndIndexArchive(await loadArchive());
+    await loadAndIndexArchive(await loadArchive(), undefined, engineMode);
   }
 
   async function loadInitialArchive() {
@@ -302,9 +354,10 @@ function AppContent() {
       const settings = await loadAppSettings();
       setEncryptionSettings(settings.encryptionSettings);
       setStructuredExtractionMode(settings.structuredExtractionMode);
+      setEmbeddingEngineMode(settings.embeddingEngineMode);
       setEmbeddingMaintenanceMode(settings.embeddingMaintenanceMode);
       setAppearanceMode(settings.appearanceMode);
-      await loadArchiveForSettings(settings.encryptionSettings);
+      await loadArchiveForSettings(settings.encryptionSettings, settings.embeddingEngineMode);
     } catch (error) {
       setArchiveLoadError(error instanceof Error ? error.message : "Archive could not be loaded.");
     }
@@ -318,8 +371,13 @@ function AppContent() {
     setLocalModelAvailability(availability);
   }
 
-  async function loadAndIndexArchive(loadedArchive: MemoryArchive, passphraseOverride?: string) {
-    const { archive: indexedArchive, indexedMemoryIds, removedMemoryIds } = await rebuildEmbeddingIndex(loadedArchive);
+  async function loadAndIndexArchive(
+    loadedArchive: MemoryArchive,
+    passphraseOverride?: string,
+    engineMode: EmbeddingEngineMode = embeddingEngineMode
+  ) {
+    const engine = await createEmbeddingEngineForMode(engineMode);
+    const { archive: indexedArchive, indexedMemoryIds, removedMemoryIds } = await rebuildEmbeddingIndex(loadedArchive, { engine });
     setArchive(indexedArchive);
     if (indexedMemoryIds.length > 0 || removedMemoryIds.length > 0) {
       await saveArchiveForCurrentSettings(indexedArchive, passphraseOverride);
@@ -371,7 +429,9 @@ function AppContent() {
 
   async function persist(nextArchive: MemoryArchive, options: { rebuildEmbeddings?: boolean } = {}) {
     const shouldRebuildEmbeddings = embeddingMaintenanceMode === "automatic" || options.rebuildEmbeddings;
-    const archiveToSave = shouldRebuildEmbeddings ? (await rebuildEmbeddingIndex(nextArchive)).archive : nextArchive;
+    const archiveToSave = shouldRebuildEmbeddings
+      ? (await rebuildEmbeddingIndex(nextArchive, { engine: await createEmbeddingEngineForMode(embeddingEngineMode) })).archive
+      : nextArchive;
     setArchive(archiveToSave);
     await saveArchiveForCurrentSettings(archiveToSave);
   }
@@ -648,6 +708,7 @@ function AppContent() {
             appLockSettings={appLockSettings}
             encryptionSettings={encryptionSettings}
             structuredExtractionMode={structuredExtractionMode}
+            embeddingEngineMode={embeddingEngineMode}
             embeddingMaintenanceMode={embeddingMaintenanceMode}
             localModelAvailability={localModelAvailability}
             appearanceMode={appearanceMode}
@@ -706,6 +767,10 @@ function AppContent() {
             onStructuredExtractionModeChange={async (mode) => {
               const savedSettings = await saveStructuredExtractionMode(mode);
               setStructuredExtractionMode(savedSettings.structuredExtractionMode);
+            }}
+            onEmbeddingEngineModeChange={async (mode) => {
+              const savedSettings = await saveEmbeddingEngineMode(mode);
+              setEmbeddingEngineMode(savedSettings.embeddingEngineMode);
             }}
             onEmbeddingMaintenanceModeChange={async (mode) => {
               const savedSettings = await saveEmbeddingMaintenanceMode(mode);
@@ -2587,6 +2652,8 @@ function MemoryEditor(props: {
   const [datePrecision, setDatePrecision] = useState<DatePrecision>(props.memory?.datePrecision ?? "unknown");
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
   const [dateSuggestions, setDateSuggestions] = useState<DateCandidate[]>([]);
+  const [suggestionsPending, setSuggestionsPending] = useState(false);
+  const [suggestionStatus, setSuggestionStatus] = useState<string | undefined>();
 
   const canSave = text.trim().length > 0;
   const isEditing = Boolean(props.memory);
@@ -2612,36 +2679,47 @@ function MemoryEditor(props: {
     await props.onSave(memory, tagText);
   }
 
-  function generateSuggestions() {
+  async function generateSuggestions() {
     if (props.structuredExtractionMode === "none") {
       setTagSuggestions([]);
       setDateSuggestions([]);
+      setSuggestionStatus("Suggestions are off.");
       return;
     }
 
+    setSuggestionsPending(true);
+    setSuggestionStatus(undefined);
     const rejectedTagNames = props.memory
       ? props.archive.memoryTags
           .filter((link) => link.memoryId === props.memory?.id && link.rejected)
           .map((link) => props.archive.tags.find((tag) => tag.id === link.tagId)?.normalizedName)
           .filter((name): name is string => Boolean(name))
       : [];
-    const nextTagSuggestions = suggestTags(text, { rejectedNames: rejectedTagNames });
-    const nextDateSuggestions = extractDateCandidates(text);
-    setTagSuggestions(nextTagSuggestions);
-    setDateSuggestions(nextDateSuggestions);
+    try {
+      const result = await extractStructuredSuggestionsForMode(props.structuredExtractionMode, text);
+      const nextTagSuggestions = result.tags.filter((tag) => !rejectedTagNames.includes(tag.name.toLocaleLowerCase()));
+      const nextDateSuggestions = result.dates;
+      setTagSuggestions(nextTagSuggestions);
+      setDateSuggestions(nextDateSuggestions);
+      setSuggestionStatus(
+        result.engineId === "local-model-structured-qwen2.5-0.5b-instruct" ? "Suggested with Qwen local model." : "Suggested with local rules."
+      );
 
-    const existingTags = new Set(parseTagNames(tagText));
-    const mergedTags = [
-      ...parseTagNames(tagText),
-      ...nextTagSuggestions.filter((tag) => !existingTags.has(tag.name.toLocaleLowerCase())).map((tag) => tag.name)
-    ];
-    setTagText(mergedTags.join(", "));
+      const existingTags = new Set(parseTagNames(tagText));
+      const mergedTags = [
+        ...parseTagNames(tagText),
+        ...nextTagSuggestions.filter((tag) => !existingTags.has(tag.name.toLocaleLowerCase())).map((tag) => tag.name)
+      ];
+      setTagText(mergedTags.join(", "));
 
-    const preferredDate = nextDateSuggestions[0];
-    if (preferredDate) {
-      setDatePrecision(preferredDate.precision);
-      setStartDate(preferredDate.startDate ?? "");
-      setEndDate(preferredDate.endDate ?? "");
+      const preferredDate = nextDateSuggestions[0];
+      if (preferredDate) {
+        setDatePrecision(preferredDate.precision);
+        setStartDate(preferredDate.startDate ?? "");
+        setEndDate(preferredDate.endDate ?? "");
+      }
+    } finally {
+      setSuggestionsPending(false);
     }
   }
 
@@ -2730,9 +2808,17 @@ function MemoryEditor(props: {
           ))}
         </View>
       ) : null}
+      {suggestionStatus ? <Text style={styles.metadata}>{suggestionStatus}</Text> : null}
       <View style={styles.actionRow}>
         <SecondaryButton label="Cancel" onPress={props.onCancel} icon={<X size={18} />} />
-        {isEditing ? <SecondaryButton label="Suggest" onPress={generateSuggestions} icon={<Wand2 size={18} />} /> : null}
+        {isEditing ? (
+          <SecondaryButton
+            label={suggestionsPending ? "Suggesting..." : "Suggest"}
+            onPress={() => void generateSuggestions()}
+            disabled={suggestionsPending}
+            icon={<Wand2 size={18} />}
+          />
+        ) : null}
         <PrimaryButton label={isEditing ? "Save changes" : "Save privately"} onPress={save} disabled={!canSave} icon={<Save size={18} />} />
       </View>
     </ScrollView>
@@ -2989,11 +3075,36 @@ function PostSaveSuggestionSheet(props: {
   );
 }
 
+function structuredExtractionModeLabel(mode: StructuredExtractionMode): string {
+  switch (mode) {
+    case "none":
+      return "off";
+    case "qwen2.5-0.5b":
+      return "Qwen local";
+    case "rules":
+      return "local rules";
+  }
+}
+
+function embeddingEngineModeLabel(mode: EmbeddingEngineMode): string {
+  return mode === "bge-small-en-v1.5" ? "BGE local" : "hash local";
+}
+
+function localModelModeStatus(availability: LocalModelAvailability[], manifestId: string, fallbackReason?: string): string {
+  const model = availability.find((candidate) => candidate.manifest.id === manifestId);
+  if (!model) return "Model files have not been checked yet; current fallback stays active.";
+  if (model.available && fallbackReason) return `Files are present in ${localModelDirectoryHint(model.manifest)}. ${fallbackReason}`;
+  return model.available
+    ? `Ready in ${localModelDirectoryHint(model.manifest)}.`
+    : `Missing ${model.missingAssetIds.length} required file(s) in ${localModelDirectoryHint(model.manifest)}; current fallback stays active.`;
+}
+
 function Settings(props: {
   archive: MemoryArchive;
   appLockSettings: AppLockSettings;
   encryptionSettings: EncryptionSettings;
   structuredExtractionMode: StructuredExtractionMode;
+  embeddingEngineMode: EmbeddingEngineMode;
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
   localModelAvailability: LocalModelAvailability[];
   appearanceMode: AppearanceMode;
@@ -3009,6 +3120,7 @@ function Settings(props: {
   onLockNow: () => Promise<void>;
   onSaveEncryptionSettings: (settings: EncryptionSettings, passphrase?: string) => Promise<void>;
   onStructuredExtractionModeChange: (mode: StructuredExtractionMode) => Promise<void>;
+  onEmbeddingEngineModeChange: (mode: EmbeddingEngineMode) => Promise<void>;
   onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
   onRefreshLocalModels: () => Promise<void>;
   onAppearanceModeChange: (mode: AppearanceMode) => Promise<void>;
@@ -3330,8 +3442,8 @@ function Settings(props: {
           <TrustItem label="Storage" value="this device" />
           <TrustItem label="Cloud sync" value="off" />
           <TrustItem label="Cloud AI" value="off" />
-          <TrustItem label="Suggestions" value={props.structuredExtractionMode === "rules" ? "local rules" : "off"} />
-          <TrustItem label="Nearby search" value="local index" />
+          <TrustItem label="Suggestions" value={structuredExtractionModeLabel(props.structuredExtractionMode)} />
+          <TrustItem label="Nearby search" value={embeddingEngineModeLabel(props.embeddingEngineMode)} />
           <TrustItem label="Audio" value="optional" />
         </View>
       </SettingsSection>
@@ -3368,19 +3480,42 @@ function Settings(props: {
 
       <SettingsSection title="Local Processing" description="Rules, nearby search, and diagnostics that run on this device.">
         <Text style={styles.panelTitle}>Structured extraction</Text>
-        <Text style={styles.metadata}>Mode: {props.structuredExtractionMode === "rules" ? "local rules" : "off"}</Text>
+        <Text style={styles.metadata}>Mode: {structuredExtractionModeLabel(props.structuredExtractionMode)}</Text>
         <View style={styles.tags}>
-          <FilterChip
-            label="off"
-            selected={props.structuredExtractionMode === "none"}
-            onPress={() => void props.onStructuredExtractionModeChange("none")}
-          />
-          <FilterChip
-            label="local rules"
-            selected={props.structuredExtractionMode === "rules"}
-            onPress={() => void props.onStructuredExtractionModeChange("rules")}
-          />
+          {(["none", "rules", "qwen2.5-0.5b"] as StructuredExtractionMode[]).map((mode) => (
+            <FilterChip
+              key={mode}
+              label={structuredExtractionModeLabel(mode)}
+              selected={props.structuredExtractionMode === mode}
+              onPress={() => void props.onStructuredExtractionModeChange(mode)}
+            />
+          ))}
         </View>
+        {props.structuredExtractionMode === "qwen2.5-0.5b" ? (
+          <Text style={styles.metadata}>{localModelModeStatus(props.localModelAvailability, QWEN_2_5_0_5B_ASSET_MANIFEST.id)}</Text>
+        ) : null}
+        <View style={styles.settingsDivider} />
+        <Text style={styles.panelTitle}>Embedding engine</Text>
+        <Text style={styles.metadata}>Mode: {embeddingEngineModeLabel(props.embeddingEngineMode)}</Text>
+        <View style={styles.tags}>
+          {(["hash", "bge-small-en-v1.5"] as EmbeddingEngineMode[]).map((mode) => (
+            <FilterChip
+              key={mode}
+              label={embeddingEngineModeLabel(mode)}
+              selected={props.embeddingEngineMode === mode}
+              onPress={() => void props.onEmbeddingEngineModeChange(mode)}
+            />
+          ))}
+        </View>
+        {props.embeddingEngineMode === "bge-small-en-v1.5" ? (
+          <Text style={styles.metadata}>
+            {localModelModeStatus(
+              props.localModelAvailability,
+              BGE_SMALL_EN_V15_ASSET_MANIFEST.id,
+              "BGE remains on the hash fallback until the native tokenizer bundle is packaged safely."
+            )}
+          </Text>
+        ) : null}
         <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Embedding maintenance</Text>
         <Text style={styles.metadata}>Mode: {props.embeddingMaintenanceMode}</Text>
