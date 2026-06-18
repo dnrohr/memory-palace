@@ -47,3 +47,12 @@ The fix adds an injectable secure-random source to `WebCryptoExportEncryptionPro
 - WebDAV sync remains open because no test server was configured.
 - Actual BGE/Qwen model-asset runtime QA remains open; the native-library page-size warning and CPU-only `llama.rn` build note still apply.
 - Edit/tag persistence was not counted in this run because one ADB input attempt used shell-sensitive semicolon text.
+
+## Follow-Up: Native Sharing Patch
+
+After this encryption run, the native export handoff was changed from React Native `Share.share` with a file URL to Expo `Sharing.shareAsync` with a cache-file URI and media type.
+
+- `npm run build`: passed.
+- `npm test`: passed, 26 files and 124 tests.
+- `npm run pixel8:install-standalone`: passed, and the Gradle module list included `expo-sharing`.
+- Pixel retest blocker: after reinstall, the app correctly opened to the encrypted archive unlock screen from the prior encryption run. ADB attempts with the known QA passphrases did not unlock or show an error state, and no app fatal exception appeared in filtered logcat. I did not clear app data, so chooser verification remains open until the archive unlock state is resolved or the user approves resetting the QA app data.

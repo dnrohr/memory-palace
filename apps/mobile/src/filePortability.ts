@@ -27,15 +27,20 @@ export async function shareExportArtifact(artifact: ExportArtifact): Promise<voi
     return;
   }
 
+  const Sharing = await import("expo-sharing");
   const { File, Paths } = await import("expo-file-system");
   const safeName = artifact.fileName.replace(/[^a-z0-9._-]+/gi, "-");
   const file = new File(Paths.cache, safeName);
   file.write(artifact.content);
-  await Share.share({
-    title: artifact.fileName,
-    message: artifact.fileName,
-    url: file.uri
-  });
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(file.uri, {
+      dialogTitle: artifact.fileName,
+      mimeType: artifact.mediaType
+    });
+    return;
+  }
+
+  await Share.share({ title: artifact.fileName, message: artifact.content });
 }
 
 export function combineMarkdownArtifacts(artifacts: ExportArtifact[]): ExportArtifact {
