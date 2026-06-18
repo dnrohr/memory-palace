@@ -899,6 +899,8 @@ function UnlockView(props: { mode: AppLockSettings["mode"]; onUnlock: (secret?: 
           placeholderTextColor="#7b8178"
           secureTextEntry
           keyboardType="number-pad"
+          autoCapitalize="none"
+          autoCorrect={false}
           style={styles.tagInput}
         />
       ) : null}
@@ -933,6 +935,10 @@ function ArchiveUnlockView(props: { error: string | undefined; onUnlock: (passph
         placeholder="Archive passphrase"
         placeholderTextColor="#7b8178"
         secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="done"
+        onSubmitEditing={() => void unlock()}
         style={styles.tagInput}
       />
       {props.error ? <Text style={styles.errorText}>{props.error}</Text> : null}
@@ -3453,6 +3459,8 @@ function Settings(props: {
                 placeholderTextColor="#7b8178"
                 secureTextEntry
                 keyboardType="number-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
                 style={styles.dateInput}
               />
               <SecondaryButton
@@ -3546,6 +3554,8 @@ function Settings(props: {
           placeholder="Backup passphrase"
           placeholderTextColor="#7b8178"
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           style={styles.tagInput}
         />
         <SecondaryButton label="Sync encrypted backup" onPress={syncEncryptedBackup} disabled={!backupPassphrase.trim()} icon={<Lock size={18} />} />
@@ -3579,6 +3589,8 @@ function Settings(props: {
             placeholder="Password"
             placeholderTextColor="#7b8178"
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
             style={styles.dateInput}
           />
         </View>
@@ -3588,6 +3600,8 @@ function Settings(props: {
           placeholder="Sync encryption passphrase"
           placeholderTextColor="#7b8178"
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           style={styles.tagInput}
         />
         <SecondaryButton
@@ -3609,6 +3623,8 @@ function Settings(props: {
               placeholder="Export passphrase"
               placeholderTextColor="#7b8178"
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
               style={styles.tagInput}
             />
           </>
@@ -3732,6 +3748,8 @@ function Settings(props: {
               placeholder="Archive passphrase"
               placeholderTextColor="#7b8178"
               secureTextEntry={Platform.OS !== "android"}
+              autoCapitalize="none"
+              autoCorrect={false}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={(event) => void saveArchiveEncryption(event.nativeEvent.text)}

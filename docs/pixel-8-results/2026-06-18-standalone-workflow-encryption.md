@@ -56,3 +56,12 @@ After this encryption run, the native export handoff was changed from React Nati
 - `npm test`: passed, 26 files and 124 tests.
 - `npm run pixel8:install-standalone`: passed, and the Gradle module list included `expo-sharing`.
 - Pixel retest blocker: after reinstall, the app correctly opened to the encrypted archive unlock screen from the prior encryption run. ADB attempts with the known QA passphrases did not unlock or show an error state, and no app fatal exception appeared in filtered logcat. I did not clear app data, so chooser verification remains open until the archive unlock state is resolved or the user approves resetting the QA app data.
+
+## Follow-Up: Passphrase Input Hardening
+
+The archive unlock, PIN, backup, WebDAV, export, and archive-migration secret fields now disable autocapitalization and autocorrect. Archive unlock also submits from the keyboard Done action.
+
+- `npm run build`: passed.
+- `npm test`: passed, 26 files and 124 tests.
+- `npm run pixel8:install-standalone`: passed.
+- Pixel retest result: the encrypted archive screen still did not unlock or surface an error through ADB key/tap automation with the known QA passphrases. The app stayed stable and foregrounded, with no app fatal exception in filtered logcat. Further chooser/export QA still needs either manual interaction with the device or approval to reset the QA app data.
