@@ -35,6 +35,10 @@ Validate the new Settings Life Calendar controls and the Android SQLite persiste
 
 Passed. The Settings UI rendered on Pixel 8a, accepted and saved the birthday, generated the expected age/grade conversion preview, and preserved the profile after force-stop/relaunch through SQLite storage. The checked log slice showed normal startup/UIAutomator output and no app `FATAL EXCEPTION`.
 
+## Label Follow-Up
+
+After the first QA pass, the Life Calendar inputs were updated to use persistent labels and short helper hints instead of relying on placeholder-only text. A fresh standalone Pixel 8a install rendered explicit labels for `Your birth year`, `Your birth month`, `Your birth day`, `Month school year starts`, and `Age at kindergarten start`; the saved values `1985`, `3`, `12`, `8`, and `5` were still visible, and the age/grade preview remained unchanged. The checked log slice only showed UIAutomator runtime lines and no app fatal exception.
+
 ## Notes
 
 - The app had existing Qwen/BGE local-model settings and one memory from prior QA data; this pass did not reset app data.

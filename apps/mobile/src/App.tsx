@@ -3894,63 +3894,73 @@ function Settings(props: {
           Age, grade, and calendar year stay interchangeable as suggestions. Memory text is not rewritten.
         </Text>
         <View style={styles.dateInputs}>
-          <TextInput
-            value={birthYearDraft}
-            onChangeText={setBirthYearDraft}
-            placeholder="Birth year"
-            placeholderTextColor="#7b8178"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Birth year"
-            style={styles.dateInput}
-          />
-          <TextInput
-            value={birthMonthDraft}
-            onChangeText={setBirthMonthDraft}
-            placeholder="Birth month"
-            placeholderTextColor="#7b8178"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Birth month"
-            style={styles.dateInput}
-          />
-          <TextInput
-            value={birthDayDraft}
-            onChangeText={setBirthDayDraft}
-            placeholder="Birth day"
-            placeholderTextColor="#7b8178"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Birth day"
-            style={styles.dateInput}
-          />
+          <LabeledSettingsInput label="Your birth year" hint="Example: 1985">
+            <TextInput
+              value={birthYearDraft}
+              onChangeText={setBirthYearDraft}
+              placeholder="YYYY"
+              placeholderTextColor="#7b8178"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Your birth year"
+              style={[styles.dateInput, styles.labeledDateInput]}
+            />
+          </LabeledSettingsInput>
+          <LabeledSettingsInput label="Your birth month" hint="1 through 12">
+            <TextInput
+              value={birthMonthDraft}
+              onChangeText={setBirthMonthDraft}
+              placeholder="MM"
+              placeholderTextColor="#7b8178"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Your birth month"
+              style={[styles.dateInput, styles.labeledDateInput]}
+            />
+          </LabeledSettingsInput>
+          <LabeledSettingsInput label="Your birth day" hint="Day of month">
+            <TextInput
+              value={birthDayDraft}
+              onChangeText={setBirthDayDraft}
+              placeholder="DD"
+              placeholderTextColor="#7b8178"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Your birth day"
+              style={[styles.dateInput, styles.labeledDateInput]}
+            />
+          </LabeledSettingsInput>
         </View>
         <View style={styles.dateInputs}>
-          <TextInput
-            value={schoolYearStartMonthDraft}
-            onChangeText={setSchoolYearStartMonthDraft}
-            placeholder="School start month"
-            placeholderTextColor="#7b8178"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="School start month"
-            style={styles.dateInput}
-          />
-          <TextInput
-            value={kindergartenStartAgeDraft}
-            onChangeText={setKindergartenStartAgeDraft}
-            placeholder="Kindergarten start age"
-            placeholderTextColor="#7b8178"
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Kindergarten start age"
-            style={styles.dateInput}
-          />
+          <LabeledSettingsInput label="Month school year starts" hint="8 = August, 9 = September">
+            <TextInput
+              value={schoolYearStartMonthDraft}
+              onChangeText={setSchoolYearStartMonthDraft}
+              placeholder="1-12"
+              placeholderTextColor="#7b8178"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Month school year starts"
+              style={[styles.dateInput, styles.labeledDateInput]}
+            />
+          </LabeledSettingsInput>
+          <LabeledSettingsInput label="Age at kindergarten start" hint="Usually 5 or 6">
+            <TextInput
+              value={kindergartenStartAgeDraft}
+              onChangeText={setKindergartenStartAgeDraft}
+              placeholder="Age"
+              placeholderTextColor="#7b8178"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Age at kindergarten start"
+              style={[styles.dateInput, styles.labeledDateInput]}
+            />
+          </LabeledSettingsInput>
         </View>
         <Text style={styles.metadata}>{lifeCalendarPreview}</Text>
         <View style={styles.actionRow}>
@@ -4559,6 +4569,16 @@ function SettingsSection(props: { title: string; description: string; children: 
     <View style={styles.settingsSection}>
       <SettingsSectionHeader title={props.title} description={props.description} />
       <View style={styles.settingsSectionBody}>{props.children}</View>
+    </View>
+  );
+}
+
+function LabeledSettingsInput(props: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <View style={styles.labeledInput}>
+      <Text style={styles.inputLabel}>{props.label}</Text>
+      {props.children}
+      {props.hint ? <Text style={styles.inputHint}>{props.hint}</Text> : null}
     </View>
   );
 }
@@ -5507,6 +5527,21 @@ const lightStyles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10
   },
+  labeledInput: {
+    minWidth: 180,
+    flex: 1,
+    gap: 6
+  },
+  inputLabel: {
+    color: "#30352f",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  inputHint: {
+    color: "#6f766c",
+    fontSize: 12,
+    lineHeight: 16
+  },
   dateInput: {
     minHeight: 46,
     minWidth: 160,
@@ -5519,6 +5554,11 @@ const lightStyles = StyleSheet.create({
     color: "#252925",
     fontSize: 15,
     outlineStyle: "none" as never
+  },
+  labeledDateInput: {
+    width: "100%",
+    minWidth: 0,
+    flex: 0
   },
   memoryPlaque: {
     borderWidth: 1,
@@ -5920,6 +5960,8 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   addendumInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
   fastCaptureInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
   tagInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
+  inputLabel: { color: darkColors.primaryText },
+  inputHint: { color: darkColors.secondaryText },
   dateInput: { backgroundColor: "#20251f", borderColor: "#3a4338", color: "#f3efe7" },
   datePanel: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   suggestionPanel: { backgroundColor: "#20301f", borderColor: "#40513d" },
