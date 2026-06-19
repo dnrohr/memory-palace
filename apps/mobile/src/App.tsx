@@ -118,7 +118,7 @@ import {
 import { combineBundleArtifacts, combineMarkdownArtifacts, pickImportArtifacts, shareExportArtifact } from "./filePortability";
 import { ExpoBiometricAppLockProvider } from "./appLockProvider";
 import { AsyncStorageArchiveAtRestRecordStore } from "./archiveAtRestStore";
-import { ExpoDocumentLocalModelAssetStore, localModelDirectoryHint } from "./localModelAssetStore";
+import { ExpoDocumentLocalModelAssetStore, localModelDirectoryHint, pickAndImportLocalModelFiles } from "./localModelAssetStore";
 import { loadBgeRuntimeOptionsFromAssets } from "./bgeRuntime";
 import { loadQwenNativeRuntimeFromAssets } from "./qwenNativeRuntime";
 import {
@@ -785,6 +785,11 @@ function AppContent() {
               setEmbeddingMaintenanceMode(savedSettings.embeddingMaintenanceMode);
             }}
             onRefreshLocalModels={refreshLocalModelAvailability}
+            onImportLocalModels={async () => {
+              const result = await pickAndImportLocalModelFiles([BGE_SMALL_EN_V15_ASSET_MANIFEST, QWEN_2_5_0_5B_ASSET_MANIFEST]);
+              await refreshLocalModelAvailability();
+              return result;
+            }}
             onAppearanceModeChange={async (mode) => {
               const savedSettings = await saveAppearanceMode(mode);
               setAppearanceMode(savedSettings.appearanceMode);
@@ -3112,6 +3117,11 @@ function localModelModeStatus(availability: LocalModelAvailability[], manifestId
   const model = availability.find((candidate) => candidate.manifest.id === manifestId);
   if (!model) return "Model files have not been checked yet; current fallback stays active.";
   if (model.available && fallbackReason) return `Files are present in ${localModelDirectoryHint(model.manifest)}. ${fallbackReason}`;
+  if (model.invalidAssetIds.length > 0) {
+    return `Found ${model.invalidAssetIds.length} required file(s) with unexpected size in ${localModelDirectoryHint(
+      model.manifest
+    )}; current fallback stays active.`;
+  }
   return model.available
     ? `Ready in ${localModelDirectoryHint(model.manifest)}.`
     : `Missing ${model.missingAssetIds.length} required file(s) in ${localModelDirectoryHint(model.manifest)}; current fallback stays active.`;
@@ -3145,6 +3155,7 @@ function Settings(props: {
   onEmbeddingEngineModeChange: (mode: EmbeddingEngineMode) => Promise<void>;
   onEmbeddingMaintenanceModeChange: (mode: EmbeddingMaintenanceMode) => Promise<void>;
   onRefreshLocalModels: () => Promise<void>;
+  onImportLocalModels: () => Promise<{ imported: Array<{ manifestId: string; fileName: string }>; ignoredFileNames: string[] }>;
   onAppearanceModeChange: (mode: AppearanceMode) => Promise<void>;
   onRestore: (memoryId: string) => Promise<void>;
   onPermanentlyDelete: (memoryId: string) => Promise<void>;
@@ -3180,6 +3191,8 @@ function Settings(props: {
   const [qwenProbeRunning, setQwenProbeRunning] = useState(false);
   const [bgeProbeStatus, setBgeProbeStatus] = useState<string | undefined>();
   const [bgeProbeRunning, setBgeProbeRunning] = useState(false);
+  const [localModelImportStatus, setLocalModelImportStatus] = useState<string | undefined>();
+  const [localModelImportRunning, setLocalModelImportRunning] = useState(false);
   const encryptionProvider = useMemo(() => createMobileEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
@@ -3315,6 +3328,29 @@ function Settings(props: {
       setBgeProbeStatus(error instanceof Error ? `BGE probe failed: ${error.message}` : "BGE probe failed.");
     } finally {
       setBgeProbeRunning(false);
+    }
+  }
+
+  async function importLocalModels() {
+    setLocalModelImportRunning(true);
+    setLocalModelImportStatus(undefined);
+    try {
+      const result = await props.onImportLocalModels();
+      if (result.imported.length === 0 && result.ignoredFileNames.length === 0) {
+        setLocalModelImportStatus("No model files selected.");
+        return;
+      }
+      const importedText =
+        result.imported.length > 0
+          ? `Imported ${result.imported.length} file(s): ${result.imported.map((file) => file.fileName).join(", ")}.`
+          : "No recognized model files were imported.";
+      const ignoredText =
+        result.ignoredFileNames.length > 0 ? ` Ignored unrecognized file(s): ${result.ignoredFileNames.join(", ")}.` : "";
+      setLocalModelImportStatus(`${importedText}${ignoredText}`);
+    } catch (error) {
+      setLocalModelImportStatus(error instanceof Error ? `Model import failed: ${error.message}` : "Model import failed.");
+    } finally {
+      setLocalModelImportRunning(false);
     }
   }
 
@@ -3644,7 +3680,9 @@ function Settings(props: {
         </View>
         <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Local model assets</Text>
-        <Text style={styles.metadata}>Model files are optional and are never downloaded automatically.</Text>
+        <Text style={styles.metadata}>
+          Model files are optional, app-data scoped, and never downloaded automatically. Import them again after clearing app data.
+        </Text>
         <View style={styles.modelAssetList}>
           {props.localModelAvailability.map((availability) => (
             <View key={availability.manifest.id} style={styles.modelAssetRow}>
@@ -3653,10 +3691,17 @@ function Settings(props: {
                 <Text style={styles.metadata}>
                   {availability.available
                     ? `ready in ${localModelDirectoryHint(availability.manifest)}`
+                    : availability.invalidAssetIds.length > 0
+                      ? `unexpected file size in ${localModelDirectoryHint(availability.manifest)}`
                     : `missing ${availability.missingAssetIds.length} required file(s) in ${localModelDirectoryHint(
                         availability.manifest
                       )}`}
                 </Text>
+                {availability.assetProblems.map((problem) => (
+                  <Text key={`${availability.manifest.id}-${problem.assetId}`} style={styles.metadata}>
+                    {problem.fileName}: {problem.problem}
+                  </Text>
+                ))}
               </View>
               <Text style={[styles.statusPill, availability.available ? styles.statusPillSuccess : styles.statusPillMuted]}>
                 {availability.available ? "ready" : "fallback"}
@@ -3665,8 +3710,15 @@ function Settings(props: {
           ))}
         </View>
         <View style={styles.actionRow}>
+          <SecondaryButton
+            label={localModelImportRunning ? "Importing..." : "Import model files"}
+            onPress={() => void importLocalModels()}
+            disabled={localModelImportRunning}
+            icon={<Download size={18} />}
+          />
           <SecondaryButton label="Refresh model files" onPress={props.onRefreshLocalModels} icon={<RotateCcw size={18} />} />
         </View>
+        {localModelImportStatus ? <Text style={styles.metadata}>{localModelImportStatus}</Text> : null}
       </SettingsSection>
       <View style={styles.diagnosticsPanel}>
         <Text style={styles.sectionEyebrow}>Advanced diagnostics</Text>

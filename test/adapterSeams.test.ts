@@ -25,6 +25,7 @@ import {
   checkLocalModelAvailability,
   createBgeEmbeddingEngineFromAssets,
   createQwenStructuredExtractionEngineFromAssets,
+  findLocalModelAssetByFileName,
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type ILocalModelAssetStore,
   type LocalModelAsset
@@ -175,6 +176,33 @@ describe("optional AI adapter seams", () => {
     expect(availability.available).toBe(false);
     expect(availability.assets.map((asset) => asset.fileName)).toEqual(["model.onnx"]);
     expect(availability.missingAssetIds).toEqual(["tokenizer-json", "tokenizer-config"]);
+  });
+
+  it("marks wrong-size local model assets unavailable", async () => {
+    const store = assetStoreWith(["model.onnx", "tokenizer.json", "tokenizer_config.json"], { "model.onnx": 12 });
+
+    const availability = await checkLocalModelAvailability(BGE_SMALL_EN_V15_ASSET_MANIFEST, store);
+
+    expect(availability.available).toBe(false);
+    expect(availability.missingAssetIds).toEqual([]);
+    expect(availability.invalidAssetIds).toEqual(["onnx-model"]);
+    expect(availability.assetProblems).toEqual([
+      expect.objectContaining({
+        assetId: "onnx-model",
+        fileName: "model.onnx",
+        problem: expect.stringContaining("Expected")
+      })
+    ]);
+  });
+
+  it("matches selected model files back to their manifest entries", () => {
+    expect(findLocalModelAssetByFileName([BGE_SMALL_EN_V15_ASSET_MANIFEST, QWEN_2_5_0_5B_ASSET_MANIFEST], "MODEL.ONNX")).toEqual(
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "bge-small-en-v1.5" }),
+        asset: expect.objectContaining({ id: "onnx-model" })
+      })
+    );
+    expect(findLocalModelAssetByFileName([BGE_SMALL_EN_V15_ASSET_MANIFEST], "notes.txt")).toBeUndefined();
   });
 
   it("allows optional local model assets to be absent", async () => {
@@ -524,14 +552,14 @@ describe("optional AI adapter seams", () => {
   });
 });
 
-function assetStoreWith(fileNames: string[]): ILocalModelAssetStore {
+function assetStoreWith(fileNames: string[], byteLengths: Record<string, number> = {}): ILocalModelAssetStore {
   const available = new Set(fileNames);
   return {
     async resolveAsset(asset: LocalModelAsset) {
       if (!available.has(asset.fileName)) return undefined;
       return {
         uri: `file:///models/${asset.fileName}`,
-        byteLength: 1024
+        byteLength: byteLengths[asset.fileName] ?? asset.expectedByteLength ?? 1024
       };
     }
   };

@@ -8,6 +8,8 @@ export type LocalModelAsset = {
   fileName: string;
   description: string;
   required: boolean;
+  expectedByteLength?: number;
+  sha256?: string;
 };
 
 export type LocalModelManifest = {
@@ -27,6 +29,8 @@ export type LocalModelAvailability = {
   available: boolean;
   assets: ResolvedLocalModelAsset[];
   missingAssetIds: string[];
+  invalidAssetIds: string[];
+  assetProblems: Array<{ assetId: string; fileName: string; problem: string }>;
 };
 
 export interface ILocalModelAssetStore {
@@ -42,25 +46,33 @@ export const BGE_SMALL_EN_V15_ASSET_MANIFEST: LocalModelManifest = {
       id: "onnx-model",
       fileName: "model.onnx",
       description: "ONNX encoder weights exported for BGE small English v1.5.",
-      required: true
+      required: true,
+      expectedByteLength: 133093490,
+      sha256: "828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35"
     },
     {
       id: "tokenizer-json",
       fileName: "tokenizer.json",
       description: "Tokenizer vocabulary and normalization rules compatible with the ONNX export.",
-      required: true
+      required: true,
+      expectedByteLength: 711396,
+      sha256: "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66"
     },
     {
       id: "tokenizer-config",
       fileName: "tokenizer_config.json",
       description: "Tokenizer configuration paired with tokenizer.json.",
-      required: true
+      required: true,
+      expectedByteLength: 366,
+      sha256: "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3"
     },
     {
       id: "special-tokens-map",
       fileName: "special_tokens_map.json",
       description: "Optional special-token metadata for the BGE tokenizer.",
-      required: false
+      required: false,
+      expectedByteLength: 125,
+      sha256: "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3"
     }
   ]
 };
@@ -74,7 +86,9 @@ export const QWEN_2_5_0_5B_ASSET_MANIFEST: LocalModelManifest = {
       id: "gguf-model",
       fileName: "qwen2.5-0.5b-instruct-q4_k_m.gguf",
       description: "Quantized GGUF model file for llama.cpp-compatible local structured extraction.",
-      required: true
+      required: true,
+      expectedByteLength: 491400032,
+      sha256: "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db"
     },
     {
       id: "json-grammar",
@@ -91,6 +105,8 @@ export async function checkLocalModelAvailability(
 ): Promise<LocalModelAvailability> {
   const assets: ResolvedLocalModelAsset[] = [];
   const missingAssetIds: string[] = [];
+  const invalidAssetIds: string[] = [];
+  const assetProblems: LocalModelAvailability["assetProblems"] = [];
 
   for (const asset of manifest.assets) {
     const resolved = await store.resolveAsset(asset);
@@ -104,14 +120,40 @@ export async function checkLocalModelAvailability(
       uri: resolved.uri,
       ...(typeof resolved.byteLength === "number" ? { byteLength: resolved.byteLength } : {})
     });
+
+    const byteLengthProblem = validateLocalModelAssetByteLength(asset, resolved.byteLength);
+    if (byteLengthProblem) {
+      assetProblems.push({ assetId: asset.id, fileName: asset.fileName, problem: byteLengthProblem });
+      if (asset.required) invalidAssetIds.push(asset.id);
+    }
   }
 
   return {
     manifest,
-    available: missingAssetIds.length === 0,
+    available: missingAssetIds.length === 0 && invalidAssetIds.length === 0,
     assets,
-    missingAssetIds
+    missingAssetIds,
+    invalidAssetIds,
+    assetProblems
   };
+}
+
+export function findLocalModelAssetByFileName(
+  manifests: LocalModelManifest[],
+  fileName: string
+): { manifest: LocalModelManifest; asset: LocalModelAsset } | undefined {
+  const normalizedFileName = fileName.trim().toLocaleLowerCase();
+  for (const manifest of manifests) {
+    const asset = manifest.assets.find((candidate) => candidate.fileName.toLocaleLowerCase() === normalizedFileName);
+    if (asset) return { manifest, asset };
+  }
+  return undefined;
+}
+
+function validateLocalModelAssetByteLength(asset: LocalModelAsset, byteLength: number | undefined): string | undefined {
+  if (typeof asset.expectedByteLength !== "number" || typeof byteLength !== "number") return undefined;
+  if (asset.expectedByteLength === byteLength) return undefined;
+  return `Expected ${asset.expectedByteLength} bytes but found ${byteLength}.`;
 }
 
 export async function createBgeEmbeddingEngineFromAssets(
