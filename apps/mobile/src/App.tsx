@@ -1056,6 +1056,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | undefined>();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const pendingStopRef = useRef(false);
+  const draftTranscriptRef = useRef("");
 
   async function start() {
     if (status !== "idle" && status !== "draft_ready") return;
@@ -1135,13 +1136,14 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
         return;
       }
 
-      let replaced = false;
-      setDraft((current) => {
-        if (!current || current.transcript.trim() !== source) return current;
-        replaced = true;
-        return { ...current, transcript: formatted };
-      });
-      setFormatNotice(replaced ? "Transcript formatted. Review it before saving." : "Draft changed while Qwen was formatting. Current text was not changed.");
+      if (draftTranscriptRef.current.trim() !== source) {
+        setFormatNotice("Draft changed while Qwen was formatting. Current text was not changed.");
+        return;
+      }
+
+      draftTranscriptRef.current = formatted;
+      setDraft((current) => (current ? { ...current, transcript: formatted } : current));
+      setFormatNotice("Transcript formatted. Review it before saving.");
     } catch {
       setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
     } finally {
@@ -1166,6 +1168,10 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     });
     return () => subscription.remove();
   }, [session, status]);
+
+  useEffect(() => {
+    draftTranscriptRef.current = draft?.transcript ?? "";
+  }, [draft?.transcript]);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -1217,6 +1223,7 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
             value={draft.transcript}
             onChangeText={(transcript) => {
               setDraft({ ...draft, transcript });
+              draftTranscriptRef.current = transcript;
               setFormatNotice(undefined);
             }}
             placeholder="Type or paste the transcript"
@@ -2647,6 +2654,7 @@ function NewMemoryCapture(props: {
   const [isFormatting, setIsFormatting] = useState(false);
   const [formatNotice, setFormatNotice] = useState<string | undefined>();
   const [textEntryVisible, setTextEntryVisible] = useState(false);
+  const textRef = useRef(text);
   const canSave = text.trim().length > 0 && !isSaving && !isFormatting;
 
   useEffect(() => {
@@ -2669,6 +2677,10 @@ function NewMemoryCapture(props: {
     const nextDraft = text.trim() ? AsyncStorage.setItem(NEW_MEMORY_DRAFT_KEY, text) : AsyncStorage.removeItem(NEW_MEMORY_DRAFT_KEY);
     void nextDraft;
   }, [draftLoaded, isSaving, text]);
+
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
 
   async function save() {
     if (!canSave) return;
@@ -2693,14 +2705,15 @@ function NewMemoryCapture(props: {
         return;
       }
 
-      let replaced = false;
-      setText((current) => {
-        if (current.trim() !== source) return current;
-        replaced = true;
-        return formatted;
-      });
+      if (textRef.current.trim() !== source) {
+        setFormatNotice("Draft changed while Qwen was formatting. Current text was not changed.");
+        return;
+      }
+
+      textRef.current = formatted;
+      setText(formatted);
       setTextEntryVisible(true);
-      setFormatNotice(replaced ? "Transcript formatted. Review it before saving." : "Draft changed while Qwen was formatting. Current text was not changed.");
+      setFormatNotice("Transcript formatted. Review it before saving.");
     } catch {
       setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
     } finally {
@@ -2720,6 +2733,7 @@ function NewMemoryCapture(props: {
             value={text}
             onChangeText={(nextText) => {
               setText(nextText);
+              textRef.current = nextText;
               setFormatNotice(undefined);
             }}
             placeholder="A fragment, a sentence, a scene"

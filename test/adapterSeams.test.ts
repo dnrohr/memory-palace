@@ -24,6 +24,7 @@ import {
   buildQwenTranscriptFormattingPrompt,
   cleanQwenTranscriptFormattingOutput,
   createQwenTranscriptFormatter,
+  hasSameWordSequence,
   QWEN_2_5_0_5B_TRANSCRIPT_FORMATTING_MODEL
 } from "../src/processing/qwenTranscriptFormatting";
 import { createQwenLlamaCompletionRuntime, type LlamaCompletionContext } from "../src/processing/qwenLlamaRuntime";
@@ -687,6 +688,7 @@ describe("optional AI adapter seams", () => {
       })
     );
     expect(prompt).toContain("Add punctuation and capitalization only");
+    expect(prompt).toContain("Keep every input word in the same order");
     expect(prompt).toContain("Do not add facts");
     expect(prompt).toContain("Do not change names, dates, places, or meaning");
     expect(prompt).toContain("Return plain text only");
@@ -733,6 +735,23 @@ describe("optional AI adapter seams", () => {
     await expect(formatter.format("in 2004 maya and i visited queens with dr lee")).resolves.toBe(
       "In 2004, Maya and I visited Queens with Dr. Lee."
     );
+  });
+
+  it("rejects Qwen transcript output that drops or rewrites words", async () => {
+    const formatter = createQwenTranscriptFormatter({
+      runtime: {
+        async complete() {
+          return "My grandma lived in Queens in 2004.";
+        }
+      }
+    });
+
+    await expect(formatter.format("my grandma lived in queens and we went there in 2004")).rejects.toThrow("changed the draft words");
+  });
+
+  it("allows punctuation and capitalization without changing transcript words", () => {
+    expect(hasSameWordSequence("in 2004 maya and i went to queens", "In 2004, Maya and I went to Queens.")).toBe(true);
+    expect(hasSameWordSequence("my grandma lived in queens and we went there in 2004", "My grandma lived in Queens in 2004.")).toBe(false);
   });
 
   it("does not load Qwen transcript formatting runtime when assets are missing", async () => {

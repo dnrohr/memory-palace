@@ -35,7 +35,12 @@ export class QwenTranscriptFormatter {
       stop: ["<|im_end|>", "</s>"]
     });
 
-    return cleanQwenTranscriptFormattingOutput(raw);
+    const formatted = cleanQwenTranscriptFormattingOutput(raw);
+    if (!hasSameWordSequence(input, formatted)) {
+      throw new Error("Qwen transcript formatting changed the draft words.");
+    }
+
+    return formatted;
   }
 }
 
@@ -48,7 +53,9 @@ export function buildQwenTranscriptFormattingPrompt(transcript: string): string 
     "<|im_start|>system",
     "You format speech-to-text memory drafts.",
     "Add punctuation and capitalization only.",
+    "Keep every input word in the same order.",
     "Preserve the original words as much as possible.",
+    "If a word is unclear, leave it unchanged.",
     "Do not summarize.",
     "Do not add facts.",
     "Do not change names, dates, places, or meaning.",
@@ -59,6 +66,14 @@ export function buildQwenTranscriptFormattingPrompt(transcript: string): string 
     "<|im_end|>",
     "<|im_start|>assistant"
   ].join("\n");
+}
+
+export function hasSameWordSequence(input: string, output: string): boolean {
+  const inputWords = normalizedWords(input);
+  const outputWords = normalizedWords(output);
+  if (inputWords.length === 0 || outputWords.length === 0) return inputWords.length === outputWords.length;
+  if (inputWords.length !== outputWords.length) return false;
+  return inputWords.every((word, index) => word === outputWords[index]);
 }
 
 export function cleanQwenTranscriptFormattingOutput(raw: string): string {
@@ -108,4 +123,12 @@ function stripSurroundingQuote(value: string): string {
   }
 
   return value;
+}
+
+function normalizedWords(value: string): string[] {
+  return value
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .map((word) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").replace(/[^\p{L}\p{N}]+/gu, ""))
+    .filter(Boolean);
 }
