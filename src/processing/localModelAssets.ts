@@ -1,6 +1,7 @@
 import { createBgeSmallEnV15EmbeddingEngine, type BgeSmallEnV15ModelOptions } from "./bgeEmbeddings";
 import type { IEmbeddingEngine } from "./embeddings";
 import { createQwenStructuredExtractionEngine, type QwenStructuredExtractionModelOptions } from "./qwenStructuredExtraction";
+import { createQwenTranscriptFormatter, type QwenTranscriptFormattingOptions } from "./qwenTranscriptFormatting";
 import type { IStructuredExtractionEngine } from "./structuredExtraction";
 
 export type LocalModelAsset = {
@@ -172,4 +173,13 @@ export async function createQwenStructuredExtractionEngineFromAssets(
   const availability = await checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, store);
   if (!availability.available) return undefined;
   return createQwenStructuredExtractionEngine(await loadRuntime(availability.assets));
+}
+
+export async function createQwenTranscriptFormatterFromAssets(
+  store: ILocalModelAssetStore,
+  loadRuntime: (assets: ResolvedLocalModelAsset[]) => Promise<QwenTranscriptFormattingOptions>
+): Promise<ReturnType<typeof createQwenTranscriptFormatter> | undefined> {
+  const availability = await checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, store);
+  if (!availability.available) return undefined;
+  return createQwenTranscriptFormatter(await loadRuntime(availability.assets));
 }

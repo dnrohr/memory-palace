@@ -20,12 +20,19 @@ import {
   QWEN_2_5_0_5B_STRUCTURED_EXTRACTION_MODEL,
   type LlamaCompletionRequest
 } from "../src/processing/qwenStructuredExtraction";
+import {
+  buildQwenTranscriptFormattingPrompt,
+  cleanQwenTranscriptFormattingOutput,
+  createQwenTranscriptFormatter,
+  QWEN_2_5_0_5B_TRANSCRIPT_FORMATTING_MODEL
+} from "../src/processing/qwenTranscriptFormatting";
 import { createQwenLlamaCompletionRuntime, type LlamaCompletionContext } from "../src/processing/qwenLlamaRuntime";
 import {
   BGE_SMALL_EN_V15_ASSET_MANIFEST,
   checkLocalModelAvailability,
   createBgeEmbeddingEngineFromAssets,
   createQwenStructuredExtractionEngineFromAssets,
+  createQwenTranscriptFormatterFromAssets,
   findLocalModelAssetByFileName,
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type ILocalModelAssetStore,
@@ -667,6 +674,76 @@ describe("optional AI adapter seams", () => {
       expect.objectContaining({ title: "Window memory" })
     );
     expect(unavailable).toBeUndefined();
+  });
+
+  it("builds a narrow Qwen transcript-formatting prompt", () => {
+    const prompt = buildQwenTranscriptFormattingPrompt("in 2004 maya and i went to queens");
+
+    expect(QWEN_2_5_0_5B_TRANSCRIPT_FORMATTING_MODEL).toEqual(
+      expect.objectContaining({
+        id: "qwen2.5-0.5b-instruct",
+        runtime: "llama.rn",
+        recommendedQuantization: "Q4_K_M"
+      })
+    );
+    expect(prompt).toContain("Add punctuation and capitalization only");
+    expect(prompt).toContain("Do not add facts");
+    expect(prompt).toContain("Do not change names, dates, places, or meaning");
+    expect(prompt).toContain("Return plain text only");
+  });
+
+  it("formats transcript drafts through Qwen and returns cleaned plain text", async () => {
+    let request: LlamaCompletionRequest | undefined;
+    const formatter = createQwenTranscriptFormatter({
+      runtime: {
+        async complete(input) {
+          request = input;
+          return "```text\nIn 2004, Maya and I went to Queens.\n```";
+        }
+      }
+    });
+
+    const output = await formatter.format("in 2004 maya and i went to queens");
+
+    expect(output).toBe("In 2004, Maya and I went to Queens.");
+    expect(request).toEqual(
+      expect.objectContaining({
+        temperature: 0,
+        stop: ["<|im_end|>", "</s>"]
+      })
+    );
+    expect(request?.prompt).toContain("Preserve the original words as much as possible");
+  });
+
+  it("strips surrounding quotes and Markdown from Qwen transcript output", () => {
+    expect(cleanQwenTranscriptFormattingOutput('"Patrick slept in the old house."')).toBe("Patrick slept in the old house.");
+    expect(cleanQwenTranscriptFormattingOutput("**Patrick slept in the old house.**")).toBe("Patrick slept in the old house.");
+    expect(cleanQwenTranscriptFormattingOutput("> Patrick slept in the old house.")).toBe("Patrick slept in the old house.");
+  });
+
+  it("keeps meaningful transcript content while cleaning model wrappers", async () => {
+    const formatter = createQwenTranscriptFormatter({
+      runtime: {
+        async complete() {
+          return "“In 2004, Maya and I visited Queens with Dr. Lee.”";
+        }
+      }
+    });
+
+    await expect(formatter.format("in 2004 maya and i visited queens with dr lee")).resolves.toBe(
+      "In 2004, Maya and I visited Queens with Dr. Lee."
+    );
+  });
+
+  it("does not load Qwen transcript formatting runtime when assets are missing", async () => {
+    let runtimeLoaded = false;
+    const formatter = await createQwenTranscriptFormatterFromAssets(assetStoreWith([]), async () => {
+      runtimeLoaded = true;
+      throw new Error("Runtime should not load when the GGUF path is missing.");
+    });
+
+    expect(formatter).toBeUndefined();
+    expect(runtimeLoaded).toBe(false);
   });
 
   it("validates structured extraction result confidence ranges", () => {

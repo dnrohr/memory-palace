@@ -72,9 +72,11 @@ import {
   checkLocalModelAvailability,
   createBgeEmbeddingEngineFromAssets,
   createQwenStructuredExtractionEngineFromAssets,
+  createQwenTranscriptFormatterFromAssets,
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type LocalModelAvailability
 } from "../../../src/processing/localModelAssets";
+import { QWEN_TRANSCRIPT_FORMATTING_UNAVAILABLE_MESSAGE } from "../../../src/processing/qwenTranscriptFormatting";
 import {
   buildDataAuditReport,
   clearDeletedMemoryArtifacts,
@@ -199,6 +201,15 @@ async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMod
   }
 
   return rulesResult;
+}
+
+async function formatTranscriptDraftWithQwen(text: string): Promise<string | undefined> {
+  const formatter = await createQwenTranscriptFormatterFromAssets(
+    new ExpoDocumentLocalModelAssetStore(QWEN_2_5_0_5B_ASSET_MANIFEST),
+    loadQwenNativeRuntimeFromAssets
+  );
+  if (!formatter) return undefined;
+  return formatter.format(text);
 }
 
 export default function App() {
@@ -1039,6 +1050,8 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
   const [session, setSession] = useState<AudioCaptureSession | undefined>();
   const [draft, setDraft] = useState<AudioCaptureDraft | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [formatNotice, setFormatNotice] = useState<string | undefined>();
+  const [isFormatting, setIsFormatting] = useState(false);
   const [status, setStatus] = useState<"idle" | "requesting_permission" | "recording" | "stopping" | "transcribing" | "draft_ready">("idle");
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | undefined>();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -1108,6 +1121,34 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
     }
   }
 
+  async function formatDraftTranscript() {
+    const source = draft?.transcript.trim() ?? "";
+    if (!source || isFormatting) return;
+
+    setIsFormatting(true);
+    setFormatNotice(undefined);
+    setError(undefined);
+    try {
+      const formatted = await formatTranscriptDraftWithQwen(source);
+      if (!formatted) {
+        setFormatNotice(QWEN_TRANSCRIPT_FORMATTING_UNAVAILABLE_MESSAGE);
+        return;
+      }
+
+      let replaced = false;
+      setDraft((current) => {
+        if (!current || current.transcript.trim() !== source) return current;
+        replaced = true;
+        return { ...current, transcript: formatted };
+      });
+      setFormatNotice(replaced ? "Transcript formatted. Review it before saving." : "Draft changed while Qwen was formatting. Current text was not changed.");
+    } catch {
+      setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
+    } finally {
+      setIsFormatting(false);
+    }
+  }
+
   useEffect(() => {
     if (!recordingStartedAt || status !== "recording") return undefined;
     const interval = setInterval(() => {
@@ -1174,12 +1215,21 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
           <Text style={styles.panelTitle}>Here is what I heard</Text>
           <TextInput
             value={draft.transcript}
-            onChangeText={(transcript) => setDraft({ ...draft, transcript })}
+            onChangeText={(transcript) => {
+              setDraft({ ...draft, transcript });
+              setFormatNotice(undefined);
+            }}
             placeholder="Type or paste the transcript"
             placeholderTextColor="#7b8178"
             multiline
             textAlignVertical="top"
             style={styles.bodyInput}
+          />
+          <SecondaryButton
+            label={isFormatting ? "Formatting..." : "Format transcript"}
+            onPress={() => void formatDraftTranscript()}
+            disabled={isFormatting || !draft.transcript.trim()}
+            icon={<Wand2 size={18} />}
           />
           <Pressable
             onPress={() => setDraft({ ...draft, retainAudio: !draft.retainAudio })}
@@ -1193,10 +1243,11 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
           <Text style={styles.metadata}>
             Audio: {draft.artifact.durationMs ? `${Math.round(draft.artifact.durationMs / 1000)}s` : "recorded"}
           </Text>
+          {formatNotice ? <Text style={styles.metadata}>{formatNotice}</Text> : null}
           <PrimaryButton
             label="Save voice memory"
             onPress={() => void props.onSave(draft)}
-            disabled={!draft.transcript.trim()}
+            disabled={!draft.transcript.trim() || isFormatting}
             icon={<Save size={18} />}
           />
         </View>
@@ -2593,8 +2644,10 @@ function NewMemoryCapture(props: {
   const [text, setText] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFormatting, setIsFormatting] = useState(false);
+  const [formatNotice, setFormatNotice] = useState<string | undefined>();
   const [textEntryVisible, setTextEntryVisible] = useState(false);
-  const canSave = text.trim().length > 0 && !isSaving;
+  const canSave = text.trim().length > 0 && !isSaving && !isFormatting;
 
   useEffect(() => {
     let isCurrent = true;
@@ -2627,6 +2680,34 @@ function NewMemoryCapture(props: {
     }
   }
 
+  async function formatDraftText() {
+    const source = text.trim();
+    if (!source || isFormatting) return;
+
+    setIsFormatting(true);
+    setFormatNotice(undefined);
+    try {
+      const formatted = await formatTranscriptDraftWithQwen(source);
+      if (!formatted) {
+        setFormatNotice(QWEN_TRANSCRIPT_FORMATTING_UNAVAILABLE_MESSAGE);
+        return;
+      }
+
+      let replaced = false;
+      setText((current) => {
+        if (current.trim() !== source) return current;
+        replaced = true;
+        return formatted;
+      });
+      setTextEntryVisible(true);
+      setFormatNotice(replaced ? "Transcript formatted. Review it before saving." : "Draft changed while Qwen was formatting. Current text was not changed.");
+    } catch {
+      setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
+    } finally {
+      setIsFormatting(false);
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={[styles.content, styles.newMemoryContent]}>
       <View style={styles.capturePanel}>
@@ -2637,7 +2718,10 @@ function NewMemoryCapture(props: {
         ) : (
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={(nextText) => {
+              setText(nextText);
+              setFormatNotice(undefined);
+            }}
             placeholder="A fragment, a sentence, a scene"
             placeholderTextColor="#7b8178"
             multiline
@@ -2645,7 +2729,16 @@ function NewMemoryCapture(props: {
             style={styles.newMemoryInput}
           />
         )}
+        {textEntryVisible ? (
+          <SecondaryButton
+            label={isFormatting ? "Formatting..." : "Format transcript"}
+            onPress={() => void formatDraftText()}
+            disabled={isFormatting || !text.trim()}
+            icon={<Wand2 size={18} />}
+          />
+        ) : null}
         <Text style={styles.captureNote}>A fragment is enough. Dates and tags can wait.</Text>
+        {formatNotice ? <Text style={styles.metadata}>{formatNotice}</Text> : null}
         <View style={styles.captureActions}>
           <SecondaryButton label="Cancel" onPress={props.onCancel} icon={<X size={18} />} />
           <PrimaryButton label="Save" onPress={save} disabled={!canSave} icon={<Save size={18} />} />
