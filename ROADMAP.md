@@ -35,7 +35,7 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 ### Needs Model Runtime Wiring Or Device QA
 
 - Milestone 6: production structured-extraction target selected as `Qwen2.5-0.5B-Instruct` through `llama.rn`; portable runtime adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, native `llama.rn` context loader, and guarded user-facing Qwen mode are present. Pixel 8a missing-asset fallback UI passed; actual model-asset QA remains open.
-- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, tokenizer-json WordPiece parser, ONNX Runtime loader, and user-facing guarded BGE mode are present. Pixel 8a missing-asset fallback UI passed; actual asset QA remains open.
+- Milestone 7: production embedding target selected as `BAAI/bge-small-en-v1.5` through ONNX Runtime; portable BGE adapter, checked asset manifest, guarded engine factory, Expo document-storage asset discovery, tokenizer-json WordPiece parser, ONNX Runtime loader, user-facing guarded BGE mode, and a runtime diagnostic are present. Pixel 8a missing-asset fallback UI passed; actual asset QA remains open.
 - Milestone 11: WebDAV encrypted sync is the first production sync provider target; Pixel 8a loopback first-push QA passed, while broader non-loopback provider and conflict QA remain open.
 
 ### Needs Device QA
@@ -60,6 +60,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 ### 2026-06-19
 
 - Added a Settings-side Qwen local model diagnostic that checks the document-storage asset directory, reports exact missing required files, and runs the production `llama.rn` structured-extraction path when GGUF assets are present. This keeps rules fallback as the default and makes actual model-asset QA measurable instead of relying on manifest presence alone.
+- Added a Settings-side BGE local model diagnostic that checks required ONNX/tokenizer assets, reports exact missing files, and runs the production ONNX Runtime embedding path when assets are present. The diagnostic reports elapsed time, vector dimensions, and vector norm while keeping hash fallback available.
 
 ### 2026-06-18
 
@@ -369,6 +370,7 @@ Done:
 - Embedding interface, no-op engine, hash embedding engine, local embedding model adapter, semantic search, and related memories.
 - Embedding storage schema, persistent vectors, stale detection, queue visibility, index rebuild/search helpers, semantic search UI, manual regeneration control, and automatic/manual embedding maintenance controls.
 - Production target selected as `BAAI/bge-small-en-v1.5`, with a BGE-specific ONNX adapter, checked ONNX/tokenizer asset manifest, guarded engine factory, Expo document-storage asset discovery, tokenizer-json WordPiece parser, ONNX Runtime loader, and a user-facing BGE mode that falls back to hash when assets/runtime loading are unavailable.
+- Settings diagnostic can test the production BGE ONNX Runtime path, report exact missing required files, and record elapsed-time/vector-shape feedback when assets are present.
 
 Remaining:
 - Device QA with actual BGE model assets and acceptable latency, memory use, fallback, and recovery behavior.

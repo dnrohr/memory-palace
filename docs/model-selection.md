@@ -11,10 +11,11 @@ Production target: `BAAI/bge-small-en-v1.5`
 - Purpose: semantic search, nearby memories, related-memory drift, and future clustering.
 - Current fallback: deterministic local hash embeddings.
 - Integration posture: BGE-specific adapter code is present in the portable core and keeps query and passage inputs distinct. A checked asset manifest and factory require `model.onnx`, `tokenizer.json`, and `tokenizer_config.json` before creating the BGE engine. The Expo app checks for these files under `models/bge-small-en-v1.5` in app document storage, maps the ONNX file into ONNX Runtime, and reads the local `tokenizer.json` with a bundled WordPiece tokenizer so native Metro builds do not pull `onnxruntime-web`. Model weights are not bundled in the repository.
+- Runtime verification: Settings includes a `Test BGE` diagnostic that reports exact missing required files and, when assets are present, loads the production ONNX Runtime path, embeds a small probe phrase, and reports elapsed time, vector dimensions, and vector norm.
 
 Remaining work:
 
-- Run Pixel 8a device QA for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
+- Run Pixel 8a device QA with actual ONNX/tokenizer assets for model load, embedding rebuild, semantic search latency, memory use, and fallback behavior.
 
 ## Structured Extraction
 

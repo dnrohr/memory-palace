@@ -3178,6 +3178,8 @@ function Settings(props: {
   const [webDavStatus, setWebDavStatus] = useState<string | undefined>();
   const [qwenProbeStatus, setQwenProbeStatus] = useState<string | undefined>();
   const [qwenProbeRunning, setQwenProbeRunning] = useState(false);
+  const [bgeProbeStatus, setBgeProbeStatus] = useState<string | undefined>();
+  const [bgeProbeRunning, setBgeProbeRunning] = useState(false);
   const encryptionProvider = useMemo(() => createMobileEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
@@ -3276,6 +3278,43 @@ function Settings(props: {
       setQwenProbeStatus(error instanceof Error ? `Qwen probe failed: ${error.message}` : "Qwen probe failed.");
     } finally {
       setQwenProbeRunning(false);
+    }
+  }
+
+  async function probeBgeModel() {
+    setBgeProbeRunning(true);
+    setBgeProbeStatus("Checking BGE local model...");
+
+    try {
+      const store = new ExpoDocumentLocalModelAssetStore(BGE_SMALL_EN_V15_ASSET_MANIFEST);
+      const availability = await checkLocalModelAvailability(BGE_SMALL_EN_V15_ASSET_MANIFEST, store);
+      if (!availability.available) {
+        const missing = missingLocalModelFileNames(availability).join(", ");
+        setBgeProbeStatus(`BGE hash fallback is active. Missing required file(s): ${missing}.`);
+        return;
+      }
+
+      const startedAt = Date.now();
+      const engine = await createBgeEmbeddingEngineFromAssets(store, loadBgeRuntimeOptionsFromAssets);
+      if (!engine) {
+        setBgeProbeStatus("BGE hash fallback is active. Required files were not resolved.");
+        return;
+      }
+
+      const embedding = await engine.embedText("Grandma's apartment in Queens");
+      if (!embedding) {
+        setBgeProbeStatus("BGE probe failed: no embedding vector was returned.");
+        return;
+      }
+      const elapsedMs = Date.now() - startedAt;
+      const magnitude = Math.sqrt(embedding.values.reduce((total, value) => total + value * value, 0));
+      setBgeProbeStatus(
+        `BGE probe passed in ${elapsedMs} ms with ${embedding.values.length} dimensions and vector norm ${magnitude.toFixed(3)}.`
+      );
+    } catch (error) {
+      setBgeProbeStatus(error instanceof Error ? `BGE probe failed: ${error.message}` : "BGE probe failed.");
+    } finally {
+      setBgeProbeRunning(false);
     }
   }
 
@@ -3581,6 +3620,15 @@ function Settings(props: {
             )}
           </Text>
         ) : null}
+        <View style={styles.actionRow}>
+          <SecondaryButton
+            label={bgeProbeRunning ? "Testing BGE..." : "Test BGE"}
+            onPress={probeBgeModel}
+            disabled={bgeProbeRunning}
+            icon={<Search size={18} />}
+          />
+        </View>
+        {bgeProbeStatus ? <Text style={styles.metadata}>{bgeProbeStatus}</Text> : null}
         <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Embedding maintenance</Text>
         <Text style={styles.metadata}>Mode: {props.embeddingMaintenanceMode}</Text>
