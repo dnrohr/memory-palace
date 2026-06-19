@@ -8,6 +8,7 @@ import {
   AppState,
   Button,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -17,6 +18,7 @@ import {
   Text,
   TextInput,
   useWindowDimensions,
+  Vibration,
   View
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -451,8 +453,8 @@ function AppContent() {
     await saveArchive(archiveToSave);
   }
 
-  async function persist(nextArchive: MemoryArchive, options: { rebuildEmbeddings?: boolean } = {}) {
-    const shouldRebuildEmbeddings = embeddingMaintenanceMode === "automatic" || options.rebuildEmbeddings;
+  async function persist(nextArchive: MemoryArchive, options: { rebuildEmbeddings?: boolean; skipEmbeddingMaintenance?: boolean } = {}) {
+    const shouldRebuildEmbeddings = !options.skipEmbeddingMaintenance && (embeddingMaintenanceMode === "automatic" || options.rebuildEmbeddings);
     const archiveToSave = shouldRebuildEmbeddings
       ? (await rebuildEmbeddingIndex(nextArchive, { engine: await createEmbeddingEngineForMode(embeddingEngineMode) })).archive
       : nextArchive;
@@ -840,7 +842,13 @@ function AppShell(props: {
             <Text style={styles.saveNoticeText}>{props.saveNotice}</Text>
           </View>
         ) : null}
-        {props.children}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
+          style={styles.screenBody}
+        >
+          {props.children}
+        </KeyboardAvoidingView>
         <BottomNavigation
           mode={props.mode}
           onExplore={props.onExplore}
@@ -913,7 +921,11 @@ function BottomNavigation(props: {
 
 function CenterCaptureButton(props: { onPress: () => void }) {
   return (
-    <Pressable accessibilityLabel="New memory" onPress={props.onPress} style={styles.captureButton}>
+    <Pressable
+      accessibilityLabel="New memory"
+      onPress={withButtonFeedback(props.onPress)}
+      style={({ pressed }) => [styles.captureButton, pressed ? styles.buttonPressed : null]}
+    >
       <Plus size={26} color={styles.captureButtonIcon.color} />
     </Pressable>
   );
@@ -922,7 +934,10 @@ function CenterCaptureButton(props: { onPress: () => void }) {
 function NavButton(props: { label: string; icon: ReactNode; active: boolean; onPress: () => void }) {
   const iconColor = props.active ? styles.navIconActive.color : styles.navIcon.color;
   return (
-    <Pressable onPress={props.onPress} style={[styles.navButton, props.active ? styles.navButtonActive : null]}>
+    <Pressable
+      onPress={withButtonFeedback(props.onPress)}
+      style={({ pressed }) => [styles.navButton, props.active ? styles.navButtonActive : null, pressed ? styles.buttonPressed : null]}
+    >
       {renderIcon(props.icon, iconColor)}
       <Text style={[styles.navLabel, props.active ? styles.navLabelActive : null]}>{props.label}</Text>
     </Pressable>
@@ -1726,7 +1741,7 @@ function ReviewCard(props: {
 function TimelineView(props: {
   archive: MemoryArchive;
   memories: Memory[];
-  onArchiveChange: (archive: MemoryArchive) => Promise<void>;
+  onArchiveChange: (archive: MemoryArchive, options?: { rebuildEmbeddings?: boolean; skipEmbeddingMaintenance?: boolean }) => Promise<void>;
   onBack: () => void;
   onSelect: (id: string) => void;
 }) {
@@ -2506,7 +2521,7 @@ function HighlightedText(props: { text: string; query: string }) {
 
 function PathCard(props: { label: string; detail: string; icon: ReactNode; onPress: () => void; tone: "sage" | "clay" | "blue" | "paper" | "stone" }) {
   return (
-    <Pressable onPress={props.onPress} style={[styles.pathCard, pathToneStyle(props.tone)]}>
+    <Pressable onPress={withButtonFeedback(props.onPress)} style={({ pressed }) => [styles.pathCard, pathToneStyle(props.tone), pressed ? styles.buttonPressed : null]}>
       <View style={[styles.pathIcon, pathIconToneStyle(props.tone)]}>{props.icon}</View>
       <View style={styles.pathText}>
         <Text style={styles.memoryTitle}>{props.label}</Text>
@@ -3361,7 +3376,7 @@ function Settings(props: {
   embeddingMaintenanceMode: EmbeddingMaintenanceMode;
   localModelAvailability: LocalModelAvailability[];
   appearanceMode: AppearanceMode;
-  onArchiveChange: (archive: MemoryArchive) => Promise<void>;
+  onArchiveChange: (archive: MemoryArchive, options?: { rebuildEmbeddings?: boolean; skipEmbeddingMaintenance?: boolean }) => Promise<void>;
   onImport: (preview: ArchiveImportWorkflowPreview, options: ArchiveMergeOptions) => Promise<void>;
   onClearProcessingRuns: () => Promise<void>;
   onClearRetainedAudio: () => Promise<void>;
@@ -3453,6 +3468,8 @@ function Settings(props: {
   ]);
 
   async function saveLifeCalendarSettings() {
+    Keyboard.dismiss();
+    setLifeCalendarStatus("Saving life calendar...");
     const parsed = parseLifeCalendarDraft({
       existingProfile: props.archive.userProfile,
       birthYearDraft,
@@ -3472,11 +3489,17 @@ function Settings(props: {
     } else {
       delete nextArchive.userProfile;
     }
-    await props.onArchiveChange(nextArchive);
-    setLifeCalendarStatus(parsed.userProfile?.birthYear ? "Life calendar saved." : "Life calendar saved without a birth year.");
+    try {
+      await props.onArchiveChange(nextArchive, { skipEmbeddingMaintenance: true });
+      setLifeCalendarStatus(parsed.userProfile?.birthYear ? "Life calendar saved." : "Life calendar saved without a birth year.");
+    } catch (error) {
+      setLifeCalendarStatus(error instanceof Error ? `Life calendar could not be saved: ${error.message}` : "Life calendar could not be saved.");
+    }
   }
 
   async function clearLifeCalendarSettings() {
+    Keyboard.dismiss();
+    setLifeCalendarStatus("Clearing life calendar...");
     const existing = props.archive.userProfile;
     const nextArchive: MemoryArchive = { ...props.archive, exportedAt: new Date().toISOString() };
     if (existing) {
@@ -3489,8 +3512,12 @@ function Settings(props: {
     } else {
       delete nextArchive.userProfile;
     }
-    await props.onArchiveChange(nextArchive);
-    setLifeCalendarStatus("Life calendar cleared.");
+    try {
+      await props.onArchiveChange(nextArchive, { skipEmbeddingMaintenance: true });
+      setLifeCalendarStatus("Life calendar cleared.");
+    } catch (error) {
+      setLifeCalendarStatus(error instanceof Error ? `Life calendar could not be cleared: ${error.message}` : "Life calendar could not be cleared.");
+    }
   }
 
   async function saveEncryptionOptions(passphraseOverride = archivePassphrase) {
@@ -3967,7 +3994,11 @@ function Settings(props: {
           <PrimaryButton label="Save life calendar" onPress={saveLifeCalendarSettings} icon={<Save size={18} />} />
           <SecondaryButton label="Clear" onPress={clearLifeCalendarSettings} icon={<X size={18} />} />
         </View>
-        {lifeCalendarStatus ? <Text style={styles.metadata}>{lifeCalendarStatus}</Text> : null}
+          {lifeCalendarStatus ? (
+            <Text style={styles.metadata} accessibilityLiveRegion="polite">
+              {lifeCalendarStatus}
+            </Text>
+          ) : null}
       </SettingsSection>
 
       <SettingsSection title="Storage" description="Counts and estimates for the local archive.">
@@ -4612,7 +4643,11 @@ function ThemeClusterCard(props: { shelf: ThemeShelf; onOpen: () => void }) {
       <View style={styles.constellationSection}>
         <Text style={styles.sectionEyebrow}>Memories</Text>
         {props.shelf.memories.slice(0, 3).map((memory) => (
-          <Pressable key={memory.id} style={styles.themeMemory} onPress={props.onOpen}>
+          <Pressable
+            key={memory.id}
+            style={({ pressed }) => [styles.themeMemory, pressed ? styles.buttonPressed : null]}
+            onPress={withButtonFeedback(props.onOpen)}
+          >
             <Text style={styles.memoryPreview} numberOfLines={2}>
               {memory.title ?? memory.rawText}
             </Text>
@@ -4628,7 +4663,7 @@ function TagPill(props: { label: string; selected?: boolean; onPress?: () => voi
   const label = <Text style={[styles.tagLabel, props.selected ? styles.tagLabelSelected : null]}>{props.label}</Text>;
   if (props.onPress) {
     return (
-      <Pressable onPress={props.onPress} style={[styles.tag, props.selected ? styles.tagSelected : null]}>
+      <Pressable onPress={withButtonFeedback(props.onPress)} style={({ pressed }) => [styles.tag, props.selected ? styles.tagSelected : null, pressed ? styles.buttonPressed : null]}>
         {label}
       </Pressable>
     );
@@ -4639,7 +4674,7 @@ function TagPill(props: { label: string; selected?: boolean; onPress?: () => voi
 function Card(props: { children: ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle> }) {
   if (props.onPress) {
     return (
-      <Pressable style={[styles.card, props.style]} onPress={props.onPress}>
+      <Pressable style={({ pressed }) => [styles.card, props.style, pressed ? styles.buttonPressed : null]} onPress={withButtonFeedback(props.onPress)}>
         {props.children}
       </Pressable>
     );
@@ -4682,8 +4717,13 @@ function IconButton(props: {
   return (
     <Pressable
       accessibilityLabel={props.label}
-      onPress={props.onPress}
-      style={[styles.iconButton, props.active ? styles.iconButtonActive : null, props.danger ? styles.iconButtonDanger : null]}
+      onPress={withButtonFeedback(props.onPress)}
+      style={({ pressed }) => [
+        styles.iconButton,
+        props.active ? styles.iconButtonActive : null,
+        props.danger ? styles.iconButtonDanger : null,
+        pressed ? styles.buttonPressed : null
+      ]}
     >
       {renderIcon(props.icon, iconColor)}
     </Pressable>
@@ -4692,7 +4732,11 @@ function IconButton(props: {
 
 function PrimaryButton(props: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={props.onPress} disabled={props.disabled} style={[styles.primaryButton, props.disabled ? styles.disabled : null]}>
+    <Pressable
+      onPress={withButtonFeedback(props.onPress)}
+      disabled={props.disabled}
+      style={({ pressed }) => [styles.primaryButton, pressed && !props.disabled ? styles.buttonPressed : null, props.disabled ? styles.disabled : null]}
+    >
       {renderIcon(props.icon, styles.primaryButtonIcon.color)}
       <Text style={styles.primaryButtonText}>{props.label}</Text>
     </Pressable>
@@ -4701,7 +4745,11 @@ function PrimaryButton(props: { label: string; icon: ReactNode; onPress: () => v
 
 function SecondaryButton(props: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={props.onPress} disabled={props.disabled} style={[styles.secondaryButton, props.disabled ? styles.disabled : null]}>
+    <Pressable
+      onPress={withButtonFeedback(props.onPress)}
+      disabled={props.disabled}
+      style={({ pressed }) => [styles.secondaryButton, pressed && !props.disabled ? styles.buttonPressed : null, props.disabled ? styles.disabled : null]}
+    >
       {renderIcon(props.icon, styles.secondaryButtonIcon.color)}
       <Text style={styles.secondaryButtonText}>{props.label}</Text>
     </Pressable>
@@ -4712,13 +4760,26 @@ function renderIcon(icon: ReactNode, color: string): ReactNode {
   return isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color }) : icon;
 }
 
+function withButtonFeedback(onPress: () => void): () => void {
+  return () => {
+    triggerButtonFeedback();
+    return onPress();
+  };
+}
+
+function triggerButtonFeedback() {
+  if (Platform.OS !== "web") {
+    Vibration.vibrate(8);
+  }
+}
+
 function PathBackButton(props: { onPress: () => void }) {
   return <BreadcrumbTrail trail={["Explore"]} actionLabel="Back to Explore" onPress={props.onPress} />;
 }
 
 function BreadcrumbTrail(props: { trail: string[]; actionLabel: string; onPress: () => void }) {
   return (
-    <Pressable onPress={props.onPress} style={styles.pathBackButton}>
+    <Pressable onPress={withButtonFeedback(props.onPress)} style={({ pressed }) => [styles.pathBackButton, pressed ? styles.buttonPressed : null]}>
       <ArrowLeft size={18} color={styles.pathBackText.color} />
       <Text style={styles.pathBackText}>{props.trail.length > 1 ? props.trail.join(" / ") : props.actionLabel}</Text>
     </Pressable>
@@ -4818,6 +4879,9 @@ const lightStyles = StyleSheet.create({
   },
   shellWide: {
     maxWidth: 1120
+  },
+  screenBody: {
+    flex: 1
   },
   loading: {
     flex: 1,
@@ -5795,6 +5859,10 @@ const lightStyles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.45
+  },
+  buttonPressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.98 }]
   },
   statsGrid: {
     flexDirection: "row",

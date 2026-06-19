@@ -65,6 +65,7 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
     await db.runAsync("DELETE FROM memory_embedding");
     await db.runAsync("DELETE FROM life_context_relationship");
     await db.runAsync("DELETE FROM life_chapter_decision");
+    await db.runAsync("DELETE FROM user_profile");
     await db.runAsync("DELETE FROM tag");
     await db.runAsync("DELETE FROM memory");
 
