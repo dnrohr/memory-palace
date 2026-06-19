@@ -3117,6 +3117,10 @@ function localModelModeStatus(availability: LocalModelAvailability[], manifestId
     : `Missing ${model.missingAssetIds.length} required file(s) in ${localModelDirectoryHint(model.manifest)}; current fallback stays active.`;
 }
 
+function missingLocalModelFileNames(model: LocalModelAvailability): string[] {
+  return model.manifest.assets.filter((asset) => model.missingAssetIds.includes(asset.id)).map((asset) => asset.fileName);
+}
+
 function Settings(props: {
   archive: MemoryArchive;
   appLockSettings: AppLockSettings;
@@ -3172,6 +3176,8 @@ function Settings(props: {
   const [webDavPassword, setWebDavPassword] = useState("");
   const [webDavPassphrase, setWebDavPassphrase] = useState("");
   const [webDavStatus, setWebDavStatus] = useState<string | undefined>();
+  const [qwenProbeStatus, setQwenProbeStatus] = useState<string | undefined>();
+  const [qwenProbeRunning, setQwenProbeRunning] = useState(false);
   const encryptionProvider = useMemo(() => createMobileEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
@@ -3238,6 +3244,38 @@ function Settings(props: {
   function saveArchivePassphraseFromEditing(passphrase: string) {
     if (encryptionDraft.scope === "archive" && passphrase.trim()) {
       void saveArchiveEncryption(passphrase);
+    }
+  }
+
+  async function probeQwenModel() {
+    setQwenProbeRunning(true);
+    setQwenProbeStatus("Checking Qwen local model...");
+
+    try {
+      const store = new ExpoDocumentLocalModelAssetStore(QWEN_2_5_0_5B_ASSET_MANIFEST);
+      const availability = await checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, store);
+      if (!availability.available) {
+        const missing = missingLocalModelFileNames(availability).join(", ");
+        setQwenProbeStatus(`Qwen fallback is active. Missing required file(s): ${missing}.`);
+        return;
+      }
+
+      const startedAt = Date.now();
+      const engine = await createQwenStructuredExtractionEngineFromAssets(store, loadQwenNativeRuntimeFromAssets);
+      if (!engine) {
+        setQwenProbeStatus("Qwen fallback is active. Required files were not resolved.");
+        return;
+      }
+
+      const result = await engine.extract({ text: "In 2004 I visited Grandma in Queens." });
+      const elapsedMs = Date.now() - startedAt;
+      setQwenProbeStatus(
+        `Qwen probe passed in ${elapsedMs} ms with ${result.dates.length} date(s), ${result.tags.length} tag(s), and ${result.emotionalTone.length} tone label(s).`
+      );
+    } catch (error) {
+      setQwenProbeStatus(error instanceof Error ? `Qwen probe failed: ${error.message}` : "Qwen probe failed.");
+    } finally {
+      setQwenProbeRunning(false);
     }
   }
 
@@ -3512,6 +3550,15 @@ function Settings(props: {
         {props.structuredExtractionMode === "qwen2.5-0.5b" ? (
           <Text style={styles.metadata}>{localModelModeStatus(props.localModelAvailability, QWEN_2_5_0_5B_ASSET_MANIFEST.id)}</Text>
         ) : null}
+        <View style={styles.actionRow}>
+          <SecondaryButton
+            label={qwenProbeRunning ? "Testing Qwen..." : "Test Qwen"}
+            onPress={probeQwenModel}
+            disabled={qwenProbeRunning}
+            icon={<Wand2 size={18} />}
+          />
+        </View>
+        {qwenProbeStatus ? <Text style={styles.metadata}>{qwenProbeStatus}</Text> : null}
         <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Embedding engine</Text>
         <Text style={styles.metadata}>Mode: {embeddingEngineModeLabel(props.embeddingEngineMode)}</Text>

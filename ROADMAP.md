@@ -1,6 +1,6 @@
 # memory palace roadmap
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 memory palace is an offline-first, cross-platform memory archive. The durable product is the local text archive, structured metadata, user-confirmed tags, search index, timeline, life-context graph, and exportable data. AI features must remain modular, optional, local-first where possible, and unable to corrupt canonical user data without confirmation.
 
@@ -56,6 +56,10 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Screenshot hygiene: disposable screenshots created during device or browser QA should be written under `.codex-screenshots/<task-name>/` and removed with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes` before finishing. Durable QA screenshots belong in `docs/` and should be mentioned in the result notes.
 
 ## Implementation Log
+
+### 2026-06-19
+
+- Added a Settings-side Qwen local model diagnostic that checks the document-storage asset directory, reports exact missing required files, and runs the production `llama.rn` structured-extraction path when GGUF assets are present. This keeps rules fallback as the default and makes actual model-asset QA measurable instead of relying on manifest presence alone.
 
 ### 2026-06-18
 
@@ -352,6 +356,7 @@ Done:
 - Structured extraction interface, no-op engine, local rules-backed extraction engine, JSON-speaking local model adapter, schema validation, and prompt/version metadata.
 - Settings controls for local rules extraction and a guarded Qwen local mode.
 - Production target selected as `Qwen2.5-0.5B-Instruct`, with a Qwen/`llama.rn` adapter, checked GGUF asset manifest, optional grammar asset support, guarded engine factory, Expo document-storage asset discovery, and native `llama.rn` context loading.
+- Settings diagnostic can test the production Qwen runtime path, report exact missing required files, and record elapsed-time/output-count feedback when assets are present.
 
 Remaining:
 - Device QA with actual Qwen model assets, including latency, memory use, fallback, and recovery behavior.

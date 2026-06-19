@@ -1,6 +1,6 @@
 # Local Model Selection
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 ## Embeddings
 
@@ -23,10 +23,11 @@ Production target: `Qwen2.5-0.5B-Instruct` via a local llama.cpp-compatible runt
 - Purpose: optional, user-confirmed title/date/tag/context suggestions beyond the rules engine.
 - Current fallback: rules-based structured extraction.
 - Integration posture: JSON-speaking structured extraction adapter and Qwen/llama runtime adapter are present. A checked asset manifest and factory require the quantized GGUF file before creating the Qwen engine, with optional grammar support. The Expo app checks for these files under `models/qwen2.5-0.5b-instruct` in app document storage and has a native `llama.rn` loader that initializes a context from the resolved GGUF URI when Qwen local mode is selected. Model weights are not bundled in the repository and the runtime is not required at startup.
+- Runtime verification: Settings includes a `Test Qwen` diagnostic that checks the document-storage asset directory, reports exact missing required files, and, when assets are present, loads the production `llama.rn` runtime and runs a small structured-extraction probe with elapsed-time and output-count feedback.
 
 Remaining work:
 
-- Keep rules as the default until device QA confirms acceptable latency, memory use, and recovery behavior.
+- Keep rules as the default until Pixel 8a QA with actual GGUF assets confirms acceptable latency, memory use, and recovery behavior.
 
 ## Sync
 
