@@ -8,20 +8,20 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 
 | Phase | Milestones | Status |
 | --- | --- | --- |
-| Phase 1: Useful Without AI | 1-4 | Milestones 1-3 need device QA; Milestone 4 is done |
+| Phase 1: Useful Without AI | 1-4 | Milestones 1, 2, and 4 are done; Milestone 3 needs speech QA |
 | Phase 2: Personal Intelligence | 5-7 | Milestone 5 is done; Milestones 6-7 need broader local-model QA |
 | Phase 3: Exploration and Durability | 8-10 | Milestones 8-9 are done; Milestone 10 needs biometric app-lock QA |
 | Phase 4: Optional Expansion | 11-12 | Milestone 11 needs broader WebDAV/cloud QA; Milestone 12 is done |
 
-Milestone rollup: 6 of 12 milestones are done. The remaining milestones are implementation-complete enough to exercise, but still need device, model-runtime, security, or sync validation before being marked done.
+Milestone rollup: 8 of 12 milestones are done. The remaining milestones are implementation-complete enough to exercise, but still need speech, model-runtime, security, or sync validation before being marked done.
 
 ## Remaining Work At A Glance
 
 ### Recommended Tackle Order
 
-1. Finish the current Pixel 8a baseline pass for Milestones 1-3: full app smoke, search and keyboard behavior, and speech capture. This closes the oldest "is the app solid on the target phone?" uncertainty before deeper model and sync testing.
+1. Finish Milestone 3 speech QA: audible Android transcription, long pauses, hold-to-speak behavior, background interruption recovery, and accepted web speech permission flow.
 2. Complete local-model recovery and quality QA for Milestones 6-7: app-data-clear document-picker repair, Qwen golden-memory output quality, BGE semantic ranking/rebuild behavior, repeated-run latency, memory pressure, and fallback recovery.
-3. Finish Milestone 10 biometric app-lock QA after the general device pass is stable, since PIN lock, archive encryption, import/export, encrypted backup, and archive unlock already have Pixel evidence.
+3. Finish Milestone 10 biometric app-lock QA, since PIN lock, archive encryption, import/export, encrypted backup, and archive unlock already have Pixel evidence.
 4. Broaden Milestone 11 WebDAV QA beyond loopback: non-loopback server, credential failures, restart behavior, conflict handling, and plaintext-leak checks in remote records.
 5. Re-run the major-gate smoke after the above items land, then promote any now-verified milestones from in progress to done.
 
@@ -41,6 +41,7 @@ Milestone rollup: 6 of 12 milestones are done. The remaining milestones are impl
 - A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock and actual model-asset QA remain open.
 - A 2026-06-19 Pixel 8a local-model asset probe is recorded in `docs/pixel-8-results/2026-06-19-local-model-asset-probes.md`: official Qwen and BGE artifacts were downloaded outside the repo, copied into app document storage, and verified through Settings diagnostics. BGE passed in 539 ms with 384 dimensions and vector norm 1.000; Qwen passed in 5303 ms with 0 date suggestions, 5 tag suggestions, and 0 tone labels. Broader latency, memory, recovery, and full-workflow local-model QA remain open.
 - A 2026-06-19 Pixel 8a life-calendar Settings pass is recorded in `docs/pixel-8-results/2026-06-19-life-calendar-settings.md`: the standalone APK built and installed, Settings rendered the Life Calendar section, saving `1985-03-12` showed the age/grade preview, force-stop/relaunch preserved the birthday and school settings from SQLite, and no app fatal exception appeared in the checked log slice.
+- A 2026-06-19 Pixel 8a baseline/search/CRUD pass is recorded in `docs/pixel-8-results/2026-06-19-pixel-8a-baseline-search-crud.md`: local verification, preflight, and standalone install passed; New Memory, typed save, Explore persistence after force-stop, memory detail, metadata edit/tag persistence, Settings render, and search keyboard/result behavior passed. No app-process fatal/error line was observed. Milestones 1 and 2 are now done for the target Pixel 8a baseline; speech QA remains open under Milestone 3.
 - After app-data reset exposed that document-storage model files are cache-like rather than durable, Settings now has an explicit local-model file import/repair flow. The manifest records expected artifact sizes and SHA-256 values, readiness rejects wrong-size required files, and users can reselect downloaded GGUF/ONNX/tokenizer files after Android clears app data.
 - A durable local-model recovery and quality QA plan is recorded in `docs/pixel-8-results/2026-06-19-local-model-recovery-and-quality-plan.md`, with a non-destructive helper script available as `npm run pixel8:local-model-qa`. The script can install and launch the standalone APK, inspect sandbox model files when `run-as` allows it, and prints manual document-picker import steps. Document-picker recovery after app-data clear still needs real Pixel manual verification before it is counted as complete.
 - Archive-at-rest encryption is now wired through the Settings save flow on web and Android: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; Pixel 8a migration/restart-unlock/cleanup evidence is recorded in `docs/encryption-qa-results/2026-06-18-android-archive-migration-unlock.md`. Older Android blocker evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
@@ -55,9 +56,6 @@ Milestone rollup: 6 of 12 milestones are done. The remaining milestones are impl
 
 ### Needs Device QA
 
-- Run the Pixel 8a development-build checklist for the current app and record results in `docs/pixel-8-results/`.
-- Milestone 1: mobile/tablet/web smoke QA on real target devices.
-- Milestone 2: device-level search and keyboard QA.
 - Milestone 3: iOS, audible Android transcription, and full web speech-recognition QA, including accepted permission prompts, long pauses, hold-to-speak behavior, background interruption, and transcription fallback. Web denied-permission fallback evidence is recorded in `docs/speech-qa-results/2026-06-13-web-denied-permission.md`; Android standalone no-speech recovery evidence on the attached Pixel 8a is recorded in `docs/speech-qa-results/2026-06-14-android-voice-standalone.md`.
 
 ## Major Change Test Gate
@@ -74,6 +72,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 
 ### 2026-06-19
 
+- Ran Pixel 8a standalone baseline/search/CRUD QA and recorded it in `docs/pixel-8-results/2026-06-19-pixel-8a-baseline-search-crud.md`: local verification, preflight, and standalone install passed; New Memory rendered without keyboard focus, a typed draft saved, Explore persistence survived force-stop/relaunch, memory detail opened, a `baselineqa` tag edit persisted, `Queens` search kept the focused field visible with the keyboard open and showed a matching result suggestion, Settings rendered, and the app-process log slice showed no fatal/error entry. Milestones 1 and 2 are now done for the target Pixel 8a baseline; Milestone 3 remains open for speech QA.
 - Ran targeted Pixel 8a local-model runtime probes and recorded them in `docs/pixel-8-results/2026-06-19-local-model-runtime-probes.md`: Settings reported both Qwen and BGE assets ready, BGE probe passed in 419 ms with 384 dimensions and vector norm 1.000, Qwen probes passed in 7824 ms and 7219 ms with stable diagnostic output, the typed editor still exposed the Qwen `Format transcript` action, and the recent app log slice showed no fatal exception or out-of-memory lines. Full app-data-clear recovery, golden-memory output-quality, semantic ranking, and non-loopback WebDAV conflict QA remain open.
 - Reworked Explore filters into a search-first suggestion flow: the search box now suggests local tag-backed People, Places, and Tags groups plus date precision filters and optional text snippets; selected tag/date filters render as removable chips; and the full tag/date inventory is behind an explicit advanced filter control. Local `npm run build` and focused filter-suggestion tests passed.
 - Ran Pixel 8a standalone QA for the Explore filter suggestion flow and recorded it in `docs/pixel-8-results/2026-06-19-explore-filter-suggestions.md`: preflight and standalone install passed, Explore rendered search-first suggested filters, typed query suggestions appeared, tapping a visible suggestion created a removable chip, removing the chip restored the suggestion, and advanced filters exposed the full inventory behind the explicit control. No app fatal/error lines appeared in the app-specific log slice.
@@ -317,7 +316,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 
 ### 1. Product Skeleton and Local Database
 
-Status: In progress
+Status: Done
 
 Done:
 - App shell, CRUD, export, restore, and permanent delete.
@@ -325,13 +324,14 @@ Done:
 - Richer settings and storage diagnostics.
 - Partial Pixel 8a development-build smoke evidence for launch, Explore, save/detail, reconnect persistence, and Settings.
 - Pixel 8a development-client evidence for the revised New memory startup, hidden typed-entry field, typed-save return to Explore, and visible saved-memory persistence in the list.
+- Pixel 8a standalone baseline evidence for New Memory launch, typed save, Explore persistence after force-stop, memory detail navigation, metadata edit/tag persistence, Settings render, and app-process log sanity.
 
 Remaining:
-- Full target Pixel 8a device-level QA.
+- None.
 
 ### 2. Manual Tags and Basic Search
 
-Status: In progress
+Status: Done
 
 Done:
 - Manual tag assignment, readable theme shelves, tag management, filters, tag type editing, and tag merge UI/operations.
@@ -340,9 +340,10 @@ Done:
 - Active-search summaries, clearer keyword/nearby result headings, empty-state guidance, timeline v1, and native SQLite FTS rebuild/query integration.
 - Partial Pixel 8a keyboard/search-field focus evidence.
 - Pixel 8a standalone keyword search evidence for a saved typed memory using `searchtoken`.
+- Pixel 8a standalone search/keyboard evidence for a saved-memory `Queens` query, keyboard resize behavior, visible focused search field, and matching result suggestion.
 
 Remaining:
-- Full device-level search result and keyboard QA.
+- None.
 
 ### 3. Voice Capture and Transcription
 
