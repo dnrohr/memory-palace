@@ -6,7 +6,7 @@ Device: Pixel 8a, Android 16
 
 Android package: `com.anonymous.memorypalace`
 
-Build under test: `bd5a5d8` plus the follow-up preservation guard changes from this QA pass
+Build under test: `bd5a5d8` plus follow-up preservation and retry-prompt changes from this QA pass
 
 Connection mode: USB / ADB
 
@@ -32,11 +32,16 @@ Manual device QA for the Qwen-powered `Format transcript` action in the new-memo
   - Input: `my grandma lived in queens and we went there in 2004`
   - Qwen attempted a shortened result during QA.
   - The app preserved the original editable draft and showed `Qwen transcript formatting failed. Your draft was not changed.`
+- Typed retry formatting for the same preservation edge: pass
+  - Input: `my grandma lived in queens and we went there in 2004`
+  - Result after the stricter Qwen retry prompt: `My grandma lived in Queens and we went there in 2004.`
+  - The formatted draft remained editable and save stayed enabled.
 
 ## Findings
 
 - Device QA found a stale-state notice bug after successful typed formatting. The typed flow replaced the draft but displayed the "draft changed" notice. This pass fixed the UI guard to use refs for the latest editable text before setting the final notice.
 - Device QA found Qwen can return a semantically shortened transcript even with the narrow prompt. This pass added a processing-layer word-sequence guard so punctuation/capitalization-only results can apply, while dropped or rewritten words fail non-destructively.
+- Device QA then found the visible unformatted draft was awkward when Qwen's first answer shortened the transcript. This pass added a Qwen-only retry prompt that uses the original transcript and required word sequence, with no rules-based fallback.
 - No rules-based fallback formatting was added.
 
 ## Deferred

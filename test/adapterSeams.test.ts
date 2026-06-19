@@ -22,9 +22,11 @@ import {
 } from "../src/processing/qwenStructuredExtraction";
 import {
   buildQwenTranscriptFormattingPrompt,
+  buildQwenTranscriptFormattingRetryPrompt,
   cleanQwenTranscriptFormattingOutput,
   createQwenTranscriptFormatter,
   hasSameWordSequence,
+  QwenTranscriptRewriteError,
   QWEN_2_5_0_5B_TRANSCRIPT_FORMATTING_MODEL
 } from "../src/processing/qwenTranscriptFormatting";
 import { createQwenLlamaCompletionRuntime, type LlamaCompletionContext } from "../src/processing/qwenLlamaRuntime";
@@ -692,6 +694,15 @@ describe("optional AI adapter seams", () => {
     expect(prompt).toContain("Do not add facts");
     expect(prompt).toContain("Do not change names, dates, places, or meaning");
     expect(prompt).toContain("Return plain text only");
+
+    const retryPrompt = buildQwenTranscriptFormattingRetryPrompt(
+      "my grandma lived in queens and we went there in 2004",
+      "My grandma lived in Queens in 2004."
+    );
+    expect(retryPrompt).toContain("Return the original transcript with every required word preserved in order");
+    expect(retryPrompt).toContain("Required words: my | grandma | lived | in | queens | and | we | went | there | in | 2004");
+    expect(retryPrompt).toContain("Do not remove words");
+    expect(retryPrompt).toContain("Do not replace words");
   });
 
   it("formats transcript drafts through Qwen and returns cleaned plain text", async () => {
@@ -738,15 +749,39 @@ describe("optional AI adapter seams", () => {
   });
 
   it("rejects Qwen transcript output that drops or rewrites words", async () => {
+    let calls = 0;
     const formatter = createQwenTranscriptFormatter({
       runtime: {
         async complete() {
+          calls += 1;
           return "My grandma lived in Queens in 2004.";
         }
       }
     });
 
-    await expect(formatter.format("my grandma lived in queens and we went there in 2004")).rejects.toThrow("changed the draft words");
+    await expect(formatter.format("my grandma lived in queens and we went there in 2004")).rejects.toThrow(QwenTranscriptRewriteError);
+    expect(calls).toBe(2);
+  });
+
+  it("retries Qwen transcript formatting when the first output drops words", async () => {
+    const prompts: string[] = [];
+    const formatter = createQwenTranscriptFormatter({
+      runtime: {
+        async complete(request) {
+          prompts.push(request.prompt);
+          return prompts.length === 1
+            ? "My grandma lived in Queens in 2004."
+            : "My grandma lived in Queens, and we went there in 2004.";
+        }
+      }
+    });
+
+    await expect(formatter.format("my grandma lived in queens and we went there in 2004")).resolves.toBe(
+      "My grandma lived in Queens, and we went there in 2004."
+    );
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("Your previous answer changed, removed, or rewrote input words.");
+    expect(prompts[1]).toContain("Required words: my | grandma | lived | in | queens | and | we | went | there | in | 2004");
   });
 
   it("allows punctuation and capitalization without changing transcript words", () => {

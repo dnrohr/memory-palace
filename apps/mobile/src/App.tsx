@@ -76,7 +76,7 @@ import {
   QWEN_2_5_0_5B_ASSET_MANIFEST,
   type LocalModelAvailability
 } from "../../../src/processing/localModelAssets";
-import { QWEN_TRANSCRIPT_FORMATTING_UNAVAILABLE_MESSAGE } from "../../../src/processing/qwenTranscriptFormatting";
+import { QwenTranscriptRewriteError, QWEN_TRANSCRIPT_FORMATTING_UNAVAILABLE_MESSAGE } from "../../../src/processing/qwenTranscriptFormatting";
 import {
   buildDataAuditReport,
   clearDeletedMemoryArtifacts,
@@ -1144,8 +1144,12 @@ function VoiceCaptureView(props: { onSave: (draft: AudioCaptureDraft) => Promise
       draftTranscriptRef.current = formatted;
       setDraft((current) => (current ? { ...current, transcript: formatted } : current));
       setFormatNotice("Transcript formatted. Review it before saving.");
-    } catch {
-      setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
+    } catch (error) {
+      setFormatNotice(
+        error instanceof QwenTranscriptRewriteError
+          ? "Qwen tried to rewrite the transcript, so your draft was not changed."
+          : "Qwen transcript formatting failed. Your draft was not changed."
+      );
     } finally {
       setIsFormatting(false);
     }
@@ -2714,8 +2718,12 @@ function NewMemoryCapture(props: {
       setText(formatted);
       setTextEntryVisible(true);
       setFormatNotice("Transcript formatted. Review it before saving.");
-    } catch {
-      setFormatNotice("Qwen transcript formatting failed. Your draft was not changed.");
+    } catch (error) {
+      setFormatNotice(
+        error instanceof QwenTranscriptRewriteError
+          ? "Qwen tried to rewrite the transcript, so your draft was not changed."
+          : "Qwen transcript formatting failed. Your draft was not changed."
+      );
     } finally {
       setIsFormatting(false);
     }

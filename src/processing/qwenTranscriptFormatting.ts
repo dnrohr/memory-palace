@@ -28,19 +28,35 @@ export class QwenTranscriptFormatter {
     const input = transcript.trim();
     if (!input) return "";
 
-    const raw = await this.options.runtime.complete({
-      prompt: buildQwenTranscriptFormattingPrompt(input),
+    const raw = await this.complete(input, buildQwenTranscriptFormattingPrompt(input));
+    const formatted = cleanQwenTranscriptFormattingOutput(raw);
+    if (hasSameWordSequence(input, formatted)) {
+      return formatted;
+    }
+
+    const retryRaw = await this.complete(input, buildQwenTranscriptFormattingRetryPrompt(input, formatted));
+    const retryFormatted = cleanQwenTranscriptFormattingOutput(retryRaw);
+    if (!hasSameWordSequence(input, retryFormatted)) {
+      throw new QwenTranscriptRewriteError();
+    }
+
+    return retryFormatted;
+  }
+
+  private complete(input: string, prompt: string): Promise<string> {
+    return this.options.runtime.complete({
+      prompt,
       temperature: 0,
       maxTokens: this.options.maxTokens ?? maxTranscriptFormattingTokens(input),
       stop: ["<|im_end|>", "</s>"]
     });
+  }
+}
 
-    const formatted = cleanQwenTranscriptFormattingOutput(raw);
-    if (!hasSameWordSequence(input, formatted)) {
-      throw new Error("Qwen transcript formatting changed the draft words.");
-    }
-
-    return formatted;
+export class QwenTranscriptRewriteError extends Error {
+  constructor() {
+    super("Qwen transcript formatting changed the draft words.");
+    this.name = "QwenTranscriptRewriteError";
   }
 }
 
@@ -56,6 +72,31 @@ export function buildQwenTranscriptFormattingPrompt(transcript: string): string 
     "Keep every input word in the same order.",
     "Preserve the original words as much as possible.",
     "If a word is unclear, leave it unchanged.",
+    "Do not summarize.",
+    "Do not add facts.",
+    "Do not change names, dates, places, or meaning.",
+    "Return plain text only, no Markdown, JSON, commentary, or quotes.",
+    "<|im_end|>",
+    "<|im_start|>user",
+    transcript,
+    "<|im_end|>",
+    "<|im_start|>assistant"
+  ].join("\n");
+}
+
+export function buildQwenTranscriptFormattingRetryPrompt(transcript: string, rejectedOutput: string): string {
+  void rejectedOutput;
+  const requiredWords = transcript.split(/\s+/).filter(Boolean).join(" | ");
+  return [
+    "<|im_start|>system",
+    "You format speech-to-text memory drafts.",
+    "Your previous answer changed, removed, or rewrote input words. Ignore it and try again from the original transcript only.",
+    "Retry with punctuation and capitalization only.",
+    "Return the original transcript with every required word preserved in order.",
+    `Required words: ${requiredWords}`,
+    "Do not remove words.",
+    "Do not replace words.",
+    "Do not merge words.",
     "Do not summarize.",
     "Do not add facts.",
     "Do not change names, dates, places, or meaning.",
