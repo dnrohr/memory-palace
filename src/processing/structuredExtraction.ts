@@ -1,4 +1,4 @@
-import type { DateCandidate, DatePrecision, SuggestionSource, TagSuggestion, TagType } from "../core/types";
+import type { DateCandidate, DatePrecision, SuggestionSource, TagSuggestion, TagType, UserProfile } from "../core/types";
 import type { LifeContext } from "../core/lifeContext";
 import { extractDateCandidates } from "./rules/dateExtraction";
 import { suggestTags } from "./rules/tagSuggestion";
@@ -6,6 +6,7 @@ import { suggestTags } from "./rules/tagSuggestion";
 export type StructuredExtractionInput = {
   text: string;
   context?: LifeContext;
+  userProfile?: UserProfile;
 };
 
 export type StructuredExtractionResult = {
@@ -64,7 +65,7 @@ export class RulesStructuredExtractionEngine implements IStructuredExtractionEng
     const title = suggestTitle(input.text);
     return {
       ...(title ? { title } : {}),
-      dates: extractDateCandidates(input.text),
+      dates: extractDateCandidates(input.text, input.userProfile),
       tags: suggestTags(input.text),
       emotionalTone: suggestEmotionTags(input.text),
       engineId: this.id,

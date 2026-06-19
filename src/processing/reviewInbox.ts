@@ -70,7 +70,7 @@ export function buildReviewInbox(archive: MemoryArchive): ReviewItem[] {
     }
 
     if (memory.datePrecision === "unknown" || !memory.userDateConfirmed) {
-      for (const candidate of extractDateCandidates(memory.cleanedText ?? memory.rawText)) {
+      for (const candidate of extractDateCandidates(memory.cleanedText ?? memory.rawText, archive.userProfile)) {
         items.push({
           id: `${memory.id}:date:${candidate.label}`,
           memoryId: memory.id,

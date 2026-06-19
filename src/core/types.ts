@@ -37,6 +37,8 @@ export type UserProfile = {
   birthYear?: number;
   birthMonth?: number;
   birthDay?: number;
+  schoolYearStartMonth?: number;
+  kindergartenStartAge?: number;
   preferredDatePrecision?: DatePrecision;
   allowInferredDates?: boolean;
   allowEmotionDetection?: boolean;

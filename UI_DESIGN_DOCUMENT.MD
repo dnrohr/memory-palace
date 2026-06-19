@@ -802,6 +802,10 @@ Show:
 
 Diagnostics should be available but visually separated from ordinary use.
 
+### 14.4 Life calendar
+
+Settings may hold local-only birthday and school-year assumptions for translating between age, grade, and calendar year. These values should support suggestions and review decisions; they must not rewrite the memory text. A full birthday can map age mentions to birthday-to-birthday date ranges, while a birth year alone maps age to a broad calendar year. Grade mapping should use kindergarten start age and school-year start month as editable assumptions.
+
 ---
 
 ## 15. Animation and Motion

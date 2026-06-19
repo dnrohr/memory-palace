@@ -7,7 +7,15 @@ import { parseTagNames } from "../../../src/core/tagParsing";
 import { upsertLifeContextEntity, deleteLifeContextEntity, type LifeContextEntity } from "../../../src/core/lifeContext";
 import { initialSchemaSql, schemaVersion } from "../../../src/core/schema";
 import { applyMigrations } from "../../../src/storage/migrations";
-import type { LifeChapterDecision, LifeContextRelationship, Memory, MemoryEmbeddingRecord, MemoryTag, Tag } from "../../../src/core/types";
+import type {
+  LifeChapterDecision,
+  LifeContextRelationship,
+  Memory,
+  MemoryEmbeddingRecord,
+  MemoryTag,
+  Tag,
+  UserProfile
+} from "../../../src/core/types";
 
 const WEB_STORAGE_KEY = "memory-palace.archive.v1";
 
@@ -31,6 +39,7 @@ export async function loadArchive(): Promise<MemoryArchive> {
   const lifeContextRelationships = (
     await db.getAllAsync<LifeContextRelationshipRow>("SELECT * FROM life_context_relationship ORDER BY updated_at DESC")
   ).map(rowToLifeContextRelationship);
+  const [userProfileRow] = await db.getAllAsync<UserProfileRow>("SELECT * FROM user_profile LIMIT 1");
 
   return {
     ...createEmptyArchive(),
@@ -39,7 +48,8 @@ export async function loadArchive(): Promise<MemoryArchive> {
     memoryTags,
     memoryEmbeddings,
     lifeContextRelationships,
-    lifeChapterDecisions
+    lifeChapterDecisions,
+    ...(userProfileRow ? { userProfile: rowToUserProfile(userProfileRow) } : {})
   };
 }
 
@@ -182,6 +192,27 @@ export async function saveArchive(archive: MemoryArchive): Promise<void> {
       );
     }
 
+    if (archive.userProfile) {
+      await db.runAsync(
+        `INSERT INTO user_profile (
+          id, birth_year, birth_month, birth_day, school_year_start_month, kindergarten_start_age,
+          preferred_date_precision, allow_inferred_dates, allow_emotion_detection, allow_audio_retention
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          archive.userProfile.id ?? "default",
+          archive.userProfile.birthYear ?? null,
+          archive.userProfile.birthMonth ?? null,
+          archive.userProfile.birthDay ?? null,
+          archive.userProfile.schoolYearStartMonth ?? null,
+          archive.userProfile.kindergartenStartAge ?? null,
+          archive.userProfile.preferredDatePrecision ?? null,
+          booleanToInteger(archive.userProfile.allowInferredDates ?? true),
+          booleanToInteger(archive.userProfile.allowEmotionDetection ?? true),
+          booleanToInteger(archive.userProfile.allowAudioRetention ?? false)
+        ]
+      );
+    }
+
     await db.runAsync("INSERT INTO memory_fts(memory_fts) VALUES ('rebuild')");
   });
 }
@@ -198,6 +229,7 @@ export async function clearPlaintextArchiveStorage(): Promise<void> {
     await db.runAsync("DELETE FROM memory_embedding");
     await db.runAsync("DELETE FROM life_context_relationship");
     await db.runAsync("DELETE FROM life_chapter_decision");
+    await db.runAsync("DELETE FROM user_profile");
     await db.runAsync("DELETE FROM tag");
     await db.runAsync("DELETE FROM memory");
   });
@@ -477,6 +509,19 @@ type LifeContextRelationshipRow = {
   updated_at: string;
 };
 
+type UserProfileRow = {
+  id: string;
+  birth_year: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
+  school_year_start_month: number | null;
+  kindergarten_start_age: number | null;
+  preferred_date_precision: UserProfile["preferredDatePrecision"] | null;
+  allow_inferred_dates: number;
+  allow_emotion_detection: number;
+  allow_audio_retention: number;
+};
+
 function rowToMemory(row: MemoryRow): Memory {
   return {
     id: row.id,
@@ -564,5 +609,20 @@ function rowToLifeContextRelationship(row: LifeContextRelationshipRow): LifeCont
     source: row.source,
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  };
+}
+
+function rowToUserProfile(row: UserProfileRow): UserProfile {
+  return {
+    id: row.id,
+    ...(row.birth_year !== null ? { birthYear: row.birth_year } : {}),
+    ...(row.birth_month !== null ? { birthMonth: row.birth_month } : {}),
+    ...(row.birth_day !== null ? { birthDay: row.birth_day } : {}),
+    ...(row.school_year_start_month !== null ? { schoolYearStartMonth: row.school_year_start_month } : {}),
+    ...(row.kindergarten_start_age !== null ? { kindergartenStartAge: row.kindergarten_start_age } : {}),
+    ...(row.preferred_date_precision ? { preferredDatePrecision: row.preferred_date_precision } : {}),
+    allowInferredDates: integerToBoolean(row.allow_inferred_dates),
+    allowEmotionDetection: integerToBoolean(row.allow_emotion_detection),
+    allowAudioRetention: integerToBoolean(row.allow_audio_retention)
   };
 }

@@ -81,6 +81,26 @@ CREATE TABLE IF NOT EXISTS life_context_relationship (
   updated_at TEXT NOT NULL
 );
 `
+  },
+  {
+    id: "0008_user_profile_school_calendar",
+    version: schemaVersion,
+    apply: async (db) => {
+      await db.execAsync(`
+CREATE TABLE IF NOT EXISTS user_profile (
+  id TEXT PRIMARY KEY,
+  birth_year INTEGER,
+  birth_month INTEGER,
+  birth_day INTEGER,
+  preferred_date_precision TEXT,
+  allow_inferred_dates INTEGER NOT NULL DEFAULT 1,
+  allow_emotion_detection INTEGER NOT NULL DEFAULT 1,
+  allow_audio_retention INTEGER NOT NULL DEFAULT 0
+);
+`);
+      await addColumnIfMissing(db, "user_profile", "school_year_start_month", "school_year_start_month INTEGER");
+      await addColumnIfMissing(db, "user_profile", "kindergarten_start_age", "kindergarten_start_age INTEGER");
+    }
   }
 ];
 

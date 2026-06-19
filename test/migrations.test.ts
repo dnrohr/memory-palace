@@ -38,7 +38,8 @@ describe("storage migrations", () => {
       "0004_life_chapter_merge_split",
       "0005_memory_safety_controls",
       "0006_memory_private_notes",
-      "0007_life_context_relationships"
+      "0007_life_context_relationships",
+      "0008_user_profile_school_calendar"
     ]);
     await expect(applyMigrations(db, "2026-06-11T00:00:00.000Z")).resolves.toEqual([]);
   });
@@ -51,6 +52,7 @@ describe("storage migrations", () => {
       "memory",
       new Set(["is_sensitive", "exclude_from_resurfacing", "show_less_like_this", "private_notes"])
     );
+    db.tableColumns.set("user_profile", new Set(["school_year_start_month", "kindergarten_start_age"]));
 
     await applyMigrations(db, "2026-06-11T00:00:00.000Z");
 
@@ -63,5 +65,7 @@ describe("storage migrations", () => {
     );
     expect(db.execStatements).not.toContain("ALTER TABLE memory ADD COLUMN show_less_like_this INTEGER NOT NULL DEFAULT 0;");
     expect(db.execStatements).not.toContain("ALTER TABLE memory ADD COLUMN private_notes TEXT;");
+    expect(db.execStatements).not.toContain("ALTER TABLE user_profile ADD COLUMN school_year_start_month INTEGER;");
+    expect(db.execStatements).not.toContain("ALTER TABLE user_profile ADD COLUMN kindergarten_start_age INTEGER;");
   });
 });

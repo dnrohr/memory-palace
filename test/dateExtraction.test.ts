@@ -44,6 +44,38 @@ describe("rules date extraction", () => {
     );
   });
 
+  it("infers age ranges from a full birthday", () => {
+    const candidates = extractDateCandidates("When I was 8, we moved.", { birthYear: 1985, birthMonth: 3, birthDay: 12 });
+
+    expect(candidates).toContainEqual(
+      expect.objectContaining({
+        label: "age 8",
+        startDate: "1993-03-12",
+        endDate: "1994-03-11",
+        precision: "age",
+        inferenceExplanation: expect.stringContaining("1985-03-12")
+      })
+    );
+  });
+
+  it("uses configurable school calendar settings for grade ranges", () => {
+    const candidates = extractDateCandidates("When I was in 3rd grade, we moved.", {
+      birthYear: 1985,
+      schoolYearStartMonth: 9,
+      kindergartenStartAge: 6
+    });
+
+    expect(candidates).toContainEqual(
+      expect.objectContaining({
+        label: "3rd grade",
+        startDate: "1994-09-01",
+        endDate: "1995-07-31",
+        precision: "grade",
+        inferenceExplanation: expect.stringContaining("kindergarten start age 6")
+      })
+    );
+  });
+
   it("keeps grade date uncertain without profile context", () => {
     const candidates = extractDateCandidates("When I was in 4th grade, we moved.");
 

@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS user_profile (
   birth_year INTEGER,
   birth_month INTEGER,
   birth_day INTEGER,
+  school_year_start_month INTEGER,
+  kindergarten_start_age INTEGER,
   preferred_date_precision TEXT,
   allow_inferred_dates INTEGER NOT NULL DEFAULT 1,
   allow_emotion_detection INTEGER NOT NULL DEFAULT 1,

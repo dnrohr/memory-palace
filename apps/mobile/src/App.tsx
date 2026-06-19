@@ -21,7 +21,12 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
-import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType } from "../../../src/core/types";
+import type { DateCandidate, DatePrecision, Memory, TagSuggestion, TagType, UserProfile } from "../../../src/core/types";
+import {
+  DEFAULT_KINDERGARTEN_START_AGE,
+  DEFAULT_SCHOOL_YEAR_START_MONTH,
+  formatLifeCalendarPreview
+} from "../../../src/core/lifeCalendar";
 import type { AppLockSettings } from "../../../src/security/appLock";
 import type { ExportArtifact } from "../../../src/export/contracts";
 import type { EncryptionKeySource, EncryptionScope, EncryptionSettings } from "../../../src/security/encryption";
@@ -173,8 +178,9 @@ async function createEmbeddingEngineForMode(mode: EmbeddingEngineMode): Promise<
   return new HashEmbeddingEngine();
 }
 
-async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMode, text: string) {
-  const rulesResult = await new RulesStructuredExtractionEngine().extract({ text });
+async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMode, text: string, userProfile?: UserProfile) {
+  const extractionInput = userProfile ? { text, userProfile } : { text };
+  const rulesResult = await new RulesStructuredExtractionEngine().extract(extractionInput);
 
   if (mode === "none") {
     return {
@@ -193,7 +199,7 @@ async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMod
         loadQwenNativeRuntimeFromAssets
       );
       if (engine) {
-        const modelResult = await engine.extract({ text });
+        const modelResult = await engine.extract(extractionInput);
         return mergeStructuredExtractionResults(rulesResult, modelResult, { sourceText: text });
       }
     } catch {
@@ -2934,7 +2940,7 @@ function MemoryEditor(props: {
           .filter((name): name is string => Boolean(name))
       : [];
     try {
-      const result = await extractStructuredSuggestionsForMode(props.structuredExtractionMode, text);
+      const result = await extractStructuredSuggestionsForMode(props.structuredExtractionMode, text, props.archive.userProfile);
       const nextTagSuggestions = result.tags.filter((tag) => !rejectedTagNames.includes(tag.name.toLocaleLowerCase()));
       const nextDateSuggestions = result.dates;
       setTagSuggestions(nextTagSuggestions);
@@ -3408,11 +3414,84 @@ function Settings(props: {
   const [bgeProbeRunning, setBgeProbeRunning] = useState(false);
   const [localModelImportStatus, setLocalModelImportStatus] = useState<string | undefined>();
   const [localModelImportRunning, setLocalModelImportRunning] = useState(false);
+  const [birthYearDraft, setBirthYearDraft] = useState(formatOptionalNumber(props.archive.userProfile?.birthYear));
+  const [birthMonthDraft, setBirthMonthDraft] = useState(formatOptionalNumber(props.archive.userProfile?.birthMonth));
+  const [birthDayDraft, setBirthDayDraft] = useState(formatOptionalNumber(props.archive.userProfile?.birthDay));
+  const [schoolYearStartMonthDraft, setSchoolYearStartMonthDraft] = useState(
+    formatOptionalNumber(props.archive.userProfile?.schoolYearStartMonth ?? DEFAULT_SCHOOL_YEAR_START_MONTH)
+  );
+  const [kindergartenStartAgeDraft, setKindergartenStartAgeDraft] = useState(
+    formatOptionalNumber(props.archive.userProfile?.kindergartenStartAge ?? DEFAULT_KINDERGARTEN_START_AGE)
+  );
+  const [lifeCalendarStatus, setLifeCalendarStatus] = useState<string | undefined>();
   const encryptionProvider = useMemo(() => createMobileEncryptionProvider(), []);
   const encryptedExportsEnabled = props.encryptionSettings.scope !== "disabled";
   const exportBlocked = encryptedExportsEnabled && !exportPassphrase.trim();
   const archiveAtRestRequested = encryptionDraft.scope === "archive" && encryptionDraft.keySource === "user_passphrase";
   const archiveSaveDisabled = !archivePassphrase.trim() || encryptionSaving;
+  const lifeCalendarPreview = formatLifeCalendarPreview(buildLifeCalendarDraftProfile({
+    existingProfile: props.archive.userProfile,
+    birthYearDraft,
+    birthMonthDraft,
+    birthDayDraft,
+    schoolYearStartMonthDraft,
+    kindergartenStartAgeDraft
+  }));
+
+  useEffect(() => {
+    setBirthYearDraft(formatOptionalNumber(props.archive.userProfile?.birthYear));
+    setBirthMonthDraft(formatOptionalNumber(props.archive.userProfile?.birthMonth));
+    setBirthDayDraft(formatOptionalNumber(props.archive.userProfile?.birthDay));
+    setSchoolYearStartMonthDraft(formatOptionalNumber(props.archive.userProfile?.schoolYearStartMonth ?? DEFAULT_SCHOOL_YEAR_START_MONTH));
+    setKindergartenStartAgeDraft(formatOptionalNumber(props.archive.userProfile?.kindergartenStartAge ?? DEFAULT_KINDERGARTEN_START_AGE));
+  }, [
+    props.archive.userProfile?.birthDay,
+    props.archive.userProfile?.birthMonth,
+    props.archive.userProfile?.birthYear,
+    props.archive.userProfile?.kindergartenStartAge,
+    props.archive.userProfile?.schoolYearStartMonth
+  ]);
+
+  async function saveLifeCalendarSettings() {
+    const parsed = parseLifeCalendarDraft({
+      existingProfile: props.archive.userProfile,
+      birthYearDraft,
+      birthMonthDraft,
+      birthDayDraft,
+      schoolYearStartMonthDraft,
+      kindergartenStartAgeDraft
+    });
+    if ("error" in parsed) {
+      setLifeCalendarStatus(parsed.error);
+      return;
+    }
+
+    const nextArchive: MemoryArchive = { ...props.archive, exportedAt: new Date().toISOString() };
+    if (parsed.userProfile) {
+      nextArchive.userProfile = parsed.userProfile;
+    } else {
+      delete nextArchive.userProfile;
+    }
+    await props.onArchiveChange(nextArchive);
+    setLifeCalendarStatus(parsed.userProfile?.birthYear ? "Life calendar saved." : "Life calendar saved without a birth year.");
+  }
+
+  async function clearLifeCalendarSettings() {
+    const existing = props.archive.userProfile;
+    const nextArchive: MemoryArchive = { ...props.archive, exportedAt: new Date().toISOString() };
+    if (existing) {
+      const { birthYear, birthMonth, birthDay, schoolYearStartMonth, kindergartenStartAge, ...remainingProfile } = existing;
+      if (hasUserProfileValues(remainingProfile)) {
+        nextArchive.userProfile = remainingProfile;
+      } else {
+        delete nextArchive.userProfile;
+      }
+    } else {
+      delete nextArchive.userProfile;
+    }
+    await props.onArchiveChange(nextArchive);
+    setLifeCalendarStatus("Life calendar cleared.");
+  }
 
   async function saveEncryptionOptions(passphraseOverride = archivePassphrase) {
     if (encryptionSavingRef.current) return;
@@ -3807,6 +3886,78 @@ function Settings(props: {
             />
           ))}
         </View>
+      </SettingsSection>
+
+      <SettingsSection title="Life Calendar" description="Local context for age, grade, and year suggestions.">
+        <Text style={styles.panelTitle}>Birthday and school years</Text>
+        <Text style={styles.metadata}>
+          Age, grade, and calendar year stay interchangeable as suggestions. Memory text is not rewritten.
+        </Text>
+        <View style={styles.dateInputs}>
+          <TextInput
+            value={birthYearDraft}
+            onChangeText={setBirthYearDraft}
+            placeholder="Birth year"
+            placeholderTextColor="#7b8178"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Birth year"
+            style={styles.dateInput}
+          />
+          <TextInput
+            value={birthMonthDraft}
+            onChangeText={setBirthMonthDraft}
+            placeholder="Birth month"
+            placeholderTextColor="#7b8178"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Birth month"
+            style={styles.dateInput}
+          />
+          <TextInput
+            value={birthDayDraft}
+            onChangeText={setBirthDayDraft}
+            placeholder="Birth day"
+            placeholderTextColor="#7b8178"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Birth day"
+            style={styles.dateInput}
+          />
+        </View>
+        <View style={styles.dateInputs}>
+          <TextInput
+            value={schoolYearStartMonthDraft}
+            onChangeText={setSchoolYearStartMonthDraft}
+            placeholder="School start month"
+            placeholderTextColor="#7b8178"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="School start month"
+            style={styles.dateInput}
+          />
+          <TextInput
+            value={kindergartenStartAgeDraft}
+            onChangeText={setKindergartenStartAgeDraft}
+            placeholder="Kindergarten start age"
+            placeholderTextColor="#7b8178"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Kindergarten start age"
+            style={styles.dateInput}
+          />
+        </View>
+        <Text style={styles.metadata}>{lifeCalendarPreview}</Text>
+        <View style={styles.actionRow}>
+          <PrimaryButton label="Save life calendar" onPress={saveLifeCalendarSettings} icon={<Save size={18} />} />
+          <SecondaryButton label="Clear" onPress={clearLifeCalendarSettings} icon={<X size={18} />} />
+        </View>
+        {lifeCalendarStatus ? <Text style={styles.metadata}>{lifeCalendarStatus}</Text> : null}
       </SettingsSection>
 
       <SettingsSection title="Storage" description="Counts and estimates for the local archive.">
@@ -4286,6 +4437,94 @@ function Settings(props: {
       </Modal>
     </>
   );
+}
+
+type LifeCalendarDraftFields = {
+  existingProfile: UserProfile | undefined;
+  birthYearDraft: string;
+  birthMonthDraft: string;
+  birthDayDraft: string;
+  schoolYearStartMonthDraft: string;
+  kindergartenStartAgeDraft: string;
+};
+
+function buildLifeCalendarDraftProfile(fields: LifeCalendarDraftFields): UserProfile | undefined {
+  const parsed = parseLifeCalendarDraft(fields, { allowIncompleteBirthday: true });
+  return "error" in parsed ? fields.existingProfile : parsed.userProfile;
+}
+
+function parseLifeCalendarDraft(
+  fields: LifeCalendarDraftFields,
+  options: { allowIncompleteBirthday?: boolean } = {}
+): { userProfile: UserProfile | undefined } | { error: string } {
+  const birthYear = parseOptionalNumber(fields.birthYearDraft);
+  const birthMonth = parseOptionalNumber(fields.birthMonthDraft);
+  const birthDay = parseOptionalNumber(fields.birthDayDraft);
+  const schoolYearStartMonth = parseOptionalNumber(fields.schoolYearStartMonthDraft);
+  const kindergartenStartAge = parseOptionalNumber(fields.kindergartenStartAgeDraft);
+  const currentYear = new Date().getFullYear();
+
+  if ([birthYear, birthMonth, birthDay, schoolYearStartMonth, kindergartenStartAge].some((value) => Number.isNaN(value))) {
+    return { error: "Life calendar fields must use whole numbers." };
+  }
+  if (birthYear !== undefined && (birthYear < 1900 || birthYear > currentYear)) {
+    return { error: `Birth year must be between 1900 and ${currentYear}.` };
+  }
+  if (birthMonth !== undefined && (birthMonth < 1 || birthMonth > 12)) return { error: "Birth month must be 1 through 12." };
+  if (birthDay !== undefined && (birthDay < 1 || birthDay > 31)) return { error: "Birth day must be 1 through 31." };
+  if (!options.allowIncompleteBirthday && ((birthMonth === undefined) !== (birthDay === undefined))) {
+    return { error: "Birth month and birth day must be saved together, or both left blank." };
+  }
+  if (birthYear !== undefined && birthMonth !== undefined && birthDay !== undefined) {
+    const maxDay = new Date(Date.UTC(birthYear, birthMonth, 0)).getUTCDate();
+    if (birthDay > maxDay) return { error: "Birth day does not exist in that birth month." };
+  }
+  if (schoolYearStartMonth !== undefined && (schoolYearStartMonth < 1 || schoolYearStartMonth > 12)) {
+    return { error: "School start month must be 1 through 12." };
+  }
+  if (kindergartenStartAge !== undefined && (kindergartenStartAge < 4 || kindergartenStartAge > 7)) {
+    return { error: "Kindergarten start age must be 4 through 7." };
+  }
+
+  const userProfile: UserProfile = { id: fields.existingProfile?.id ?? "default" };
+  if (fields.existingProfile?.preferredDatePrecision) userProfile.preferredDatePrecision = fields.existingProfile.preferredDatePrecision;
+  if (fields.existingProfile?.allowInferredDates !== undefined) userProfile.allowInferredDates = fields.existingProfile.allowInferredDates;
+  if (fields.existingProfile?.allowEmotionDetection !== undefined) {
+    userProfile.allowEmotionDetection = fields.existingProfile.allowEmotionDetection;
+  }
+  if (fields.existingProfile?.allowAudioRetention !== undefined) userProfile.allowAudioRetention = fields.existingProfile.allowAudioRetention;
+  if (birthYear !== undefined) userProfile.birthYear = birthYear;
+  if (birthMonth !== undefined) userProfile.birthMonth = birthMonth;
+  if (birthDay !== undefined) userProfile.birthDay = birthDay;
+  if (schoolYearStartMonth !== undefined) userProfile.schoolYearStartMonth = schoolYearStartMonth;
+  if (kindergartenStartAge !== undefined) userProfile.kindergartenStartAge = kindergartenStartAge;
+
+  return { userProfile: hasUserProfileValues(userProfile) ? userProfile : undefined };
+}
+
+function hasUserProfileValues(profile?: UserProfile): boolean {
+  return Boolean(
+    profile?.birthYear ||
+      profile?.birthMonth ||
+      profile?.birthDay ||
+      profile?.schoolYearStartMonth ||
+      profile?.kindergartenStartAge ||
+      profile?.preferredDatePrecision ||
+      profile?.allowInferredDates !== undefined ||
+      profile?.allowEmotionDetection !== undefined ||
+      profile?.allowAudioRetention !== undefined
+  );
+}
+
+function parseOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) ? parsed : Number.NaN;
+}
+
+function formatOptionalNumber(value: number | undefined): string {
+  return value === undefined ? "" : String(value);
 }
 
 function Stat(props: { label: string; value: string }) {

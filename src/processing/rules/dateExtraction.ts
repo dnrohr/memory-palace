@@ -1,4 +1,5 @@
 import type { DateCandidate, UserProfile } from "../../core/types";
+import { ageToDateRange, gradeToDateRange } from "../../core/lifeCalendar";
 import type { IDateExtractionEngine, MemoryProcessingInput } from "../contracts";
 
 const YEAR_PATTERN = /\b(19\d{2}|20\d{2})\b/g;
@@ -67,11 +68,11 @@ export function extractDateCandidates(text: string, userProfile?: UserProfile): 
       sourceText: match[0]
     };
 
-    if (userProfile?.birthYear) {
-      const year = userProfile.birthYear + age;
-      candidate.startDate = `${year}-01-01`;
-      candidate.endDate = `${year}-12-31`;
-      candidate.inferenceExplanation = `Inferred from age ${age} and birth year ${userProfile.birthYear}.`;
+    const range = ageToDateRange(age, userProfile);
+    if (range) {
+      candidate.startDate = range.startDate;
+      candidate.endDate = range.endDate;
+      candidate.inferenceExplanation = range.explanation;
     } else {
       candidate.inferenceExplanation = `Age mentions need a birth year before memory palace can map "${match[0]}" to a calendar year.`;
     }
@@ -88,11 +89,11 @@ export function extractDateCandidates(text: string, userProfile?: UserProfile): 
       sourceText: match[0]
     };
 
-    if (userProfile?.birthYear) {
-      const schoolStartYear = userProfile.birthYear + grade + 5;
-      candidate.startDate = `${schoolStartYear}-08-01`;
-      candidate.endDate = `${schoolStartYear + 1}-06-30`;
-      candidate.inferenceExplanation = `Inferred from grade ${grade} and birth year ${userProfile.birthYear}.`;
+    const range = gradeToDateRange(grade, userProfile);
+    if (range) {
+      candidate.startDate = range.startDate;
+      candidate.endDate = range.endDate;
+      candidate.inferenceExplanation = range.explanation;
     } else {
       candidate.inferenceExplanation = `Grade mentions need a birth year before memory palace can map "${match[0]}" to a school-year range.`;
     }

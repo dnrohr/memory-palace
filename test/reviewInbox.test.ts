@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryArchive } from "../src/core/archive";
-import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../src/processing/reviewInbox";
+import { acceptReviewItem, buildReviewInbox, rejectReviewItem, type ReviewItem } from "../src/processing/reviewInbox";
 
 describe("review inbox", () => {
   it("creates review items for unconfirmed metadata", () => {
@@ -137,6 +137,53 @@ describe("review inbox", () => {
       })
     );
     expect(acceptReviewItem(archive, gradeSuggestion!)).toBe(archive);
+  });
+
+  it("uses archive life calendar settings for grade date suggestions", () => {
+    const archive: MemoryArchive = {
+      exportedAt: "2026-06-11T00:00:00.000Z",
+      schemaVersion: "0.1.0",
+      memories: [
+        {
+          id: "mem-1",
+          rawText: "When I was in 4th grade, my dog Patrick slept by the window.",
+          title: "Patrick",
+          createdAt: "2026-06-11T00:00:00.000Z",
+          updatedAt: "2026-06-11T00:00:00.000Z",
+          sourceType: "typed",
+          isAudioRetained: false,
+          datePrecision: "unknown",
+          userDateConfirmed: false
+        }
+      ],
+      tags: [],
+      memoryTags: [],
+      people: [],
+      pets: [],
+      places: [],
+      lifePeriods: [],
+      userProfile: { birthYear: 1985, schoolYearStartMonth: 9, kindergartenStartAge: 5 },
+      processingRuns: []
+    };
+
+    const gradeSuggestion = buildReviewInbox(archive).find((item) => item.type === "date_suggestion" && item.label === "4th grade");
+    expect(gradeSuggestion).toEqual(
+      expect.objectContaining({
+        startDate: "1994-09-01",
+        endDate: "1995-07-31",
+        precision: "grade",
+        explanation: expect.stringContaining("school year starting in September")
+      })
+    );
+
+    expect(acceptReviewItem(archive, gradeSuggestion as ReviewItem).memories[0]).toEqual(
+      expect.objectContaining({
+        approximateStartDate: "1994-09-01",
+        approximateEndDate: "1995-07-31",
+        datePrecision: "grade",
+        userDateConfirmed: true
+      })
+    );
   });
 
   it("rejects tag suggestions and suppresses them from future inboxes", () => {
