@@ -8,12 +8,22 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 
 | Phase | Milestones | Status |
 | --- | --- | --- |
-| Phase 1: Useful Without AI | 1-4 | In progress |
-| Phase 2: Personal Intelligence | 5-7 | In progress |
-| Phase 3: Exploration and Durability | 8-10 | In progress |
-| Phase 4: Optional Expansion | 11-12 | In progress |
+| Phase 1: Useful Without AI | 1-4 | Milestones 1-3 need device QA; Milestone 4 is done |
+| Phase 2: Personal Intelligence | 5-7 | Milestone 5 is done; Milestones 6-7 need broader local-model QA |
+| Phase 3: Exploration and Durability | 8-10 | Milestones 8-9 are done; Milestone 10 needs biometric app-lock QA |
+| Phase 4: Optional Expansion | 11-12 | Milestone 11 needs broader WebDAV/cloud QA; Milestone 12 is done |
+
+Milestone rollup: 6 of 12 milestones are done. The remaining milestones are implementation-complete enough to exercise, but still need device, model-runtime, security, or sync validation before being marked done.
 
 ## Remaining Work At A Glance
+
+### Recommended Tackle Order
+
+1. Finish the current Pixel 8a baseline pass for Milestones 1-3: full app smoke, search and keyboard behavior, and speech capture. This closes the oldest "is the app solid on the target phone?" uncertainty before deeper model and sync testing.
+2. Complete local-model recovery and quality QA for Milestones 6-7: app-data-clear document-picker repair, Qwen golden-memory output quality, BGE semantic ranking/rebuild behavior, repeated-run latency, memory pressure, and fallback recovery.
+3. Finish Milestone 10 biometric app-lock QA after the general device pass is stable, since PIN lock, archive encryption, import/export, encrypted backup, and archive unlock already have Pixel evidence.
+4. Broaden Milestone 11 WebDAV QA beyond loopback: non-loopback server, credential failures, restart behavior, conflict handling, and plaintext-leak checks in remote records.
+5. Re-run the major-gate smoke after the above items land, then promote any now-verified milestones from in progress to done.
 
 ### Ready to Continue Locally
 
