@@ -14,6 +14,7 @@
     "pixel8": "expo start --dev-client --android",
     "pixel8:tunnel": "expo start --dev-client --tunnel",
     "pixel8:install-standalone": "node scripts/pixel8-install-standalone.mjs",
+    "pixel8:local-model-qa": "node scripts/pixel8-local-model-qa.mjs",
     "pixel8:preflight": "node scripts/pixel8-preflight.mjs",
     "screenshots:cleanup": "node scripts/cleanup-screenshots.mjs",
     "ios": "expo run:ios",

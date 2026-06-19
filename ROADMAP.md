@@ -31,6 +31,7 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 - A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock and actual model-asset QA remain open.
 - A 2026-06-19 Pixel 8a local-model asset probe is recorded in `docs/pixel-8-results/2026-06-19-local-model-asset-probes.md`: official Qwen and BGE artifacts were downloaded outside the repo, copied into app document storage, and verified through Settings diagnostics. BGE passed in 539 ms with 384 dimensions and vector norm 1.000; Qwen passed in 5303 ms with 0 date suggestions, 5 tag suggestions, and 0 tone labels. Broader latency, memory, recovery, and full-workflow local-model QA remain open.
 - After app-data reset exposed that document-storage model files are cache-like rather than durable, Settings now has an explicit local-model file import/repair flow. The manifest records expected artifact sizes and SHA-256 values, readiness rejects wrong-size required files, and users can reselect downloaded GGUF/ONNX/tokenizer files after Android clears app data.
+- A durable local-model recovery and quality QA plan is recorded in `docs/pixel-8-results/2026-06-19-local-model-recovery-and-quality-plan.md`, with a non-destructive helper script available as `npm run pixel8:local-model-qa`. The script can install and launch the standalone APK, inspect sandbox model files when `run-as` allows it, and prints manual document-picker import steps. Document-picker recovery after app-data clear still needs real Pixel manual verification before it is counted as complete.
 - Archive-at-rest encryption is now wired through the Settings save flow on web and Android: enabling archive scope requires an archive passphrase, writes the encrypted local archive, clears plaintext primary storage, and reloads into the archive unlock screen. Web round-trip evidence is recorded in `docs/encryption-qa-results/2026-06-13-web-archive-at-rest.md`; Pixel 8a migration/restart-unlock/cleanup evidence is recorded in `docs/encryption-qa-results/2026-06-18-android-archive-migration-unlock.md`. Older Android blocker evidence is recorded in `docs/encryption-qa-results/2026-06-14-android-archive-native-crypto.md`.
 - A 2026-06-18 Pixel 8a WebDAV loopback pass is recorded in `docs/sync-qa-results/2026-06-18-android-webdav-loopback.md`: the provider now reports real transport failures instead of masking them as encryption-settings conflicts, Android permits cleartext only for loopback QA hosts, and a first encrypted push to an `adb reverse` endpoint completed with `Pushed 3, pulled 0` and no visible plaintext in the stored remote record.
 
@@ -69,6 +70,8 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Hardened Qwen local structured-extraction validation so loose small-model JSON, including string tags and string/date-like date candidates, is normalized before schema validation. The Pixel 8a standalone `Test Qwen` diagnostic passed with the actual GGUF asset in 5303 ms, returning 0 date suggestions, 5 tag suggestions, and 0 tone labels for the probe input.
 - Added a native Settings import/repair flow for local model files after app-data clear. Users can select model artifacts from the Android document picker, recognized files are copied back under `files/models/<model-id>/`, unrecognized files are reported, and readiness checks reject wrong-size required files.
 - Changed Qwen local structured extraction from a raw-model replacement to a hybrid path: local rules always supply the baseline tags/dates, Qwen can add useful candidates, and low-confidence filler/pronoun/year/verb tags are filtered before suggestions are merged into the editor.
+- Added automated local-model QA coverage for wrong-size required assets, selected-file-to-manifest mapping, Qwen hybrid merge behavior, noisy Qwen tag filtering, missing-Qwen fallback to rules, and independent Qwen/BGE readiness.
+- Added `docs/pixel-8-results/2026-06-19-local-model-recovery-and-quality-plan.md` and `npm run pixel8:local-model-qa` to make local-model recovery QA repeatable. Qwen mode should be judged by golden tag quality and preservation of rules suggestions, not by Settings probe success alone.
 
 ### 2026-06-18
 
@@ -369,9 +372,10 @@ Done:
 - Pixel 8a standalone Settings diagnostic passed with the actual GGUF asset copied into app document storage.
 - Qwen mode merges local rules with useful model candidates instead of replacing rules output, so automatic tags continue to work even when the small model emits weak or noisy tag JSON.
 - Settings can import/repair the GGUF file after app data clears the document-storage model cache.
+- Automated regression tests cover missing/invalid Qwen assets falling back to rules and noisy model tags such as pronouns, ordinary verbs, and standalone years being filtered. The next device gate is golden-case tag quality after document-picker recovery, not probe success by itself.
 
 Remaining:
-- Broader Qwen QA for memory use, repeated-run latency, fallback/recovery behavior, and structured-output quality tuning. Rules remain the default.
+- Broader Qwen QA for document-picker recovery after app-data clear, memory use, repeated-run latency, fallback/recovery behavior, and structured-output quality tuning. Rules remain the default.
 
 ### 7. Semantic Search and Embeddings
 
@@ -384,9 +388,10 @@ Done:
 - Settings diagnostic can test the production BGE ONNX Runtime path, report exact missing required files, and record elapsed-time/vector-shape feedback when assets are present.
 - Pixel 8a standalone Settings diagnostic passed with the actual ONNX/tokenizer assets copied into app document storage.
 - Settings can import/repair ONNX/tokenizer files after app data clears the document-storage model cache, and readiness checks reject required files with unexpected sizes.
+- Automated regression tests cover required BGE asset rejection and confirm BGE readiness is independent from Qwen readiness.
 
 Remaining:
-- Broader BGE QA for embedding rebuild/search latency, memory use, fallback behavior, and recovery behavior.
+- Broader BGE QA for document-picker recovery after app-data clear, embedding rebuild/search latency, memory use, fallback behavior, and recovery behavior.
 
 ### 8. Timeline and Memory Visualization
 

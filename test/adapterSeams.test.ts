@@ -196,6 +196,27 @@ describe("optional AI adapter seams", () => {
     ]);
   });
 
+  it("rejects wrong-size Qwen files before loading the runtime", async () => {
+    let runtimeLoaded = false;
+
+    const engine = await createQwenStructuredExtractionEngineFromAssets(
+      assetStoreWith(["qwen2.5-0.5b-instruct-q4_k_m.gguf"], { "qwen2.5-0.5b-instruct-q4_k_m.gguf": 12 }),
+      async () => {
+        runtimeLoaded = true;
+        throw new Error("Runtime should not load when required assets are invalid.");
+      }
+    );
+    const availability = await checkLocalModelAvailability(
+      QWEN_2_5_0_5B_ASSET_MANIFEST,
+      assetStoreWith(["qwen2.5-0.5b-instruct-q4_k_m.gguf"], { "qwen2.5-0.5b-instruct-q4_k_m.gguf": 12 })
+    );
+
+    expect(engine).toBeUndefined();
+    expect(runtimeLoaded).toBe(false);
+    expect(availability.available).toBe(false);
+    expect(availability.invalidAssetIds).toEqual(["gguf-model"]);
+  });
+
   it("matches selected model files back to their manifest entries", () => {
     expect(findLocalModelAssetByFileName([BGE_SMALL_EN_V15_ASSET_MANIFEST, QWEN_2_5_0_5B_ASSET_MANIFEST], "MODEL.ONNX")).toEqual(
       expect.objectContaining({
@@ -204,6 +225,32 @@ describe("optional AI adapter seams", () => {
       })
     );
     expect(findLocalModelAssetByFileName([BGE_SMALL_EN_V15_ASSET_MANIFEST], "notes.txt")).toBeUndefined();
+  });
+
+  it("maps selected Qwen and BGE import filenames to separate manifests", () => {
+    const manifests = [BGE_SMALL_EN_V15_ASSET_MANIFEST, QWEN_2_5_0_5B_ASSET_MANIFEST];
+    const mapped = ["model.onnx", "tokenizer.json", "qwen2.5-0.5b-instruct-q4_k_m.gguf", "STRUCTURED-EXTRACTION.GBNF"].map(
+      (fileName) => findLocalModelAssetByFileName(manifests, fileName)
+    );
+
+    expect(mapped).toEqual([
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "bge-small-en-v1.5" }),
+        asset: expect.objectContaining({ id: "onnx-model" })
+      }),
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "bge-small-en-v1.5" }),
+        asset: expect.objectContaining({ id: "tokenizer-json" })
+      }),
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "qwen2.5-0.5b-instruct" }),
+        asset: expect.objectContaining({ id: "gguf-model" })
+      }),
+      expect.objectContaining({
+        manifest: expect.objectContaining({ id: "qwen2.5-0.5b-instruct" }),
+        asset: expect.objectContaining({ id: "json-grammar" })
+      })
+    ]);
   });
 
   it("allows optional local model assets to be absent", async () => {
@@ -431,6 +478,67 @@ describe("optional AI adapter seams", () => {
     expect(merged.engineId).toBe("rules-structured+local-model-structured-noisy-fixture");
     expect(merged.tags.map((tag) => tag.name)).toEqual(expect.arrayContaining(["Grandma", "Queens", "family"]));
     expect(merged.tags.map((tag) => tag.name)).not.toEqual(expect.arrayContaining(["I", "visited", "2004"]));
+  });
+
+  it("filters high-confidence noisy Qwen pronoun, verb, and year tags", async () => {
+    const baseline = await new RulesStructuredExtractionEngine().extract({
+      text: "In 2004 I went with Maya to the old house."
+    });
+    const model = await new JsonLocalModelStructuredExtractionEngine({
+      id: "high-noise-fixture",
+      displayName: "High-noise fixture",
+      version: "1.0.0",
+      async complete() {
+        return JSON.stringify({
+          dates: [],
+          tags: [
+            { name: "I", type: "person", confidence: 0.99, source: "model" },
+            { name: "went", type: "activity", confidence: 0.95, source: "model" },
+            { name: "2004", type: "time", confidence: 0.98, source: "model" },
+            { name: "Maya", type: "person", confidence: 0.82, source: "model" }
+          ],
+          emotionalTone: []
+        });
+      }
+    }).extract({ text: "In 2004 I went with Maya to the old house." });
+
+    const merged = mergeStructuredExtractionResults(baseline, model, { sourceText: "In 2004 I went with Maya to the old house." });
+    const names = merged.tags.map((tag) => tag.name);
+
+    expect(names).toEqual(expect.arrayContaining(["Maya", "old house"]));
+    expect(names).not.toEqual(expect.arrayContaining(["I", "went", "2004"]));
+  });
+
+  it("keeps rules output when the Qwen asset path is missing", async () => {
+    const baseline = await new RulesStructuredExtractionEngine().extract({
+      text: "Maya took the dog to the old house."
+    });
+    const qwen = await createQwenStructuredExtractionEngineFromAssets(assetStoreWith([]), async () => {
+      throw new Error("Runtime should not load when the GGUF path is missing.");
+    });
+    const result = qwen ? mergeStructuredExtractionResults(baseline, await qwen.extract({ text: "Maya took the dog to the old house." })) : baseline;
+
+    expect(qwen).toBeUndefined();
+    expect(result.engineId).toBe("rules-structured");
+    expect(result.tags.map((tag) => tag.name)).toEqual(expect.arrayContaining(["Maya", "dog", "old house"]));
+  });
+
+  it("keeps BGE readiness independent from Qwen readiness", async () => {
+    const bgeReadyQwenMissing = assetStoreWith(["model.onnx", "tokenizer.json", "tokenizer_config.json"]);
+    const qwenReadyBgeMissing = assetStoreWith(["qwen2.5-0.5b-instruct-q4_k_m.gguf"]);
+
+    await expect(checkLocalModelAvailability(BGE_SMALL_EN_V15_ASSET_MANIFEST, bgeReadyQwenMissing)).resolves.toEqual(
+      expect.objectContaining({ available: true })
+    );
+    await expect(checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, bgeReadyQwenMissing)).resolves.toEqual(
+      expect.objectContaining({ available: false, missingAssetIds: ["gguf-model"] })
+    );
+    await expect(checkLocalModelAvailability(QWEN_2_5_0_5B_ASSET_MANIFEST, qwenReadyBgeMissing)).resolves.toEqual(
+      expect.objectContaining({ available: true })
+    );
+    await expect(checkLocalModelAvailability(BGE_SMALL_EN_V15_ASSET_MANIFEST, qwenReadyBgeMissing)).resolves.toEqual(
+      expect.objectContaining({ available: false, missingAssetIds: ["onnx-model", "tokenizer-json", "tokenizer-config"] })
+    );
   });
 
   it("builds local structured extraction prompts with known context", () => {
