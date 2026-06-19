@@ -59,8 +59,7 @@ import {
   type ArchiveMergeOptions
 } from "../../../src/import/importWorkflow";
 import { createLifeContextId, findLifeContextMatches, type LifeContextEntity } from "../../../src/core/lifeContext";
-import { extractDateCandidates } from "../../../src/processing/rules/dateExtraction";
-import { suggestTags } from "../../../src/processing/rules/tagSuggestion";
+import { mergeStructuredExtractionResults, RulesStructuredExtractionEngine } from "../../../src/processing/structuredExtraction";
 import { HashEmbeddingEngine, type IEmbeddingEngine } from "../../../src/processing/embeddings";
 import { parseTagNames } from "../../../src/core/tagParsing";
 import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../src/processing/reviewInbox";
@@ -172,6 +171,8 @@ async function createEmbeddingEngineForMode(mode: EmbeddingEngineMode): Promise<
 }
 
 async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMode, text: string) {
+  const rulesResult = await new RulesStructuredExtractionEngine().extract({ text });
+
   if (mode === "none") {
     return {
       title: undefined,
@@ -188,19 +189,16 @@ async function extractStructuredSuggestionsForMode(mode: StructuredExtractionMod
         new ExpoDocumentLocalModelAssetStore(QWEN_2_5_0_5B_ASSET_MANIFEST),
         loadQwenNativeRuntimeFromAssets
       );
-      if (engine) return engine.extract({ text });
+      if (engine) {
+        const modelResult = await engine.extract({ text });
+        return mergeStructuredExtractionResults(rulesResult, modelResult, { sourceText: text });
+      }
     } catch {
       // Fall through to local rules so unavailable optional models never block capture.
     }
   }
 
-  return {
-    title: undefined,
-    dates: extractDateCandidates(text),
-    tags: suggestTags(text),
-    emotionalTone: [],
-    engineId: "rules-structured"
-  };
+  return rulesResult;
 }
 
 export default function App() {

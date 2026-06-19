@@ -106,6 +106,24 @@ export class JsonLocalModelStructuredExtractionEngine implements IStructuredExtr
   }
 }
 
+export function mergeStructuredExtractionResults(
+  baseline: StructuredExtractionResult,
+  model: StructuredExtractionResult,
+  options: { sourceText?: string } = {}
+): StructuredExtractionResult {
+  const promptVersion = [baseline.promptVersion, model.promptVersion].filter(Boolean).join("+");
+  return {
+    ...(model.title ?? baseline.title ? { title: model.title ?? baseline.title } : {}),
+    dates: mergeDateCandidates(baseline.dates, model.dates),
+    tags: mergeTagSuggestions(baseline.tags, model.tags, options.sourceText),
+    emotionalTone: mergeTagSuggestions(baseline.emotionalTone, model.emotionalTone, options.sourceText),
+    engineId: `${baseline.engineId}+${model.engineId}`,
+    engineVersion: `${baseline.engineVersion}+${model.engineVersion}`,
+    schemaVersion: "structured-extraction.v1",
+    ...(promptVersion ? { promptVersion } : {})
+  };
+}
+
 export function buildStructuredExtractionPrompt(input: StructuredExtractionInput): string {
   const knownPeople = input.context?.people?.map((person) => person.displayName).join(", ") || "none";
   const knownPets = input.context?.pets?.map((pet) => pet.name).join(", ") || "none";
@@ -114,9 +132,13 @@ export function buildStructuredExtractionPrompt(input: StructuredExtractionInput
   return [
     "Extract provisional memory metadata as strict JSON.",
     "Return only JSON with keys: title, dates, tags, emotionalTone.",
-    "Dates must include label, precision, confidence, source, and explanation when available.",
+    "Dates must include label, precision, confidence, sourceText, and inferenceExplanation when available.",
     "Tags and emotionalTone must include name, type, confidence, source, and explanation when available.",
+    "Prefer short tag names that appear in the memory text or known context, such as people, pets, places, activities, life periods, and themes.",
+    "Do not tag filler words, pronouns, standalone years, or verbs unless they are meaningful recurring themes.",
     "Suggestions are provisional and must not rewrite the memory.",
+    'Example memory: "In 2004 I visited Grandma in Queens."',
+    'Example JSON: {"title":"Visited Grandma in Queens","dates":[{"label":"2004","precision":"year","confidence":0.9,"sourceText":"2004","inferenceExplanation":"The memory explicitly says 2004."}],"tags":[{"name":"Grandma","type":"person","confidence":0.86,"source":"explicit","explanation":"Named family member in the memory."},{"name":"Queens","type":"place","confidence":0.82,"source":"explicit","explanation":"Named place in the memory."},{"name":"family","type":"theme","confidence":0.74,"source":"inferred","explanation":"Grandma indicates family context."}],"emotionalTone":[]}',
     `Known people: ${knownPeople}`,
     `Known pets: ${knownPets}`,
     `Known places: ${knownPlaces}`,
@@ -173,6 +195,71 @@ function parseModelJson(raw: string): Partial<StructuredExtractionResult> {
     throw new Error("Local structured extraction returned non-object JSON.");
   }
   return parsed;
+}
+
+function mergeDateCandidates(baseline: DateCandidate[], model: DateCandidate[]): DateCandidate[] {
+  const byLabel = new Map<string, DateCandidate>();
+  for (const candidate of [...baseline, ...model]) {
+    const key = candidate.label.trim().toLocaleLowerCase();
+    const existing = byLabel.get(key);
+    if (!existing || candidate.confidence > existing.confidence) {
+      byLabel.set(key, candidate);
+    }
+  }
+  return [...byLabel.values()].sort((a, b) => b.confidence - a.confidence || a.label.localeCompare(b.label));
+}
+
+function mergeTagSuggestions(baseline: TagSuggestion[], model: TagSuggestion[], sourceText?: string): TagSuggestion[] {
+  const byName = new Map<string, TagSuggestion>();
+  for (const suggestion of baseline) {
+    byName.set(normalizeTagName(suggestion.name), suggestion);
+  }
+
+  for (const suggestion of model) {
+    if (!isUsefulModelTagSuggestion(suggestion, sourceText)) continue;
+    const key = normalizeTagName(suggestion.name);
+    const existing = byName.get(key);
+    if (!existing || suggestion.confidence > existing.confidence) {
+      byName.set(key, suggestion);
+    }
+  }
+
+  return [...byName.values()].sort((a, b) => b.confidence - a.confidence || a.name.localeCompare(b.name));
+}
+
+const MODEL_TAG_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "at",
+  "i",
+  "in",
+  "it",
+  "me",
+  "my",
+  "of",
+  "on",
+  "the",
+  "to",
+  "visited",
+  "visit",
+  "went",
+  "was",
+  "were"
+]);
+
+function isUsefulModelTagSuggestion(suggestion: TagSuggestion, sourceText?: string): boolean {
+  const normalized = normalizeTagName(suggestion.name);
+  if (!normalized || MODEL_TAG_STOP_WORDS.has(normalized)) return false;
+  if (/^\d+$/.test(normalized)) return false;
+  if (suggestion.confidence < 0.55) return false;
+  if (!sourceText?.trim()) return true;
+  const normalizedText = sourceText.toLocaleLowerCase();
+  return normalizedText.includes(normalized) || suggestion.confidence >= 0.74;
+}
+
+function normalizeTagName(name: string): string {
+  return name.trim().toLocaleLowerCase();
 }
 
 function normalizeDateCandidates(value: unknown): DateCandidate[] {

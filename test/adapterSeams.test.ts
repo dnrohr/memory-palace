@@ -9,6 +9,7 @@ import {
 import {
   buildStructuredExtractionPrompt,
   JsonLocalModelStructuredExtractionEngine,
+  mergeStructuredExtractionResults,
   NoStructuredExtractionEngine,
   RulesStructuredExtractionEngine,
   validateStructuredExtractionResult
@@ -408,6 +409,30 @@ describe("optional AI adapter seams", () => {
     );
   });
 
+  it("keeps rules tags while filtering weak noisy model tags", async () => {
+    const baseline = await new RulesStructuredExtractionEngine().extract({
+      text: "In 2004 I visited Grandma in Queens."
+    });
+    const model = await new JsonLocalModelStructuredExtractionEngine({
+      id: "noisy-fixture",
+      displayName: "Noisy fixture",
+      version: "1.0.0",
+      async complete() {
+        return JSON.stringify({
+          dates: [],
+          tags: ["I", "visited", "2004", "Grandma", { name: "Queens", type: "place", confidence: 0.82, source: "model" }],
+          emotionalTone: []
+        });
+      }
+    }).extract({ text: "In 2004 I visited Grandma in Queens." });
+
+    const merged = mergeStructuredExtractionResults(baseline, model, { sourceText: "In 2004 I visited Grandma in Queens." });
+
+    expect(merged.engineId).toBe("rules-structured+local-model-structured-noisy-fixture");
+    expect(merged.tags.map((tag) => tag.name)).toEqual(expect.arrayContaining(["Grandma", "Queens", "family"]));
+    expect(merged.tags.map((tag) => tag.name)).not.toEqual(expect.arrayContaining(["I", "visited", "2004"]));
+  });
+
   it("builds local structured extraction prompts with known context", () => {
     expect(
       buildStructuredExtractionPrompt({
@@ -431,6 +456,7 @@ describe("optional AI adapter seams", () => {
       })
     );
     expect(buildQwenStructuredExtractionPrompt({ text: "A memory." })).toContain("<|im_start|>system");
+    expect(buildQwenStructuredExtractionPrompt({ text: "A memory." })).toContain("Do not tag pronouns");
   });
 
   it("wraps a llama runtime for deterministic Qwen JSON extraction", async () => {

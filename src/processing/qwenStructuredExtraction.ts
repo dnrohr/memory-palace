@@ -66,6 +66,8 @@ function toQwenStructuredExtractionPrompt(taskPrompt: string): string {
     "You extract provisional metadata for a private local memory archive.",
     "Return strict JSON only. Do not include Markdown, prose, or commentary.",
     "Use low confidence when the memory is ambiguous. Never invent facts.",
+    "For tags, prefer named people, pets, places, family/theme words, activities, and life periods that are explicit in the text.",
+    "Do not tag pronouns, filler words, standalone years, or ordinary verbs.",
     "<|im_end|>",
     "<|im_start|>user",
     taskPrompt,
