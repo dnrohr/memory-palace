@@ -744,13 +744,11 @@ function AppContent() {
             onClearRetainedAudio={async () => persist(clearRetainedAudioReferences(archive))}
             onClearDeletedArtifacts={async () => persist(clearDeletedMemoryArtifacts(archive))}
             onRegenerateEmbeddings={async () => persist(archive, { rebuildEmbeddings: true })}
-            onEnableBiometricLock={async () =>
-              saveAppLockSettings({
-                mode: "biometric",
-                autoLockTimeoutMs: 60_000,
-                hidePreviewsInSwitcher: true
-              })
-            }
+            onEnableBiometricLock={async () => {
+              const settings = await appLockProvider.enableBiometricLock();
+              setAppLockSettings(settings);
+              setIsAppLocked(await appLockProvider.isLocked());
+            }}
             onSavePin={async (pin) => {
               await appLockProvider.savePin(pin);
               setAppLockSettings(await appLockProvider.getSettings());
@@ -3418,6 +3416,7 @@ function Settings(props: {
   const [exportPassphrase, setExportPassphrase] = useState("");
   const [backupPassphrase, setBackupPassphrase] = useState("");
   const [backupStatus, setBackupStatus] = useState<string | undefined>();
+  const [appLockStatus, setAppLockStatus] = useState<string | undefined>();
   const [webDavUrl, setWebDavUrl] = useState("");
   const [webDavUsername, setWebDavUsername] = useState("");
   const [webDavPassword, setWebDavPassword] = useState("");
@@ -4158,7 +4157,19 @@ function Settings(props: {
         <View style={styles.actionRow}>
           {props.appLockSettings.mode === "disabled" ? (
             <>
-              <PrimaryButton label="Enable biometric" onPress={props.onEnableBiometricLock} icon={<Lock size={18} />} />
+              <PrimaryButton
+                label="Enable biometric"
+                onPress={async () => {
+                  setAppLockStatus(undefined);
+                  try {
+                    await props.onEnableBiometricLock();
+                    setAppLockStatus("Biometric lock enabled. Use Lock now to test unlock.");
+                  } catch (error) {
+                    setAppLockStatus(error instanceof Error ? error.message : "Biometric lock could not be enabled.");
+                  }
+                }}
+                icon={<Lock size={18} />}
+              />
               <TextInput
                 value={pinDraft}
                 onChangeText={setPinDraft}
@@ -4173,6 +4184,7 @@ function Settings(props: {
               <SecondaryButton
                 label="Save PIN"
                 onPress={async () => {
+                  setAppLockStatus(undefined);
                   await props.onSavePin(pinDraft);
                   setPinDraft("");
                 }}
@@ -4181,11 +4193,26 @@ function Settings(props: {
             </>
           ) : (
             <>
-              <SecondaryButton label="Lock now" onPress={props.onLockNow} icon={<Lock size={18} />} />
-              <SecondaryButton label="Disable lock" onPress={props.onDisableAppLock} icon={<X size={18} />} />
+              <SecondaryButton
+                label="Lock now"
+                onPress={async () => {
+                  setAppLockStatus(undefined);
+                  await props.onLockNow();
+                }}
+                icon={<Lock size={18} />}
+              />
+              <SecondaryButton
+                label="Disable lock"
+                onPress={async () => {
+                  setAppLockStatus(undefined);
+                  await props.onDisableAppLock();
+                }}
+                icon={<X size={18} />}
+              />
             </>
           )}
         </View>
+        {appLockStatus ? <Text style={styles.metadata}>{appLockStatus}</Text> : null}
         <View style={styles.settingsDivider} />
         <Text style={styles.panelTitle}>Encryption</Text>
         <Text style={styles.metadata}>Provider: Web Crypto encrypted exports and archive adapter</Text>

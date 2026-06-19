@@ -37,18 +37,9 @@ export class ExpoBiometricAppLockProvider implements IAppLockProvider {
       return success;
     }
 
-    const LocalAuthentication = await import("expo-local-authentication");
-    const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    const enrolled = await LocalAuthentication.isEnrolledAsync();
-    if (!hasHardware || !enrolled) return false;
-
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Unlock memory palace",
-      cancelLabel: "Cancel",
-      disableDeviceFallback: false
-    });
-    this.locked = !result.success;
-    return result.success;
+    const success = await this.authenticateBiometric("Unlock memory palace");
+    this.locked = !success;
+    return success;
   }
 
   async lock(): Promise<void> {
@@ -79,5 +70,41 @@ export class ExpoBiometricAppLockProvider implements IAppLockProvider {
   private async getSavedPin(): Promise<string | null> {
     const SecureStore = await import("expo-secure-store");
     return SecureStore.getItemAsync(PIN_KEY);
+  }
+
+  async enableBiometricLock(): Promise<AppLockSettings> {
+    const success = await this.authenticateBiometric("Enable biometric lock");
+    if (!success) {
+      throw new Error("Biometric unlock was not completed.");
+    }
+
+    const settings: AppLockSettings = {
+      mode: "biometric",
+      autoLockTimeoutMs: 60_000,
+      hidePreviewsInSwitcher: true
+    };
+    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    this.locked = false;
+    return settings;
+  }
+
+  private async authenticateBiometric(promptMessage: string): Promise<boolean> {
+    const LocalAuthentication = await import("expo-local-authentication");
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    if (!hasHardware) {
+      throw new Error("Biometric hardware is not available on this device.");
+    }
+
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!enrolled) {
+      throw new Error("No biometric or device credential is enrolled on this device.");
+    }
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage,
+      cancelLabel: "Cancel",
+      disableDeviceFallback: false
+    });
+    return result.success;
   }
 }
