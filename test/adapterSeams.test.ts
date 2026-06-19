@@ -357,6 +357,29 @@ describe("optional AI adapter seams", () => {
     await expect(engine.extract({ text: "A memory." })).rejects.toThrow("invalid output");
   });
 
+  it("normalizes loose local model dates and string tags", async () => {
+    const engine = new JsonLocalModelStructuredExtractionEngine({
+      id: "loose-fixture",
+      displayName: "Loose fixture",
+      version: "1.0.0",
+      async complete() {
+        return JSON.stringify({
+          dates: [{ year: 2004 }],
+          tags: ["Grandma"],
+          emotionalTone: ["joy"]
+        });
+      }
+    });
+
+    await expect(engine.extract({ text: "A memory." })).resolves.toEqual(
+      expect.objectContaining({
+        dates: [expect.objectContaining({ label: "2004", precision: "year", confidence: 0.5 })],
+        tags: [expect.objectContaining({ name: "Grandma", type: "theme", confidence: 0.5 })],
+        emotionalTone: [expect.objectContaining({ name: "joy", type: "emotion", confidence: 0.5 })]
+      })
+    );
+  });
+
   it("builds local structured extraction prompts with known context", () => {
     expect(
       buildStructuredExtractionPrompt({
