@@ -408,12 +408,16 @@ Search modes:
 - Tags.
 - Date filters.
 
+Search should be search-first, not inventory-first. The default Explore surface should show the search input, any selected filters as removable chips, and only a small set of high-signal suggested filters from local memory data. While the user types, suggestions should be grouped and compact, with tag-backed People, Places, and Tags suggestions, date precision suggestions, and text snippets when they add useful context.
+
+The full tag/date inventory should live behind an explicit advanced filter or tune control. It remains available for deliberate browsing, but it should not be the first thing the user has to parse.
+
 Recommended labels:
 
-- `Search memories`
+- `Search memories, people, places, tags...`
 - `Keyword`
 - `Nearby`
-- `Filters`
+- `Advanced filters`
 
 Avoid:
 

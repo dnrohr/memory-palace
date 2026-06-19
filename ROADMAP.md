@@ -63,6 +63,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 
 ### 2026-06-19
 
+- Reworked Explore filters into a search-first suggestion flow: the search box now suggests local tag-backed People, Places, and Tags groups plus date precision filters and optional text snippets; selected tag/date filters render as removable chips; and the full tag/date inventory is behind an explicit advanced filter control. Local `npm run build` and focused filter-suggestion tests passed; manual Pixel 8a QA remains required for the changed Explore interaction.
 - Added a Settings-side Qwen local model diagnostic that checks the document-storage asset directory, reports exact missing required files, and runs the production `llama.rn` structured-extraction path when GGUF assets are present. This keeps rules fallback as the default and makes actual model-asset QA measurable instead of relying on manifest presence alone.
 - Added a Settings-side BGE local model diagnostic that checks required ONNX/tokenizer assets, reports exact missing files, and runs the production ONNX Runtime embedding path when assets are present. The diagnostic reports elapsed time, vector dimensions, and vector norm while keeping hash fallback available.
 - Downloaded official Qwen and BGE artifacts outside the repository under `C:\Users\dnroh\Documents\memory-palace-downloads`, copied them into the Pixel 8a app sandbox under `files/models/...`, and verified Settings recognized both model directories as ready.

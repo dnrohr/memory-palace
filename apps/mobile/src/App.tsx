@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
+import { ArrowLeft, CalendarDays, ClipboardList, Download, Edit3, Lock, MapPin, Mic, Plus, RotateCcw, Save, Search, Settings as SettingsIcon, SlidersHorizontal, Square, Tags, Trash2, Users, Wand2, X } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoCrypto from "expo-crypto";
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from "react";
@@ -66,6 +66,7 @@ import { acceptReviewItem, buildReviewInbox, rejectReviewItem } from "../../../s
 import { buildResurfacingPrompts, type ResurfacingPrompt } from "../../../src/product/resurfacing";
 import { findStaleEmbeddingMemoryIds, rebuildEmbeddingIndex, searchEmbeddingIndex } from "../../../src/search/embeddingIndex";
 import { findRelatedMemories, type RelatedMemoryResult } from "../../../src/search/relatedMemories";
+import { buildExploreFilterSuggestionGroups, type ExploreFilterSuggestion } from "../../../src/search/filterSuggestions";
 import { searchArchive } from "../../../src/search/searchService";
 import {
   BGE_SMALL_EN_V15_ASSET_MANIFEST,
@@ -2109,6 +2110,7 @@ function MemoryList(props: {
 }) {
   const { width } = useWindowDimensions();
   const [fastCaptureText, setFastCaptureText] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const isWideExplore = width >= 900;
   const searchResultsByMemoryId = useMemo(() => {
     if (!props.query.trim() || props.searchMode !== "keyword") return new Map();
@@ -2122,9 +2124,8 @@ function MemoryList(props: {
   }, [props.archive, props.query, props.searchMode, props.selectedDatePrecision, props.selectedTagIds]);
   const activeMemories = props.archive.memories.filter((memory) => !memory.deletedAt);
   const unknownDateCount = activeMemories.filter((memory) => memory.datePrecision === "unknown").length;
-  const selectedTagNames = props.archive.tags
-    .filter((tag) => props.selectedTagIds.includes(tag.id))
-    .map((tag) => tag.name);
+  const selectedTags = props.archive.tags.filter((tag) => props.selectedTagIds.includes(tag.id));
+  const selectedTagNames = selectedTags.map((tag) => tag.name);
   const hasActiveSearch = Boolean(props.query.trim() || props.selectedTagIds.length > 0 || props.selectedDatePrecision);
   const searchContext = describeSearchContext({
     query: props.query,
@@ -2132,6 +2133,30 @@ function MemoryList(props: {
     selectedDatePrecision: props.selectedDatePrecision,
     selectedTagNames
   });
+  const suggestionGroups = useMemo(
+    () =>
+      buildExploreFilterSuggestionGroups({
+        archive: props.archive,
+        query: props.query,
+        activeTagIds: props.selectedTagIds,
+        includeTextMatches: true,
+        limitPerGroup: props.query.trim() ? 4 : 3,
+        ...(props.selectedDatePrecision ? { activeDatePrecision: props.selectedDatePrecision } : {})
+      }),
+    [props.archive, props.query, props.selectedDatePrecision, props.selectedTagIds]
+  );
+
+  function applySuggestion(suggestion: ExploreFilterSuggestion) {
+    if (suggestion.type === "date") {
+      props.onSelectDatePrecision(suggestion.value as DatePrecision);
+      return;
+    }
+    if (suggestion.type === "text") {
+      props.onQueryChange(suggestion.value);
+      return;
+    }
+    props.onToggleTag(suggestion.value);
+  }
 
   async function saveFastCapture() {
     const text = fastCaptureText.trim();
@@ -2177,11 +2202,60 @@ function MemoryList(props: {
         <TextInput
           value={props.query}
           onChangeText={props.onQueryChange}
-          placeholder={props.searchMode === "semantic" ? "Nearby memories" : "Search memories"}
+          placeholder={props.searchMode === "semantic" ? "Nearby memories, people, places..." : "Search memories, people, places, tags..."}
           placeholderTextColor="#7b8178"
           style={styles.searchInput}
         />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Show advanced filters"
+          onPress={() => setShowAdvancedFilters((current) => !current)}
+          style={[styles.iconButton, showAdvancedFilters ? styles.iconButtonActive : null]}
+        >
+          <SlidersHorizontal size={18} color={showAdvancedFilters ? "#263323" : "#5f655d"} />
+        </Pressable>
       </View>
+      {props.query.trim() || selectedTags.length > 0 || props.selectedDatePrecision ? (
+        <View style={styles.activeFilterChips}>
+          {props.query.trim() ? (
+            <Pressable onPress={() => props.onQueryChange("")} style={[styles.tag, styles.tagSelected, styles.removableChip]}>
+              <Text numberOfLines={1} style={[styles.tagLabelSelected, styles.removableChipLabel]}>Text: {props.query.trim()}</Text>
+              <X size={14} color="#263323" />
+            </Pressable>
+          ) : null}
+          {selectedTags.map((tag) => (
+            <Pressable key={tag.id} onPress={() => props.onToggleTag(tag.id)} style={[styles.tag, styles.tagSelected, styles.removableChip]}>
+              <Text numberOfLines={1} style={[styles.tagLabelSelected, styles.removableChipLabel]}>{tag.name}</Text>
+              <X size={14} color="#263323" />
+            </Pressable>
+          ))}
+          {props.selectedDatePrecision ? (
+            <Pressable onPress={() => props.onSelectDatePrecision(props.selectedDatePrecision as DatePrecision)} style={[styles.tag, styles.tagSelected, styles.removableChip]}>
+              <Text numberOfLines={1} style={[styles.tagLabelSelected, styles.removableChipLabel]}>{exploreDatePrecisionLabel(props.selectedDatePrecision)}</Text>
+              <X size={14} color="#263323" />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {suggestionGroups.length > 0 ? (
+        <View style={styles.suggestionPanel}>
+          <Text style={styles.sectionEyebrow}>{props.query.trim() ? "Suggestions" : "Suggested filters"}</Text>
+          {suggestionGroups.map((group) => (
+            <View key={group.label} style={styles.suggestionGroup}>
+              <Text style={styles.metadata}>{group.label}</Text>
+              <View style={styles.tags}>
+                {group.suggestions.map((suggestion) => (
+                  <Pressable key={suggestion.id} onPress={() => applySuggestion(suggestion)} style={styles.suggestionChip}>
+                    <Text style={styles.tagLabel}>{suggestion.label}</Text>
+                    {suggestion.count ? <Text style={styles.suggestionCount}>{suggestion.count}</Text> : null}
+                    {suggestion.snippet ? <Text style={styles.suggestionSnippet}>{suggestion.snippet}</Text> : null}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <View style={styles.segmentRow}>
         {(["keyword", "semantic"] as SearchMode[]).map((mode) => (
           <Pressable
@@ -2248,34 +2322,47 @@ function MemoryList(props: {
   );
   const filterSurface = (
       <View style={styles.filterPanel}>
-        <Text style={styles.panelTitle}>Filters</Text>
-        <View style={styles.tags}>
-          {props.archive.tags.length === 0 ? <Text style={styles.metadata}>No tags yet</Text> : null}
-          {props.archive.tags.map((tag) => (
-            <Pressable
-              key={tag.id}
-              onPress={() => props.onToggleTag(tag.id)}
-              style={[styles.tag, props.selectedTagIds.includes(tag.id) ? styles.tagSelected : null]}
-            >
-              <Text style={[styles.tagLabel, props.selectedTagIds.includes(tag.id) ? styles.tagLabelSelected : null]}>
-                {tag.name}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.panelTitle}>Advanced filters</Text>
+          <SecondaryButton
+            label={showAdvancedFilters ? "Hide" : "Show"}
+            onPress={() => setShowAdvancedFilters((current) => !current)}
+            icon={<SlidersHorizontal size={18} />}
+          />
         </View>
-        <View style={styles.segmentRow}>
-          {(["unknown", "year", "grade", "range", "exact"] as DatePrecision[]).map((precision) => (
-            <Pressable
-              key={precision}
-              onPress={() => props.onSelectDatePrecision(precision)}
-              style={[styles.segment, props.selectedDatePrecision === precision ? styles.segmentActive : null]}
-            >
-              <Text style={[styles.segmentText, props.selectedDatePrecision === precision ? styles.segmentTextActive : null]}>
-                {precision}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {showAdvancedFilters ? (
+          <>
+            <View style={styles.tags}>
+              {props.archive.tags.length === 0 ? <Text style={styles.metadata}>No tags yet</Text> : null}
+              {props.archive.tags.map((tag) => (
+                <Pressable
+                  key={tag.id}
+                  onPress={() => props.onToggleTag(tag.id)}
+                  style={[styles.tag, props.selectedTagIds.includes(tag.id) ? styles.tagSelected : null]}
+                >
+                  <Text style={[styles.tagLabel, props.selectedTagIds.includes(tag.id) ? styles.tagLabelSelected : null]}>
+                    {tag.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.segmentRow}>
+              {(["unknown", "year", "grade", "range", "exact"] as DatePrecision[]).map((precision) => (
+                <Pressable
+                  key={precision}
+                  onPress={() => props.onSelectDatePrecision(precision)}
+                  style={[styles.segment, props.selectedDatePrecision === precision ? styles.segmentActive : null]}
+                >
+                  <Text style={[styles.segmentText, props.selectedDatePrecision === precision ? styles.segmentTextActive : null]}>
+                    {precision}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : (
+          <Text style={styles.metadata}>Full tag and date inventory is tucked away until needed.</Text>
+        )}
         {hasActiveSearch ? (
           <SecondaryButton label="Clear filters" onPress={props.onClearFilters} icon={<X size={18} />} />
         ) : null}
@@ -2359,6 +2446,21 @@ function describeSearchContext(input: {
   }
   if (pieces.length === 0) return undefined;
   return `Showing memories ${pieces.join(" and ")}.`;
+}
+
+function exploreDatePrecisionLabel(precision: DatePrecision): string {
+  const labels: Record<DatePrecision, string> = {
+    exact: "Exact dates",
+    day: "Day dates",
+    month: "Month dates",
+    year: "Year-only dates",
+    range: "Date ranges",
+    age: "Age memories",
+    grade: "School-grade memories",
+    decade: "Decade memories",
+    unknown: "Unknown dates"
+  };
+  return labels[precision];
 }
 
 function resultSectionTitle(searchMode: SearchMode, hasActiveSearch: boolean): string {
@@ -4721,6 +4823,50 @@ const lightStyles = StyleSheet.create({
     fontSize: 16,
     outlineStyle: "none" as never
   },
+  activeFilterChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  removableChip: {
+    minHeight: 34,
+    maxWidth: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  removableChipLabel: {
+    maxWidth: 260,
+    flexShrink: 1
+  },
+  suggestionGroup: {
+    gap: 7
+  },
+  suggestionChip: {
+    minHeight: 36,
+    maxWidth: "100%",
+    borderWidth: 1,
+    borderColor: "#d3d9ca",
+    borderRadius: 8,
+    backgroundColor: "#fffdf8",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  suggestionCount: {
+    color: "#6c7467",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  suggestionSnippet: {
+    width: "100%",
+    color: "#6c7467",
+    fontSize: 12,
+    lineHeight: 16
+  },
   emptyState: {
     minHeight: 260,
     alignItems: "center",
@@ -5582,6 +5728,9 @@ const darkStyleOverrides: Partial<Record<AppStyleKey, AppStyle>> = {
   tagSelected: { backgroundColor: darkColors.tagSelectedBackground },
   tagLabel: { color: darkColors.tagText },
   tagLabelSelected: { color: darkColors.tagSelectedText },
+  suggestionChip: { backgroundColor: "#20251f", borderColor: "#3a4338" },
+  suggestionCount: { color: "#aab1a6" },
+  suggestionSnippet: { color: "#aab1a6" },
   tagCard: { backgroundColor: "#20251f", borderColor: "#3a4338" },
   timelineYear: { color: "#f3efe7" },
   timelineItem: { backgroundColor: "#20251f", borderLeftColor: "#8fa984" },
