@@ -42,4 +42,4 @@
 ## Roadmap Result
 
 - Milestone 10 no longer has a lockout-prone biometric enable path: biometric mode is not persisted until local authentication succeeds.
-- Full biometric success QA remains open because ADB cannot provide the Pixel 8a fingerprint or device credential. A human-held device pass should enable biometric lock, tap `Lock now`, unlock with biometrics or device credential, and disable the lock before marking Milestone 10 done.
+- Full biometric success QA was later completed by the user on the Pixel 8a: biometric/device credentials worked after the Android authentication prompt. The ADB-run portion of this pass covered prompt display, cancellation safety, and app stability; the user-held device pass supplied the physical credential success that ADB cannot provide.

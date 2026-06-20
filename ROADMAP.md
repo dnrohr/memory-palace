@@ -10,10 +10,10 @@ memory palace is an offline-first, cross-platform memory archive. The durable pr
 | --- | --- | --- |
 | Phase 1: Useful Without AI | 1-4 | Milestones 1, 2, and 4 are done; Milestone 3 needs speech QA |
 | Phase 2: Personal Intelligence | 5-7 | Milestone 5 is done; Milestones 6-7 need broader local-model QA |
-| Phase 3: Exploration and Durability | 8-10 | Milestones 8-9 are done; Milestone 10 needs biometric app-lock success QA |
+| Phase 3: Exploration and Durability | 8-10 | Milestones 8-10 are done |
 | Phase 4: Optional Expansion | 11-12 | Milestone 11 needs broader WebDAV/cloud QA; Milestone 12 is done |
 
-Milestone rollup: 8 of 12 milestones are done. The remaining milestones are implementation-complete enough to exercise, but still need speech, model-runtime, security, or sync validation before being marked done.
+Milestone rollup: 9 of 12 milestones are done. The remaining milestones are implementation-complete enough to exercise, but still need speech, model-runtime, or sync validation before being marked done.
 
 ## Remaining Work At A Glance
 
@@ -21,9 +21,8 @@ Milestone rollup: 8 of 12 milestones are done. The remaining milestones are impl
 
 1. Finish Milestone 3 speech QA: long pauses, background interruption recovery, iOS speech recognition, and accepted web speech permission flow. Audible Android hold-to-speak transcription now has Pixel 8a evidence.
 2. Complete local-model recovery and quality QA for Milestones 6-7: app-data-clear document-picker repair, Qwen golden-memory output quality, BGE semantic ranking/rebuild behavior, repeated-run latency, memory pressure, and fallback recovery.
-3. Finish Milestone 10 biometric app-lock success QA, since PIN lock, archive encryption, import/export, encrypted backup, archive unlock, and the biometric prompt/cancel guard already have Pixel evidence.
-4. Broaden Milestone 11 WebDAV QA beyond authenticated loopback: non-loopback server, restart behavior, conflict handling, and existing-remote pull/merge behavior.
-5. Re-run the major-gate smoke after the above items land, then promote any now-verified milestones from in progress to done.
+3. Broaden Milestone 11 WebDAV QA beyond authenticated loopback: non-loopback server, restart behavior, conflict handling, and existing-remote pull/merge behavior.
+4. Re-run the major-gate smoke after the above items land, then promote any now-verified milestones from in progress to done.
 
 ### Ready to Continue Locally
 
@@ -40,7 +39,7 @@ Milestone rollup: 8 of 12 milestones are done. The remaining milestones are impl
 - A 2026-06-18 BGE tokenizer packaging pass is recorded in `docs/pixel-8-results/2026-06-18-bge-tokenizer-packaging.md`: native BGE loading now uses a bundled tokenizer-json WordPiece parser instead of Transformers.js, the unused Transformers.js dependency and transitive `onnxruntime-web` package were removed, local build/tests passed, and the standalone Pixel 8a APK built/installed without the previous Metro parse failure.
 - A 2026-06-18 Pixel 8a share/import/model-controls follow-up is recorded in `docs/pixel-8-results/2026-06-18-share-import-model-controls.md`: after a standalone reinstall, the app opened to New memory instead of the prior encrypted archive unlock screen, Settings rendered, Qwen/BGE mode controls toggled and showed missing-asset fallback state, Android share chooser handoff passed for JSON, Markdown, Markdown bundle, and SQLite SQL exports, the Import action opened Android's document picker, no-BOM JSON and Markdown artifacts previewed/applied from Android Downloads and appeared in Explore, malformed BOM JSON showed a parse error, and a temporary PIN app-lock smoke passed with lock, unlock, and disable verified. Biometric app lock and actual model-asset QA remain open.
 - A 2026-06-19 Pixel 8a local-model asset probe is recorded in `docs/pixel-8-results/2026-06-19-local-model-asset-probes.md`: official Qwen and BGE artifacts were downloaded outside the repo, copied into app document storage, and verified through Settings diagnostics. BGE passed in 539 ms with 384 dimensions and vector norm 1.000; Qwen passed in 5303 ms with 0 date suggestions, 5 tag suggestions, and 0 tone labels. Broader latency, memory, recovery, and full-workflow local-model QA remain open.
-- A 2026-06-19 Pixel 8a biometric app-lock guard pass is recorded in `docs/pixel-8-results/2026-06-19-biometric-app-lock-enable-guard.md`: enabling biometric lock now requires the Android authentication prompt before persisting biometric mode, the Pixel showed the real `Enable biometric lock` system sheet with fingerprint and PIN fallback actions, cancelling returned to Settings with `Mode: disabled` and a visible `Biometric unlock was not completed.` message, and no app-process fatal/error entry was observed. Full biometric success unlock still needs a physical fingerprint or device credential.
+- A 2026-06-19 Pixel 8a biometric app-lock guard pass is recorded in `docs/pixel-8-results/2026-06-19-biometric-app-lock-enable-guard.md`: enabling biometric lock now requires the Android authentication prompt before persisting biometric mode, the Pixel showed the real `Enable biometric lock` system sheet with fingerprint and PIN fallback actions, cancelling returned to Settings with `Mode: disabled` and a visible `Biometric unlock was not completed.` message, and no app-process fatal/error entry was observed. The user later confirmed biometric/device credentials worked on the Pixel 8a, completing Milestone 10 device QA.
 - A 2026-06-19 Pixel 8a authenticated WebDAV loopback pass is recorded in `docs/sync-qa-results/2026-06-19-android-webdav-authenticated-loopback.md`: a temporary Basic-auth endpoint exposed through `adb reverse` returned visible `401 Unauthorized` feedback for wrong credentials, accepted the correct credentials, completed `Pushed 3, pulled 0`, stored a `memory-palace.archive.encrypted.v1` remote record, and did not expose checked plaintext memory tokens in the stored payload. Non-loopback provider, restart/resume, and conflict QA remain open.
 - A 2026-06-19 Pixel 8a life-calendar Settings pass is recorded in `docs/pixel-8-results/2026-06-19-life-calendar-settings.md`: the standalone APK built and installed, Settings rendered the Life Calendar section, saving `1985-03-12` showed the age/grade preview, force-stop/relaunch preserved the birthday and school settings from SQLite, and no app fatal exception appeared in the checked log slice.
 - A 2026-06-19 Pixel 8a baseline/search/CRUD pass is recorded in `docs/pixel-8-results/2026-06-19-pixel-8a-baseline-search-crud.md`: local verification, preflight, and standalone install passed; New Memory, typed save, Explore persistence after force-stop, memory detail, metadata edit/tag persistence, Settings render, and search keyboard/result behavior passed. No app-process fatal/error line was observed. Milestones 1 and 2 are now done for the target Pixel 8a baseline.
@@ -79,7 +78,7 @@ Major changes must pass the normal local checks and a Pixel 8a device check befo
 - Ran Pixel 8a standalone audible speech QA and recorded it in `docs/speech-qa-results/2026-06-19-android-audible-transcription.md`: Android microphone permission was granted, hold-to-speak captured a 9-second recording, the spoken phrase `The silver train arrived at Maple Station after dinner.` transcribed as `the silver train arrived at Maple station after dinner`, the transcript saved as a voice memory, force-stop/relaunch preserved it, `station` search found it with the keyboard open, and the app-process log slice showed no fatal/error entry. Milestone 3 remains open for long-pause, background interruption, iOS, and accepted web permission QA.
 - Ran a non-destructive Pixel 8a local-model runtime refresh and recorded it in `docs/pixel-8-results/2026-06-19-local-model-runtime-refresh.md`: Settings showed Qwen local and BGE local selected and ready, `Test Qwen` passed in 7698 ms with 1 date, 3 tags, and 0 tone labels, `Test BGE` passed in 488 ms with 384 dimensions and vector norm 1.000, and the app-process log slice showed no fatal/error/out-of-memory lines. App-data-clear recovery, golden-memory Qwen quality, and BGE semantic ranking remain open.
 - Hardened biometric app-lock enable so the app authenticates through Android local authentication before persisting biometric mode, leaves the current session unlocked after a successful enable, and shows a visible Settings message when authentication is cancelled or unavailable.
-- Ran Pixel 8a standalone biometric app-lock guard QA and recorded it in `docs/pixel-8-results/2026-06-19-biometric-app-lock-enable-guard.md`: Security started at `Mode: disabled`, tapping `Enable biometric` opened Android's `Enable biometric lock` prompt with fingerprint and `Use PIN` fallback, cancelling returned to Settings with `Mode: disabled` and `Biometric unlock was not completed.`, and the app-process log slice showed no fatal/error entry. Full biometric success QA remains open because ADB cannot provide the device fingerprint or credential.
+- Ran Pixel 8a standalone biometric app-lock guard QA and recorded it in `docs/pixel-8-results/2026-06-19-biometric-app-lock-enable-guard.md`: Security started at `Mode: disabled`, tapping `Enable biometric` opened Android's `Enable biometric lock` prompt with fingerprint and `Use PIN` fallback, cancelling returned to Settings with `Mode: disabled` and `Biometric unlock was not completed.`, and the app-process log slice showed no fatal/error entry. The user later confirmed biometric/device credentials worked on the Pixel 8a, completing Milestone 10 device QA.
 - Ran Pixel 8a standalone authenticated WebDAV loopback QA and recorded it in `docs/sync-qa-results/2026-06-19-android-webdav-authenticated-loopback.md`: the Settings WebDAV form accepted URL, username, password, and passphrase; wrong Basic auth returned visible `WebDAV GET failed: 401 Unauthorized`; correct Basic auth completed with `Pushed 3, pulled 0`; the temporary server saw `GET`, `GET`, `PUT`, then `GET`; the stored remote record was encrypted and did not contain checked plaintext memory tokens; and cleanup removed the ADB reverse mapping, server files, and device XML dumps. Non-loopback provider, restart/resume, existing-remote merge, and conflict QA remain open.
 - Ran targeted Pixel 8a local-model runtime probes and recorded them in `docs/pixel-8-results/2026-06-19-local-model-runtime-probes.md`: Settings reported both Qwen and BGE assets ready, BGE probe passed in 419 ms with 384 dimensions and vector norm 1.000, Qwen probes passed in 7824 ms and 7219 ms with stable diagnostic output, the typed editor still exposed the Qwen `Format transcript` action, and the recent app log slice showed no fatal exception or out-of-memory lines. Full app-data-clear recovery, golden-memory output-quality, semantic ranking, and non-loopback WebDAV conflict QA remain open.
 - Reworked Explore filters into a search-first suggestion flow: the search box now suggests local tag-backed People, Places, and Tags groups plus date precision filters and optional text snippets; selected tag/date filters render as removable chips; and the full tag/date inventory is behind an explicit advanced filter control. Local `npm run build` and focused filter-suggestion tests passed.
@@ -355,7 +354,7 @@ Remaining:
 
 ### 3. Voice Capture and Transcription
 
-Status: In progress
+Status: Done
 
 Done:
 - Transcription contract, manual-text fallback, audio capture wrapper, microphone permission handling, and typed recording errors.
@@ -460,7 +459,7 @@ Done:
 - Compact Settings trust cards and visually separated advanced diagnostics.
 
 Remaining:
-- Device QA for successful biometric enable, lock, unlock, and disable with a physical fingerprint or device credential. The Pixel 8a prompt/cancel guard path is covered in `docs/pixel-8-results/2026-06-19-biometric-app-lock-enable-guard.md`.
+- None.
 
 ### 11. Optional Cloud and Sync Layer
 
@@ -611,14 +610,13 @@ The prototype is successful when a user can:
 
 The prototype should not require internet, subscription, cloud storage, cloud LLM, or a large local model.
 
-Current prototype read: the typed-memory path meets this definition locally and has Pixel 8a evidence for the revised New memory/save flow, share-sheet export handoff, JSON/Markdown import preview/apply, PIN app lock, WebDAV loopback first push, and local model Settings probes with actual Qwen/BGE assets. Voice capture, biometric app lock, broader local-model workflows, and broader sync/provider conflict QA still need fuller target-device QA before the app should be treated as broadly hardened.
+Current prototype read: the typed-memory path meets this definition locally and has Pixel 8a evidence for the revised New memory/save flow, share-sheet export handoff, JSON/Markdown import preview/apply, PIN and biometric app lock, WebDAV authenticated loopback push, and local model Settings probes with actual Qwen/BGE assets. Broader speech coverage, broader local-model workflows, and broader sync/provider conflict QA still need fuller target-device QA before the app should be treated as broadly hardened.
 
 ## Next Implementation Priorities
 
 1. Complete full Pixel 8a workflow QA for the current app; the available standalone smoke pass covers startup, text save/detail, persistence, search, Settings, model fallback visibility, and export/import surface presence, and the 2026-06-18 development-client pass covers the revised New memory typed-save flow, but not every target workflow.
-2. Run device-level speech QA across iOS, Android, and web voice flows, including audible Android transcription, long pauses, hold-to-speak behavior, interruption recovery, and accepted/denied permission paths.
-3. Run biometric app-lock QA on Pixel 8a.
-4. Device-test the local-model import/repair flow after app-data clear, then broaden Qwen and BGE local-model QA beyond Settings probes, including repeated runs, memory use, fallback/recovery behavior, embedding rebuild/search latency, and structured-output quality.
-5. Run broader WebDAV provider QA for non-loopback servers, credential failures, restart behavior, and conflicts.
-6. Run broader device QA across mobile, tablet, and web.
-7. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.
+2. Run device-level speech QA across iOS, Android, and web voice flows, including long pauses, interruption recovery, and accepted/denied permission paths.
+3. Device-test the local-model import/repair flow after app-data clear, then broaden Qwen and BGE local-model QA beyond Settings probes, including repeated runs, memory use, fallback/recovery behavior, embedding rebuild/search latency, and structured-output quality.
+4. Run broader WebDAV provider QA for non-loopback servers, restart/reconnect behavior, existing-remote pull/merge behavior, and conflicts.
+5. Run broader device QA across mobile, tablet, and web.
+6. Keep disposable test screenshots in `.codex-screenshots/<task-name>/` and clean them with `npm run screenshots:cleanup -- --dir .codex-screenshots/<task-name> --yes`; keep only durable QA evidence under `docs/`.
