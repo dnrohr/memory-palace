@@ -3,6 +3,7 @@
     "name": "memory palace",
     "slug": "memory-palace",
     "version": "0.1.0",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "memory-palace",
@@ -19,7 +20,8 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#f8f6f1"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#f6f2ea"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -29,7 +31,8 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-dev-client",
